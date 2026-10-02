@@ -7,6 +7,7 @@ const API = environment.apiUrl;
 
 const MODULE_LABELS: Record<string, string> = {
   'stocks': 'Stocks dépôts',
+  'impompable': 'Impompable (responsable désigné)',
   'corridors': 'Corridors',
   'depots-int': 'Dépôts intérieurs',
   'temps-attente': "Temps d'attente",
