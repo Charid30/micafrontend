@@ -5,6 +5,9 @@ import { environment } from '../../../../environments/environment';
 
 const API = environment.apiUrl;
 
+// Modules pour lesquels on peut restreindre à un dépôt précis
+const DEPOT_MODULES = new Set(['stocks', 'depots-int']);
+
 const MODULE_LABELS: Record<string, string> = {
   'stocks': 'Stocks dépôts',
   'impompable': 'Impompable (responsable désigné)',
@@ -37,6 +40,7 @@ export class UtilisateursComponent implements OnInit {
   utilisateurs: any[] = [];
   entreprises: any[] = [];
   directions: any[] = [];
+  depots: any[] = [];
   filteredDirections: any[] = [];
   modulesList: { key: string; label: string }[] = [];
 
@@ -56,6 +60,8 @@ export class UtilisateursComponent implements OnInit {
   showPermModal = false;
   permUser: any = null;
   currentPerms: Record<string, string> = {};
+  currentDepots: Record<string, number | null> = {};
+  depotModules = DEPOT_MODULES;
 
   // Reset password modal
   showPwdModal = false;
@@ -78,6 +84,7 @@ export class UtilisateursComponent implements OnInit {
     this.http.get<any[]>(`${API}/utilisateurs`).subscribe({ next: d => { this.utilisateurs = d; this.cdr.detectChanges(); } });
     this.http.get<any[]>(`${API}/entreprises`).subscribe({ next: d => { this.entreprises = d; this.cdr.detectChanges(); } });
     this.http.get<any[]>(`${API}/directions`).subscribe({ next: d => { this.directions = d; this.cdr.detectChanges(); } });
+    this.http.get<any[]>(`${API}/depots`).subscribe({ next: d => { this.depots = d; this.cdr.detectChanges(); } });
     this.http.get<string[]>(`${API}/utilisateurs/modules`).subscribe({
       next: keys => {
         this.modulesList = keys.map(k => ({ key: k, label: MODULE_LABELS[k] || k }));
@@ -194,10 +201,14 @@ export class UtilisateursComponent implements OnInit {
   openPermissions(user: any): void {
     this.permUser = user;
     this.currentPerms = {};
-    this.modulesList.forEach(m => { this.currentPerms[m.key] = 'NONE'; });
+    this.currentDepots = {};
+    this.modulesList.forEach(m => { this.currentPerms[m.key] = 'NONE'; this.currentDepots[m.key] = null; });
     this.http.get<any[]>(`${API}/utilisateurs/${user.id}/permissions`).subscribe({
       next: (perms) => {
-        perms.forEach(p => { this.currentPerms[p.module] = p.action; });
+        perms.forEach(p => {
+          this.currentPerms[p.module] = p.action;
+          this.currentDepots[p.module] = p.depot_id || null;
+        });
         this.showPermModal = true;
         this.cdr.detectChanges();
       },
@@ -205,18 +216,18 @@ export class UtilisateursComponent implements OnInit {
     });
   }
 
-  getPermAction(module: string): string {
-    return this.currentPerms[module] || 'NONE';
-  }
-
-  setPermAction(module: string, action: string): void {
-    this.currentPerms[module] = action;
-    this.cdr.detectChanges();
-  }
+  getPermAction(module: string): string { return this.currentPerms[module] || 'NONE'; }
+  setPermAction(module: string, action: string): void { this.currentPerms[module] = action; this.cdr.detectChanges(); }
+  getPermDepot(module: string): number | null { return this.currentDepots[module] ?? null; }
+  setPermDepot(module: string, depotId: number | null): void { this.currentDepots[module] = depotId; this.cdr.detectChanges(); }
 
   savePermissions(): void {
     this.saving = true;
-    const permissions = this.modulesList.map(m => ({ module: m.key, action: this.currentPerms[m.key] || 'NONE' }));
+    const permissions = this.modulesList.map(m => ({
+      module: m.key,
+      action: this.currentPerms[m.key] || 'NONE',
+      depot_id: this.currentDepots[m.key] || null,
+    }));
     this.http.post(`${API}/utilisateurs/${this.permUser.id}/permissions`, { permissions }).subscribe({
       next: () => {
         this.saving = false;

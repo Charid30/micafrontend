@@ -307,23 +307,46 @@
     <h3 class="section-title mb-1">Permissions — {{ permUser?.username }}</h3>
     <p class="text-xs text-gray-400 mb-4">Définissez le niveau d'accès par module</p>
 
-    <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
-      <div *ngFor="let m of modulesList" class="flex items-center justify-between py-2 border-b" style="border-color:#DAF1DE;">
-        <span class="text-sm font-medium" style="color:#0B2B26;">{{ m.label }}</span>
-        <div class="flex gap-2">
-          <label *ngFor="let opt of ['NONE','READ','WRITE']"
-            class="flex items-center gap-1 cursor-pointer text-xs px-2 py-1 rounded border"
-            [class.border-green-600]="getPermAction(m.key) === opt"
-            [class.bg-green-50]="getPermAction(m.key) === opt"
-            [class.border-gray-200]="getPermAction(m.key) !== opt">
-            <input type="radio" [name]="'perm_' + m.key" [value]="opt"
-              [checked]="getPermAction(m.key) === opt"
-              (change)="setPermAction(m.key, opt)"
-              class="hidden">
-            <span [style.color]="getPermAction(m.key) === opt ? '#235347' : '#9ca3af'">
-              {{ opt === 'NONE' ? 'Aucun' : opt === 'READ' ? 'Lecture' : 'Écriture' }}
-            </span>
-          </label>
+    <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
+      <div *ngFor="let m of modulesList" class="py-2 border-b" style="border-color:#DAF1DE;">
+        <!-- Ligne module + radio -->
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium" style="color:#0B2B26;">{{ m.label }}</span>
+          <div class="flex gap-2">
+            <label *ngFor="let opt of ['NONE','READ','WRITE']"
+              class="flex items-center gap-1 cursor-pointer text-xs px-2 py-1 rounded border"
+              [class.border-green-600]="getPermAction(m.key) === opt"
+              [class.bg-green-50]="getPermAction(m.key) === opt"
+              [class.border-gray-200]="getPermAction(m.key) !== opt">
+              <input type="radio" [name]="'perm_' + m.key" [value]="opt"
+                [checked]="getPermAction(m.key) === opt"
+                (change)="setPermAction(m.key, opt)"
+                class="hidden">
+              <span [style.color]="getPermAction(m.key) === opt ? '#235347' : '#9ca3af'">
+                {{ opt === 'NONE' ? 'Aucun' : opt === 'READ' ? 'Lecture' : 'Écriture' }}
+              </span>
+            </label>
+          </div>
+        </div>
+        <!-- Sélecteur de dépôt (modules concernés uniquement, si accès accordé) -->
+        <div *ngIf="depotModules.has(m.key) && getPermAction(m.key) !== 'NONE'"
+          class="mt-2 flex items-center gap-2 pl-1">
+          <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="text-xs text-gray-500">Dépôt :</span>
+          <select
+            [ngModel]="getPermDepot(m.key)"
+            (ngModelChange)="setPermDepot(m.key, $event ? +$event : null)"
+            class="text-xs border rounded px-2 py-1 flex-1"
+            style="border-color:#8EB69B; color:#0B2B26;">
+            <option [ngValue]="null">— Tous les dépôts —</option>
+            <option *ngFor="let d of depots" [ngValue]="d.id">
+              {{ d.libelle }} ({{ d.type === 'INTERIEUR' ? 'Int.' : 'Ext.' }})
+            </option>
+          </select>
         </div>
       </div>
     </div>
