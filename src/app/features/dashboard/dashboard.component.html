@@ -1,0 +1,138 @@
+<div class="space-y-6">
+
+  <!-- En-tête -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="page-title">Tableau de bord</h2>
+      <p class="text-sm text-gray-500 mt-1">Situation des stocks SONABHY, semaine en cours</p>
+    </div>
+    <span class="badge-info">{{ today | date:'dd/MM/yyyy' }}</span>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement des données...</p>
+  </div>
+
+  <!-- Erreur connexion -->
+  <div *ngIf="!loading && error" class="card border-red-200 bg-red-50 flex items-start gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-red-700">{{ error }}</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color: #235347;">Autonomie moy. (Intérieur)</p>
+        <p class="text-3xl font-bold mt-2" style="color: #051F20;">
+          {{ stats?.autonomieMoyenneInt | number:'1.1-1' }}<span class="text-base font-normal text-gray-500 ml-1">j</span>
+        </p>
+        <p class="text-xs text-gray-400 mt-1">Objectif ≥ 15 jours</p>
+      </div>
+      <div class="card">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color: #235347;">Autonomie moy. (Extérieur)</p>
+        <p class="text-3xl font-bold mt-2" style="color: #051F20;">
+          {{ stats?.autonomieMoyenneExt | number:'1.1-1' }}<span class="text-base font-normal text-gray-500 ml-1">j</span>
+        </p>
+        <p class="text-xs text-gray-400 mt-1">Dépôts extérieurs</p>
+      </div>
+      <div class="card">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color: #235347;">Camions chargés</p>
+        <p class="text-3xl font-bold mt-2" style="color: #051F20;">{{ stats?.camionsCharges | number }}</p>
+        <p class="text-xs text-gray-400 mt-1">Taux: {{ stats?.tauxRealisation | percent:'1.0-1' }}</p>
+      </div>
+      <div class="card">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color: #235347;">Dette État → SONABHY</p>
+        <p class="text-2xl font-bold text-red-600 mt-2">
+          {{ stats?.detteEtat | number }} <span class="text-sm font-normal">FCFA</span>
+        </p>
+        <p class="text-xs text-gray-400 mt-1">Au {{ today | date:'dd/MM/yyyy' }}</p>
+      </div>
+    </div>
+
+    <!-- Stocks par produit -->
+    <div class="card">
+      <h3 class="section-title">Stocks dépôts intérieurs (m³)</h3>
+      <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+        <table class="min-w-full">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg">Produit</th>
+              <th class="table-header">Stock disponible</th>
+              <th class="table-header">Autonomie</th>
+              <th class="table-header">Couverture sécurité</th>
+              <th class="table-header rounded-tr-lg">Statut</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+            <tr *ngFor="let s of stats?.stocksInterieurs" class="table-row-hover">
+              <td class="table-cell font-medium" style="color: #0B2B26;">{{ s.produit }}</td>
+              <td class="table-cell">{{ s.stockDisponible | number:'1.0-0' }}</td>
+              <td class="table-cell">{{ s.autonomie | number:'1.1-1' }} j</td>
+              <td class="table-cell">{{ s.tauxCouverture | percent:'1.0-1' }}</td>
+              <td class="table-cell">
+                <span [class]="s.autonomie >= s.seuil ? 'badge-success' : 'badge-danger'">
+                  {{ s.autonomie >= s.seuil ? 'OK' : 'ALERTE' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+</div>
+
+<!-- ── Widget alertes flottant (coin bas-droit) ── -->
+<div *ngIf="stats?.alertes?.length" class="fixed bottom-5 right-5 z-30 flex flex-col items-end gap-2">
+
+  <!-- Panneau déroulant -->
+  <div *ngIf="alertesOuvertes"
+    class="bg-white rounded-xl shadow-xl border border-red-100 w-72 overflow-hidden animate-fade-in-down">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-red-100"
+         style="background:#fff5f5;">
+      <span class="text-xs font-semibold text-red-700 uppercase tracking-wide flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+        Autonomie sous seuil
+      </span>
+      <button (click)="alertesOuvertes = false" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <ul class="divide-y divide-red-50 max-h-64 overflow-y-auto">
+      <li *ngFor="let alerte of stats?.alertes"
+        class="flex items-center justify-between px-4 py-2.5">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-red-800 truncate">{{ alerte.produit }}</p>
+          <p class="text-xs text-red-400 truncate">{{ alerte.depot }}</p>
+        </div>
+        <span class="badge-danger ml-3 flex-shrink-0">{{ alerte.autonomie | number:'1.1-1' }} j</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Bouton flottant -->
+  <button (click)="alertesOuvertes = !alertesOuvertes"
+    class="flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-white text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+    style="background: #dc2626;">
+    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+    </svg>
+    {{ stats?.alertes?.length }} alerte{{ (stats?.alertes?.length ?? 0) > 1 ? 's' : '' }}
+  </button>
+
+</div>

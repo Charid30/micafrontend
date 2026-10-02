@@ -1,0 +1,144 @@
+<div class="min-h-screen flex">
+
+  <!-- Côté gauche : Branding -->
+  <div class="hidden md:flex flex-col justify-between w-2/5 p-10"
+       style="background-color: #051F20;">
+
+    <!-- Logo + nom -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0"
+           style="background-color: #8EB69B; color: #051F20;">S</div>
+      <div>
+        <p class="text-white font-bold text-sm leading-tight">SONABHY</p>
+        <p class="text-xs" style="color: #8EB69B;">Société Nat. Burkinabé d'Hydrocarbures</p>
+      </div>
+    </div>
+
+    <!-- Message central -->
+    <div>
+      <div class="w-12 h-1 rounded-full mb-6" style="background-color: #235347;"></div>
+      <h1 class="text-2xl font-bold text-white leading-snug mb-3">
+        Plateforme de suivi<br>des stocks hydrocarbures
+      </h1>
+      <p class="text-sm leading-relaxed" style="color: #8EB69B;">
+        Accès sécurisé à la gestion hebdomadaire<br>
+        des rapports de stocks destinés au MICA.
+      </p>
+    </div>
+
+    <!-- Bas de page -->
+    <div>
+      <!-- Indicateurs décoratifs -->
+      <div class="flex gap-3 mb-6">
+        <div class="flex-1 rounded-lg p-3" style="background-color: #0B2B26;">
+          <p class="text-xs mb-1" style="color: #8EB69B;">Dépôts intérieurs</p>
+          <p class="text-white font-semibold text-sm">BINGO · PENI</p>
+        </div>
+        <div class="flex-1 rounded-lg p-3" style="background-color: #0B2B26;">
+          <p class="text-xs mb-1" style="color: #8EB69B;">Produits suivis</p>
+          <p class="text-white font-semibold text-sm">7 produits</p>
+        </div>
+      </div>
+      <p class="text-xs" style="color: #235347;">SONABHY © 2026. Tous droits réservés.</p>
+    </div>
+  </div>
+
+  <!-- Côté droit : Formulaire -->
+  <div class="flex-1 flex items-center justify-center bg-white p-8">
+    <div class="w-full max-w-sm">
+
+      <!-- Logo mobile uniquement -->
+      <div class="flex md:hidden items-center gap-3 mb-8">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center font-black"
+             style="background-color: #051F20; color: #8EB69B;">S</div>
+        <span class="font-bold" style="color: #051F20;">SONABHY · MICA</span>
+      </div>
+
+      <!-- Titre -->
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-1" style="color: #051F20;">Connexion</h2>
+        <p class="text-sm text-gray-400">Entrez vos identifiants pour accéder à la plateforme.</p>
+      </div>
+
+      <!-- Alerte erreur -->
+      <div *ngIf="error"
+           class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2 border"
+           style="background-color: #fff5f5; border-color: #fca5a5; color: #dc2626;">
+        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {{ error }}
+      </div>
+
+      <!-- Formulaire -->
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
+
+        <div>
+          <label class="block text-sm font-medium mb-1.5" style="color: #163832;">Identifiant ou adresse e-mail</label>
+          <input
+            type="text"
+            formControlName="username"
+            class="input-field"
+            placeholder="nom.utilisateur ou adresse@mail.com"
+            autocomplete="username"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1.5" style="color: #163832;">Mot de passe</label>
+          <div class="relative">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              class="input-field pr-10"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              (click)="showPassword = !showPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path *ngIf="!showPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                <path *ngIf="showPassword" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="form.invalid || loading"
+          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          style="background-color: #235347;"
+          onmouseover="if(!this.disabled) this.style.backgroundColor='#163832'"
+          onmouseout="if(!this.disabled) this.style.backgroundColor='#235347'"
+        >
+          <svg *ngIf="loading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          {{ loading ? 'Connexion en cours...' : 'Se connecter' }}
+        </button>
+
+      </form>
+
+      <!-- Séparateur MICA -->
+      <div class="mt-10 pt-6 border-t border-gray-100 flex items-center gap-3">
+        <div class="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
+             style="background-color: #DAF1DE;">
+          <span class="text-xs font-black" style="color: #051F20;">M</span>
+        </div>
+        <p class="text-xs text-gray-400">
+          Accès MICA : consultation des rapports publiés chaque vendredi.
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>

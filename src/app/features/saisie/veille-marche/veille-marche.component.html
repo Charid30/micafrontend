@@ -1,0 +1,149 @@
+<div class="space-y-6">
+
+  <!-- En-tête -->
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h2 class="page-title">Veille marché pétrolier</h2>
+      <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
+        Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
+        ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button *ngIf="authService.isAdmin() && rapport?.statut === 'BROUILLON' && !loading"
+        (click)="onArchive()" [disabled]="archiving || saving"
+        class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        {{ archiving ? 'Archivage...' : 'Archiver' }}
+      </button>
+      <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
+        class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        <svg *ngIf="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+      <span *ngIf="!canWrite" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        Lecture seule
+      </span>
+    </div>
+  </div>
+
+  <!-- Rapport archivé -->
+  <div *ngIf="rapport?.statut === 'PUBLIE'"
+    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
+    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+    </svg>
+    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="error" class="card border-red-200 bg-red-50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-red-700">{{ error }}</p>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement des données...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <fieldset [disabled]="!canWrite" style="border:none;padding:0;margin:0;" [class.opacity-60]="!canWrite">
+    <div class="card">
+      <p class="text-xs text-gray-400 mb-4 italic">
+        Cellules bleues = valeurs à saisir. La variation et la tendance sont calculées automatiquement.
+      </p>
+
+      <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg whitespace-nowrap">Indicateur</th>
+              <th class="table-header whitespace-nowrap">Semaine N-1</th>
+              <th class="table-header whitespace-nowrap">Semaine N</th>
+              <th class="table-header whitespace-nowrap">Variation</th>
+              <th class="table-header whitespace-nowrap">Tendance</th>
+              <th class="table-header whitespace-nowrap">Source</th>
+              <th class="table-header rounded-tr-lg whitespace-nowrap">Fréquence</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+            <tr *ngFor="let ind of indicateurs" class="table-row-hover">
+              <!-- Indicateur -->
+              <td class="table-cell font-medium" style="color: #0B2B26;">
+                <div>{{ ind.libelle }}</div>
+                <div class="text-xs text-gray-400">{{ ind.unite }}</div>
+              </td>
+
+              <!-- Semaine N-1 -->
+              <td class="table-cell">
+                <input type="number" min="0" step="0.0001"
+                  [(ngModel)]="ind.prix_semaine_n1"
+                  [disabled]="rapport?.statut === 'PUBLIE'"
+                  class="input-field w-full text-right text-sm py-1"
+                  placeholder="0"/>
+              </td>
+
+              <!-- Semaine N -->
+              <td class="table-cell">
+                <input type="number" min="0" step="0.0001"
+                  [(ngModel)]="ind.prix_semaine_n"
+                  [disabled]="rapport?.statut === 'PUBLIE'"
+                  class="input-field w-full text-right text-sm py-1"
+                  placeholder="0"/>
+              </td>
+
+              <!-- Variation calculée -->
+              <td class="table-cell text-right font-semibold">
+                <ng-container *ngIf="ind.prix_semaine_n && ind.prix_semaine_n1">
+                  <span [style.color]="variation(ind) > 0 ? '#b91c1c' : variation(ind) < 0 ? '#166534' : '#6b7280'">
+                    {{ variation(ind) > 0 ? '+' : '' }}{{ variation(ind) | number:'1.2-4' }}
+                  </span>
+                </ng-container>
+                <span *ngIf="!ind.prix_semaine_n || !ind.prix_semaine_n1" class="text-gray-300 text-xs">—</span>
+              </td>
+
+              <!-- Tendance calculée -->
+              <td class="table-cell text-center text-lg">
+                <ng-container *ngIf="ind.prix_semaine_n && ind.prix_semaine_n1">
+                  <span *ngIf="variation(ind) > 0" class="text-red-600" title="Hausse">↑</span>
+                  <span *ngIf="variation(ind) < 0" class="text-green-700" title="Baisse">↓</span>
+                  <span *ngIf="variation(ind) === 0" class="text-gray-400" title="Stable">→</span>
+                </ng-container>
+                <span *ngIf="!ind.prix_semaine_n || !ind.prix_semaine_n1" class="text-gray-300 text-xs">—</span>
+              </td>
+
+              <!-- Source -->
+              <td class="table-cell text-xs text-gray-500 whitespace-nowrap">{{ ind.source }}</td>
+
+              <!-- Fréquence -->
+              <td class="table-cell text-xs text-gray-500">{{ ind.frequence }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </fieldset>
+  </ng-container>
+</div>

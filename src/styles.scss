@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-down {
+  animation: fade-in-down 0.25s ease-out;
+}
+
+/* Police Inter depuis Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Variables globales */
+:root {
+  --sidebar-width: 260px;
+  --header-height: 64px;
+}
+
+/* Variables couleurs palette verte */
+:root {
+  --color-forest-darkest:  #051F20;
+  --color-forest-darker:   #0B2B26;
+  --color-forest-dark:     #163832;
+  --color-forest-medium:   #235347;
+  --color-forest-light:    #8EB69B;
+  --color-forest-lightest: #DAF1DE;
+}
+
+/* Les composants rendus par router-outlet doivent être en block pour contraindre leur largeur */
+router-outlet + * {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* fieldset a min-width: min-content par défaut → empêche overflow-x-auto de fonctionner */
+fieldset {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Scrollbar personnalisée */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-forest-lightest);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-forest-light);
+  border-radius: 9999px;
+}
+
+/* Classes utilitaires personnalisées */
+@layer components {
+  /* Boutons */
+  .btn-primary {
+    @apply bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-primary-50 text-primary-700 px-4 py-2 rounded-lg font-medium hover:bg-primary-100 transition-colors border border-primary-200;
+  }
+  .btn-outline {
+    @apply border border-primary-500 text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-primary-50 transition-colors;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors;
+  }
+
+  /* Carte */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-primary-100 p-4 md:p-6;
+  }
+
+  /* Champs de formulaire */
+  .input-field {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-shadow;
+  }
+  .label {
+    @apply block text-sm font-medium text-primary-700 mb-1;
+  }
+
+  /* Badges */
+  .badge-success {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700;
+  }
+  .badge-warning {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800;
+  }
+  .badge-danger {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700;
+  }
+  .badge-info {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-600;
+  }
+  .badge-neutral {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600;
+  }
+
+  /* Tableau */
+  .table-header {
+    @apply bg-primary-800;
+    color: #ffffff !important;
+  }
+  .table-header .table-cell,
+  .table-header th {
+    @apply px-2 py-2 md:px-4 md:py-3 text-left text-xs font-semibold uppercase tracking-wider;
+    color: #ffffff !important;
+  }
+  .table-cell {
+    @apply px-2 py-2 md:px-4 md:py-3 text-sm text-gray-700;
+  }
+  .table-row-hover {
+    @apply hover:bg-primary-50 transition-colors;
+  }
+
+  /* Sidebar */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-primary-200 hover:bg-primary-700 hover:text-white transition-colors;
+  }
+  .sidebar-link-active {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium bg-primary-500 text-white;
+  }
+
+  /* Section titre */
+  .page-title {
+    @apply text-xl font-semibold text-primary-800;
+  }
+  .section-title {
+    @apply text-base font-semibold text-primary-700 mb-4;
+  }
+}

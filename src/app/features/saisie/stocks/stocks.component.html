@@ -1,0 +1,234 @@
+<div class="space-y-6">
+
+  <!-- En-tête -->
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h2 class="page-title">Stocks dépôts</h2>
+      <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
+        Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
+        ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button *ngIf="authService.isAdmin() && rapport?.statut === 'BROUILLON' && !loading"
+        (click)="onArchive()" [disabled]="archiving || saving"
+        class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        {{ archiving ? 'Archivage...' : 'Archiver' }}
+      </button>
+      <button *ngIf="canWriteAny" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
+        class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        <svg *ngIf="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+      <span *ngIf="!canWriteAny" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        Lecture seule
+      </span>
+    </div>
+  </div>
+
+  <!-- Rapport archivé -->
+  <div *ngIf="rapport?.statut === 'PUBLIE'"
+    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
+    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+    </svg>
+    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+  </div>
+
+  <!-- Erreur de chargement -->
+  <div *ngIf="error" class="card border-red-200 bg-red-50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-red-700">{{ error }}</p>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement des données...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ══════════ DÉPÔTS INTÉRIEURS ══════════ -->
+    <div class="card">
+      <h3 class="section-title mb-4">Dépôts intérieurs</h3>
+      <p class="text-xs text-gray-500 mb-4">
+        * Stock disponible = stocks en bacs + camions en embranchement (en attente de dépotage)
+      </p>
+
+      <div *ngFor="let depot of depotsInterieurs" class="mb-8 last:mb-0">
+        <h4 class="text-sm font-bold mb-2 px-1" style="color: #163832;">
+          Site : {{ depot.depot_libelle }}
+        </h4>
+        <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg">Produit</th>
+                <th class="table-header">Stock disponible * (m³)</th>
+                <th class="table-header">
+                  Impompable (m³)
+                  <span *ngIf="!canWriteImpompable" title="Valeur saisie par le responsable désigné"
+                    class="ml-1 inline-block align-middle" style="color:#8EB69B;">
+                    <svg class="inline w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                  </span>
+                </th>
+                <th class="table-header">Conso moy. j. (m³/j)</th>
+                <th class="table-header">Stock sécurité (m³)</th>
+                <th class="table-header">Autonomie (j)</th>
+                <th class="table-header">Couverture (%)</th>
+                <th class="table-header rounded-tr-lg">Statut</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+              <tr *ngFor="let ligne of depot.lignes" class="table-row-hover">
+                <td class="table-cell font-medium" style="color: #0B2B26;">
+                  {{ ligne.produit_libelle }}
+                  <span class="text-xs text-gray-400 ml-1">({{ ligne.unite }})</span>
+                </td>
+                <td class="table-cell">
+                  <input type="number" min="0" step="0.001"
+                    [(ngModel)]="ligne.stock_disponible"
+                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
+                    class="input-field w-full text-right text-sm py-1"
+                    placeholder="0"/>
+                </td>
+                <td class="table-cell">
+                  <!-- Impompable : éditable uniquement par le responsable désigné -->
+                  <ng-container *ngIf="canWriteImpompable; else impompableLectureTd">
+                    <input type="number" min="0" step="0.001"
+                      [(ngModel)]="ligne.stock_impompable"
+                      [disabled]="rapport?.statut === 'PUBLIE'"
+                      class="input-field w-full text-right text-sm py-1"
+                      placeholder="0"/>
+                  </ng-container>
+                  <ng-template #impompableLectureTd>
+                    <span class="block text-right text-sm font-medium px-2" style="color:#235347;">
+                      {{ ligne.stock_impompable | number:'1.0-3' }}
+                    </span>
+                  </ng-template>
+                </td>
+                <td class="table-cell">
+                  <input type="number" min="0" step="0.001"
+                    [(ngModel)]="ligne.conso_moyenne"
+                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
+                    class="input-field w-full text-right text-sm py-1"
+                    placeholder="0"/>
+                </td>
+                <td class="table-cell">
+                  <input type="number" min="0" step="0.001"
+                    [(ngModel)]="ligne.stock_securite"
+                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
+                    class="input-field w-full text-right text-sm py-1"
+                    placeholder="0"/>
+                </td>
+                <td class="table-cell text-right font-semibold" style="color: #051F20;">
+                  {{ autonomieInt(ligne) | number:'1.1-1' }}
+                </td>
+                <td class="table-cell text-right" style="color: #235347;">
+                  {{ couvertureInt(ligne) | number:'1.0-0' }} %
+                </td>
+                <td class="table-cell">
+                  <span *ngIf="ligne.stock_disponible > 0"
+                    [class]="statutClass(autonomieInt(ligne), ligne.seuil_jours)">
+                    {{ autonomieInt(ligne) >= ligne.seuil_jours ? 'OK' : 'ALERTE' }}
+                  </span>
+                  <span *ngIf="!ligne.stock_disponible" class="text-gray-300 text-xs">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p *ngIf="depotsInterieurs.length === 0" class="text-sm text-gray-400 text-center py-6">
+        Aucun dépôt intérieur configuré. Lancez le seeder de données de référence.
+      </p>
+    </div>
+
+    <!-- ══════════ DÉPÔTS EXTÉRIEURS ══════════ -->
+    <div class="card">
+      <h3 class="section-title mb-4">Dépôts extérieurs</h3>
+
+      <div *ngFor="let depot of depotsExterieurs" class="mb-8 last:mb-0">
+        <h4 class="text-sm font-bold mb-2 px-1" style="color: #163832;">
+          Site : {{ depot.depot_libelle }}
+        </h4>
+        <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg">Produit</th>
+                <th class="table-header">Stock disponible (m³)</th>
+                <th class="table-header">Besoins moy. j. (m³/j)</th>
+                <th class="table-header">Autonomie (j)</th>
+                <th class="table-header rounded-tr-lg">Statut</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+              <tr *ngFor="let ligne of depot.lignes" class="table-row-hover">
+                <td class="table-cell font-medium" style="color: #0B2B26;">
+                  {{ ligne.produit_libelle }}
+                  <span class="text-xs text-gray-400 ml-1">({{ ligne.unite }})</span>
+                </td>
+                <td class="table-cell">
+                  <input type="number" min="0" step="0.001"
+                    [(ngModel)]="ligne.stock_disponible"
+                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
+                    class="input-field w-full text-right text-sm py-1"
+                    placeholder="0"/>
+                </td>
+                <td class="table-cell">
+                  <input type="number" min="0" step="0.001"
+                    [(ngModel)]="ligne.conso_moyenne"
+                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
+                    class="input-field w-full text-right text-sm py-1"
+                    placeholder="0"/>
+                </td>
+                <td class="table-cell text-right font-semibold" style="color: #051F20;">
+                  {{ autonomieExt(ligne) | number:'1.1-1' }}
+                </td>
+                <td class="table-cell">
+                  <span *ngIf="ligne.stock_disponible > 0"
+                    [class]="statutClass(autonomieExt(ligne), ligne.seuil_jours)">
+                    {{ autonomieExt(ligne) >= ligne.seuil_jours ? 'OK' : 'ALERTE' }}
+                  </span>
+                  <span *ngIf="!ligne.stock_disponible" class="text-gray-300 text-xs">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p *ngIf="depotsExterieurs.length === 0" class="text-sm text-gray-400 text-center py-6">
+        Aucun dépôt extérieur configuré. Lancez le seeder de données de référence.
+      </p>
+    </div>
+
+  </ng-container>
+</div>
