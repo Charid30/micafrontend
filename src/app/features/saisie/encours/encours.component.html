@@ -8,6 +8,9 @@
         Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
+      <p class="text-xs mt-1 font-medium" style="color:#235347;" *ngIf="dateSaisie">
+        Saisie du {{ dateSaisie | date:'EEEE dd MMMM yyyy':'':'fr' }}
+      </p>
     </div>
     <div class="flex items-center gap-2">
       <button *ngIf="authService.isAdmin() && rapport?.statut === 'BROUILLON' && !loading"

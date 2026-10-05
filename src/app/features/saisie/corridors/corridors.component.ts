@@ -17,6 +17,7 @@ export class CorridorsComponent implements OnInit {
 
   rapport: any   = null;
   corridors: any[] = [];
+  dateSaisie: string | null = null;
 
   constructor(
     private http: HttpClient,
@@ -30,8 +31,9 @@ export class CorridorsComponent implements OnInit {
   ngOnInit(): void {
     this.http.get(`${environment.apiUrl}/chargements/semaine-courante`).subscribe({
       next: (data: any) => {
-        this.rapport   = data.rapport;
-        this.corridors = data.corridors;
+        this.rapport    = data.rapport;
+        this.corridors  = data.corridors;
+        this.dateSaisie = data.date_saisie || null;
         this.loading   = false;
         this.cdr.detectChanges();
       },

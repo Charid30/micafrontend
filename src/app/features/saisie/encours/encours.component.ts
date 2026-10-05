@@ -17,6 +17,7 @@ export class EncoursComponent implements OnInit {
 
   rapport: any  = null;
   depots: any[] = [];
+  dateSaisie: string | null = null;
 
   constructor(
     private http:  HttpClient,
@@ -30,8 +31,9 @@ export class EncoursComponent implements OnInit {
   ngOnInit(): void {
     this.http.get(`${environment.apiUrl}/encours/semaine-courante`).subscribe({
       next: (data: any) => {
-        this.rapport = data.rapport;
-        this.depots  = data.depots;
+        this.rapport    = data.rapport;
+        this.depots     = data.depots;
+        this.dateSaisie = data.date_saisie || null;
         this.loading = false;
         this.cdr.detectChanges();
       },
