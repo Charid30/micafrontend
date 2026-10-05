@@ -35,6 +35,7 @@ export interface Utilisateur {
   username: string;
   email: string;
   is_admin: boolean;
+  must_change_password?: boolean;
   agent: Agent;
   permissions: Permission[];
 }

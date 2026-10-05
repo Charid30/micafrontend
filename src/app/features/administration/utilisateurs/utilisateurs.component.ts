@@ -67,6 +67,7 @@ export class UtilisateursComponent implements OnInit {
   showPwdModal = false;
   pwdUser: any = null;
   newPassword = '';
+  pwdMustChange = false;
 
   // Direction modal
   showDirModal = false;
@@ -166,7 +167,7 @@ export class UtilisateursComponent implements OnInit {
     if (user) {
       this.userForm = { username: user.username, email: user.email, tel: user.tel || '', is_admin: !!user.is_admin };
     } else {
-      this.userForm = { agent_id: '', username: '', email: '', tel: '', password: '', profil: 'GESTIONNAIRE', is_admin: false };
+      this.userForm = { agent_id: '', username: '', email: '', tel: '', password: '', profil: 'GESTIONNAIRE', is_admin: false, must_change_password: true };
     }
     this.showUserModal = true;
     this.cdr.detectChanges();
@@ -282,6 +283,7 @@ export class UtilisateursComponent implements OnInit {
   openResetPassword(user: any): void {
     this.pwdUser = user;
     this.newPassword = '';
+    this.pwdMustChange = false;
     this.showPwdModal = true;
     this.cdr.detectChanges();
   }
@@ -291,7 +293,7 @@ export class UtilisateursComponent implements OnInit {
       this.toast.error('Le mot de passe doit contenir au moins 6 caractères.'); return;
     }
     this.saving = true;
-    this.http.post(`${API}/utilisateurs/${this.pwdUser.id}/reset-password`, { password: this.newPassword }).subscribe({
+    this.http.post(`${API}/utilisateurs/${this.pwdUser.id}/reset-password`, { password: this.newPassword, must_change_password: this.pwdMustChange }).subscribe({
       next: () => {
         this.saving = false;
         this.showPwdModal = false;

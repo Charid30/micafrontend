@@ -54,6 +54,23 @@ export class AuthService {
     });
   }
 
+  mustChangePassword(): boolean {
+    return !!this.userSubject.value?.must_change_password;
+  }
+
+  forcedChangePassword(nouveauMotDePasse: string) {
+    return this.http.put(`${environment.apiUrl}/auth/force-change-password`, { nouveauMotDePasse }).pipe(
+      tap(() => {
+        const user = this.userSubject.value;
+        if (user) {
+          const updated = { ...user, must_change_password: false };
+          localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
+          this.userSubject.next(updated);
+        }
+      })
+    );
+  }
+
   get currentUser(): Utilisateur | null {
     return this.userSubject.value;
   }

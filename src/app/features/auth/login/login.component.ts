@@ -26,7 +26,13 @@ export class LoginComponent {
     this.loading = true;
     this.error = '';
     this.authService.login(this.form.value).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: (res) => {
+        if (res.utilisateur?.must_change_password) {
+          this.router.navigate(['/auth/force-change-password']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
+      },
       error: (err) => {
         this.error = err.error?.message || 'Identifiant ou mot de passe incorrect.';
         this.loading = false;
