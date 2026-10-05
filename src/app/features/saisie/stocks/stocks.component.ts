@@ -18,6 +18,7 @@ export class StocksComponent implements OnInit {
   rapport: any = null;
   depotsInterieurs: any[] = [];
   depotsExterieurs: any[] = [];
+  dateSaisie: string | null = null;
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private toast: ToastService, public authService: AuthService) {}
 
@@ -31,6 +32,7 @@ export class StocksComponent implements OnInit {
         this.rapport          = data.rapport;
         this.depotsInterieurs = data.depots_interieurs;
         this.depotsExterieurs = data.depots_exterieurs;
+        this.dateSaisie       = data.date_saisie || null;
         this.loading = false;
         this.cdr.detectChanges();
       },
