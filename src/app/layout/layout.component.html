@@ -106,6 +106,30 @@
         <span *ngIf="sidebarOpen || isMobile" class="text-sm">Ventes</span>
       </a>
 
+      <a routerLink="/saisie/tresorerie" routerLinkActive="sidebar-link-active" class="sidebar-link">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 6h18M3 12h18M3 18h18M7 6v12M17 6v12"/>
+        </svg>
+        <span *ngIf="sidebarOpen || isMobile" class="text-sm">Trésorerie</span>
+      </a>
+
+      <a routerLink="/saisie/recommandations" routerLinkActive="sidebar-link-active" class="sidebar-link">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4M7 20H4a2 2 0 01-2-2V5a2 2 0 012-2h9l5 5v4M13 3v5h5M15 17v4m-2-2h4"/>
+        </svg>
+        <span *ngIf="sidebarOpen || isMobile" class="text-sm">Recommandations</span>
+      </a>
+
+      <a routerLink="/saisie/caf-moyen" routerLinkActive="sidebar-link-active" class="sidebar-link">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        <span *ngIf="sidebarOpen || isMobile" class="text-sm">CAF moyen</span>
+      </a>
+
       <!-- Section Rapports -->
       <div *ngIf="sidebarOpen || isMobile" class="px-3 pt-5 pb-1">
         <span class="text-xs font-semibold uppercase tracking-wider" style="color: #235347;">Rapports</span>

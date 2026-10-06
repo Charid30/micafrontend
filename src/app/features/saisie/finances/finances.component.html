@@ -1,0 +1,149 @@
+<div class="space-y-6">
+
+  <!-- En-tête -->
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h2 class="page-title">Trésorerie hebdomadaire</h2>
+      <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
+        Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
+        ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
+        class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        <svg *ngIf="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+      <span *ngIf="!canWrite" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        Lecture seule
+      </span>
+    </div>
+  </div>
+
+  <!-- Rapport publié -->
+  <div *ngIf="rapport?.statut === 'PUBLIE'"
+    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
+    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+    </svg>
+    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="error" class="card border-red-200 bg-red-50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-red-700">{{ error }}</p>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement des données...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <fieldset [disabled]="!canWrite || rapport?.statut === 'PUBLIE'" style="border:none;padding:0;margin:0;"
+      [class.opacity-60]="!canWrite">
+      <div class="card">
+        <p class="text-xs text-gray-400 mb-4 italic">
+          Saisissez les montants en FCFA. La situation simulée est calculée automatiquement.
+        </p>
+
+        <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg whitespace-nowrap">Poste</th>
+                <th class="table-header whitespace-nowrap text-right">Semaine N-1 (FCFA)</th>
+                <th class="table-header whitespace-nowrap text-right">Semaine N (FCFA)</th>
+                <th class="table-header whitespace-nowrap text-right">Variation</th>
+                <th class="table-header rounded-tr-lg whitespace-nowrap text-center">Tendance</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+              <tr *ngFor="let l of lignes"
+                [class]="l.calculee ? 'font-bold' : 'table-row-hover'"
+                [style.background]="l.calculee ? '#f0faf3' : null">
+
+                <!-- Libellé -->
+                <td class="table-cell" style="color: #0B2B26;">
+                  <div class="flex items-center gap-2">
+                    <span class="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                      [style.background]="l.signe === 1 ? '#166534' : '#b91c1c'"></span>
+                    {{ l.libelle }}
+                  </div>
+                </td>
+
+                <!-- Semaine N-1 -->
+                <td class="table-cell text-right">
+                  <ng-container *ngIf="!l.calculee">
+                    <input type="number" min="0" step="1"
+                      [(ngModel)]="l.montant_n1"
+                      class="input-field w-full text-right text-sm py-1"
+                      placeholder="0"/>
+                  </ng-container>
+                  <ng-container *ngIf="l.calculee">
+                    <span class="font-bold" [style.color]="simuleeN1() >= 0 ? '#166534' : '#b91c1c'">
+                      {{ formatMontant(simuleeN1()) }}
+                    </span>
+                  </ng-container>
+                </td>
+
+                <!-- Semaine N -->
+                <td class="table-cell text-right">
+                  <ng-container *ngIf="!l.calculee">
+                    <input type="number" min="0" step="1"
+                      [(ngModel)]="l.montant_n"
+                      class="input-field w-full text-right text-sm py-1"
+                      placeholder="0"/>
+                  </ng-container>
+                  <ng-container *ngIf="l.calculee">
+                    <span class="font-bold" [style.color]="simulee() >= 0 ? '#166534' : '#b91c1c'">
+                      {{ formatMontant(simulee()) }}
+                    </span>
+                  </ng-container>
+                </td>
+
+                <!-- Variation -->
+                <td class="table-cell text-right font-semibold whitespace-nowrap">
+                  <ng-container *ngIf="variation(l) !== null">
+                    <span [style.color]="variation(l)! > 0 ? '#166534' : variation(l)! < 0 ? '#b91c1c' : '#6b7280'">
+                      {{ variation(l)! > 0 ? '+' : '' }}{{ variation(l)! | percent:'1.1-1' }}
+                    </span>
+                  </ng-container>
+                  <span *ngIf="variation(l) === null" class="text-gray-300 text-xs">—</span>
+                </td>
+
+                <!-- Tendance -->
+                <td class="table-cell text-center">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                    [class]="tendanceClass(l)">
+                    {{ tendance(l) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </fieldset>
+  </ng-container>
+</div>
