@@ -130,6 +130,14 @@
         <span *ngIf="sidebarOpen || isMobile" class="text-sm">CAF moyen</span>
       </a>
 
+      <a routerLink="/historique" routerLinkActive="sidebar-link-active" class="sidebar-link">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+        <span *ngIf="sidebarOpen || isMobile" class="text-sm">Historique</span>
+      </a>
+
       <!-- Section Rapports -->
       <div *ngIf="sidebarOpen || isMobile" class="px-3 pt-5 pb-1">
         <span class="text-xs font-semibold uppercase tracking-wider" style="color: #235347;">Rapports</span>

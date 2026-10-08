@@ -22,6 +22,7 @@ const routes: Routes = [
       { path: 'saisie/tresorerie', loadChildren: () => import('../features/saisie/finances/finances.module').then(m => m.FinancesModule) },
       { path: 'saisie/recommandations', loadChildren: () => import('../features/saisie/recommandations/recommandations.module').then(m => m.RecommandationsModule) },
       { path: 'saisie/caf-moyen', loadChildren: () => import('../features/saisie/caf-moyen/caf-moyen.module').then(m => m.CafMoyenModule) },
+      { path: 'historique', loadChildren: () => import('../features/historique/historique.module').then(m => m.HistoriqueModule) },
       { path: 'rapports', loadChildren: () => import('../features/rapports/rapports.module').then(m => m.RapportsModule) },
       { path: 'administration/utilisateurs', loadChildren: () => import('../features/administration/utilisateurs/utilisateurs.module').then(m => m.UtilisateursModule) },
       { path: 'administration/structures', loadChildren: () => import('../features/administration/structures/structures.module').then(m => m.StructuresModule) },
