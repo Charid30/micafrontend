@@ -183,37 +183,9 @@
           </div>
         </div>
 
-        <!-- ── 2. Évolution ventes hebdomadaires ── -->
-        <div class="card">
-          <h3 class="section-title mb-3">2. Quantités servies aux marketeurs (litres / kg)</h3>
-          <div class="overflow-x-auto rounded-lg border" style="border-color:#8EB69B;">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr>
-                  <th class="table-header rounded-tl-lg whitespace-nowrap">Produit</th>
-                  <th class="table-header rounded-tr-lg whitespace-nowrap text-right">Volume total</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y" style="border-color:#DAF1DE;">
-                <tr *ngFor="let v of apercu.ventesTotauxListe" class="table-row-hover">
-                  <td class="table-cell font-medium" style="color:#0B2B26;">{{ v.produit }}</td>
-                  <td class="table-cell text-right font-semibold" style="color:#235347;">
-                    <span *ngIf="v.total > 0">{{ v.total | number:'1.0-0' }}</span>
-                    <span *ngIf="v.total === 0" class="text-gray-300">—</span>
-                  </td>
-                </tr>
-                <tr style="background:#DAF1DE; font-weight:700; color:#0B2B26;">
-                  <td class="table-cell">TOTAL GÉNÉRAL</td>
-                  <td class="table-cell text-right">{{ apercu.totalVentes | number:'1.0-0' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- ── 3. Sorties volumes récapitulatives ── -->
+        <!-- ── 2. Sorties volumes récapitulatives ── -->
         <div class="card" *ngIf="apercu.marketeurs.length > 0">
-          <h3 class="section-title mb-3">3. Sorties volumes récapitulatives SONABHY</h3>
+          <h3 class="section-title mb-3">2. Sorties volumes récapitulatives SONABHY</h3>
           <div class="overflow-x-auto rounded-lg border" style="border-color:#8EB69B;">
             <table class="min-w-full text-xs">
               <thead>
@@ -252,9 +224,9 @@
           </p>
         </div>
 
-        <!-- ── 4. Dettes ── -->
+        <!-- ── 3. Dettes ── -->
         <div class="card" *ngIf="apercu.detteEtat > 0 || apercu.engagementFourn > 0">
-          <h3 class="section-title mb-3">4. Situation financière</h3>
+          <h3 class="section-title mb-3">3. Situation financière</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="rounded-lg p-4 border" style="border-color:#8EB69B; background:#f0f9f4;">
               <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Dettes État envers SONABHY</p>
