@@ -9,6 +9,16 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   return pwd && confirm && pwd !== confirm ? { mismatch: true } : null;
 }
 
+function passwordStrength(control: AbstractControl): ValidationErrors | null {
+  const v = control.value ?? '';
+  const errors: ValidationErrors = {};
+  if (v.length < 8)          errors['minlength'] = true;
+  if (!/[A-Z]/.test(v))     errors['noUpper']   = true;
+  if (!/[0-9]/.test(v))     errors['noDigit']   = true;
+  if (!/[^A-Za-z0-9]/.test(v)) errors['noSpecial'] = true;
+  return Object.keys(errors).length ? errors : null;
+}
+
 @Component({
   selector: 'app-force-change-password',
   templateUrl: './force-change-password.component.html',
@@ -26,9 +36,19 @@ export class ForceChangePasswordComponent {
       this.router.navigate(['/dashboard']);
     }
     this.form = this.fb.group({
-      nouveauMotDePasse: ['', [Validators.required, Validators.minLength(8)]],
+      nouveauMotDePasse: ['', [Validators.required, passwordStrength]],
       confirmation: ['', Validators.required],
     }, { validators: passwordsMatch });
+  }
+
+  get pwdVal() {
+    const v = this.form.get('nouveauMotDePasse')?.value ?? '';
+    return {
+      length:  v.length >= 8,
+      upper:   /[A-Z]/.test(v),
+      digit:   /[0-9]/.test(v),
+      special: /[^A-Za-z0-9]/.test(v),
+    };
   }
 
   onSubmit(): void {

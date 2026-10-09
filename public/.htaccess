@@ -5,3 +5,40 @@ RewriteRule ^index\.html$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /mica/index.html [L]
+
+# ── En-têtes de sécurité HTTP ──────────────────────────────────────────────
+<IfModule mod_headers.c>
+  # Empêche le site d'être affiché dans un iframe (clickjacking)
+  Header always set X-Frame-Options "DENY"
+
+  # Empêche le navigateur de deviner le type MIME
+  Header always set X-Content-Type-Options "nosniff"
+
+  # Empêche la fuite de l'URL dans le Referer vers des sites externes
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Force HTTPS pour 1 an (à activer uniquement si le serveur a un certificat SSL)
+  # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+  # Désactive les fonctionnalités sensibles du navigateur
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+
+  # Content Security Policy : restreint les sources de scripts, styles, images
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://localhost:3000 https://localhost:3000; frame-ancestors 'none';"
+
+  # Supprime les informations sur le serveur
+  Header always unset X-Powered-By
+  Header always unset Server
+</IfModule>
+
+# ── Cache pour les assets statiques ────────────────────────────────────────
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+</IfModule>
