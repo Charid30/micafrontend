@@ -13,7 +13,7 @@
       </p>
     </div>
     <div class="flex items-center gap-2">
-      <button *ngIf="authService.isAdmin() && rapport?.statut === 'BROUILLON' && !loading"
+      <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
         (click)="onArchive()" [disabled]="archiving || saving"
         class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
