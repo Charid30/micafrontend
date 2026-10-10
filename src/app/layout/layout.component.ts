@@ -36,4 +36,14 @@ export class LayoutComponent implements OnInit {
   toggleSidebar(): void {
     this.sidebarOpen = !this.sidebarOpen;
   }
+
+  get hasSaisieAccess(): boolean {
+    if (this.authService.isAdmin()) return true;
+    const modules = ['stocks','corridors','depots-int','temps-attente','veille-marche','veille-geo','achats-traders','ventes','tresorerie','recommandations','caf_moyen'];
+    return modules.some(m => this.authService.hasPermission(m, 'READ'));
+  }
+
+  get hasRapportsAccess(): boolean {
+    return this.authService.isAdmin() || this.authService.hasPermission('rapports', 'READ');
+  }
 }
