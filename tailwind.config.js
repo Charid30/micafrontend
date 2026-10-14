@@ -7,6 +7,9 @@ module.exports = {
     extend: {
       colors: {
         // Palette verte MICA/SONABHY
+        // Ces valeurs sont exactement les couleurs historiques de l'application
+        // (anciens style="color:#235347" etc.) : utiliser text-primary-500, bg-primary-800...
+        // plutot que des couleurs en dur dans les templates.
         primary: {
           50:  '#DAF1DE',
           100: '#c5e8cb',
