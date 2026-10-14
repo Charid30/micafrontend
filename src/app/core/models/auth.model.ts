@@ -41,6 +41,5 @@ export interface Utilisateur {
 }
 
 export interface AuthResponse {
-  token: string;
   utilisateur: Utilisateur;
 }

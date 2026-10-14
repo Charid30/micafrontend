@@ -7,37 +7,42 @@ import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly TOKEN_KEY = 'mica_token';
-  private readonly USER_KEY  = 'mica_user';
+  // Le jeton de session est dans un cookie HttpOnly posé par l'API : il n'est jamais lisible ici.
+  // On ne garde localement que le profil (affichage, menus) ; les droits réels sont vérifiés côté serveur.
+  private readonly USER_KEY = 'mica_user';
+  private readonly LEGACY_TOKEN_KEY = 'mica_token';
 
   private userSubject = new BehaviorSubject<Utilisateur | null>(this.storedUser());
   public user$ = this.userSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) {
+    localStorage.removeItem(this.LEGACY_TOKEN_KEY); // nettoyage de l'ancien stockage du jeton
+  }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login`, credentials).pipe(
       tap((res) => {
-        localStorage.setItem(this.TOKEN_KEY, res.token);
         localStorage.setItem(this.USER_KEY, JSON.stringify(res.utilisateur));
         this.userSubject.next(res.utilisateur);
       })
     );
   }
 
+  /** Déconnexion volontaire : efface aussi le cookie côté serveur */
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} });
+    this.clearSession();
+  }
+
+  /** Session expirée ou refusée (401) : nettoyage local uniquement */
+  clearSession(): void {
     localStorage.removeItem(this.USER_KEY);
     this.userSubject.next(null);
     this.router.navigate(['/auth/login']);
   }
 
-  getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return !!this.userSubject.value;
   }
 
   isAdmin(): boolean {
