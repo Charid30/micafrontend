@@ -1,7 +1,7 @@
-<div class="space-y-6">
+<div class="space-y-6 has-save-bar">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Trésorerie hebdomadaire</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
@@ -9,7 +9,8 @@
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
+    <div class="save-bar">
       <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,12 +34,12 @@
 
   <!-- Rapport publié -->
   <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
-    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+    <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
     </svg>
-    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+    <p class="text-sm text-primary-600">Rapport archivé — données consultables en lecture seule.</p>
   </div>
 
   <!-- Erreur -->
@@ -52,7 +53,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -60,31 +61,31 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <fieldset [disabled]="!canWrite || rapport?.statut === 'PUBLIE'" style="border:none;padding:0;margin:0;"
+    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
       [class.opacity-60]="!canWrite">
       <div class="card">
         <p class="text-xs text-gray-400 mb-4 italic">
           Saisissez les montants en FCFA. La situation simulée est calculée automatiquement.
         </p>
 
-        <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
           <table class="min-w-full text-sm">
             <thead>
               <tr>
-                <th class="table-header rounded-tl-lg whitespace-nowrap">Poste</th>
+                <th class="table-header rounded-tl-lg whitespace-nowrap sticky-col">Poste</th>
                 <th class="table-header whitespace-nowrap text-right">Semaine N-1 (FCFA)</th>
                 <th class="table-header whitespace-nowrap text-right">Semaine N (FCFA)</th>
                 <th class="table-header whitespace-nowrap text-right">Variation</th>
                 <th class="table-header rounded-tr-lg whitespace-nowrap text-center">Tendance</th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+            <tbody class="bg-white divide-y border-primary-50">
               <tr *ngFor="let l of lignes"
                 [class]="l.calculee ? 'font-bold' : 'table-row-hover'"
                 [style.background]="l.calculee ? '#f0faf3' : null">
 
-                <!-- Libellé -->
-                <td class="table-cell" style="color: #0B2B26;">
+                <!-- Libellé (cellule figée : reprend le fond des lignes calculées) -->
+                <td class="table-cell text-primary-700 sticky-col" [ngClass]="{ 'bg-[#f0faf3]': l.calculee }">
                   <div class="flex items-center gap-2">
                     <span class="inline-block w-2 h-2 rounded-full flex-shrink-0"
                       [style.background]="l.signe === 1 ? '#166534' : '#b91c1c'"></span>
@@ -97,7 +98,7 @@
                   <ng-container *ngIf="!l.calculee">
                     <input type="number" min="0" step="1"
                       [(ngModel)]="l.montant_n1"
-                      class="input-field w-full text-right text-sm py-1"
+                      class="input-field w-full text-right text-sm py-1 table-input"
                       placeholder="0"/>
                   </ng-container>
                   <ng-container *ngIf="l.calculee">
@@ -112,7 +113,7 @@
                   <ng-container *ngIf="!l.calculee">
                     <input type="number" min="0" step="1"
                       [(ngModel)]="l.montant_n"
-                      class="input-field w-full text-right text-sm py-1"
+                      class="input-field w-full text-right text-sm py-1 table-input"
                       placeholder="0"/>
                   </ng-container>
                   <ng-container *ngIf="l.calculee">

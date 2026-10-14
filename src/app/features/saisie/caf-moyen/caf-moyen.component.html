@@ -1,17 +1,19 @@
-<div class="space-y-6">
+<div class="space-y-6 has-save-bar">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">CAF moyen des achats</h2>
       <p class="text-sm text-gray-500 mt-1">Coût d'Assurance et Fret moyen par corridor, produit et mois</p>
     </div>
     <div class="flex items-center gap-3">
-      <!-- Sélecteur d'année -->
+      <!-- Sélecteur d'année (filtre : reste dans l'en-tête) -->
       <select [(ngModel)]="annee" (ngModelChange)="onAnneeChange()"
-        class="input-field text-sm py-1.5 px-3 w-28">
+        class="input-field text-sm py-1.5 px-3 w-28" aria-label="Année">
         <option *ngFor="let y of [2024, 2025, 2026, 2027]" [value]="y">{{ y }}</option>
       </select>
+      <!-- Actions : barre fixe en bas de l'écran sous 1024 px -->
+      <div class="save-bar">
       <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +32,7 @@
         </svg>
         Lecture seule
       </span>
+      </div>
     </div>
   </div>
 
@@ -44,7 +47,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -53,49 +56,47 @@
 
   <!-- Tableau par corridor -->
   <ng-container *ngIf="!loading">
-    <fieldset [disabled]="!canWrite" style="border:none;padding:0;margin:0;"
+    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite"
       [class.opacity-60]="!canWrite">
 
       <div *ngFor="let bloc of tableau; trackBy: trackByCorr" class="card mb-4">
 
         <!-- Titre corridor -->
         <div class="flex items-center gap-2 mb-4">
-          <div class="w-2 h-6 rounded" style="background-color: #235347;"></div>
-          <h3 class="text-base font-bold" style="color: #0B2B26;">Corridor {{ bloc.corridor }}</h3>
+          <div class="w-2 h-6 rounded bg-primary-500"></div>
+          <h3 class="text-base font-bold text-primary-700">Corridor {{ bloc.corridor }}</h3>
         </div>
 
-        <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
           <table class="min-w-full text-sm">
             <thead>
               <tr>
-                <th class="table-header rounded-tl-lg whitespace-nowrap sticky left-0 z-10"
-                  style="background-color: #235347; min-width: 140px;">Produit</th>
+                <th class="table-header rounded-tl-lg whitespace-nowrap sticky left-0 z-10 bg-primary-500 min-w-[140px] sticky-col">Produit</th>
                 <th *ngFor="let m of mois; trackBy: trackByMois"
-                  class="table-header whitespace-nowrap text-right" style="min-width: 90px;">
+                  class="table-header whitespace-nowrap text-right min-w-[90px]">
                   {{ m.label }}
                 </th>
-                <th class="table-header rounded-tr-lg whitespace-nowrap text-right"
-                  style="min-width: 90px; background-color: #163832;">
+                <th class="table-header rounded-tr-lg whitespace-nowrap text-right min-w-[90px] bg-primary-600">
                   Moy. {{ annee }}
                 </th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+            <tbody class="bg-white divide-y border-primary-50">
               <tr *ngFor="let p of bloc.produits; trackBy: trackByProd" class="table-row-hover">
                 <!-- Produit -->
-                <td class="table-cell font-medium sticky left-0 bg-white" style="color: #0B2B26; min-width: 140px;">
+                <td class="table-cell font-medium sticky left-0 bg-white text-primary-700 min-w-[140px] sticky-col">
                   {{ p.produit_libelle }}
                 </td>
                 <!-- Valeurs par mois -->
-                <td *ngFor="let m of mois; trackBy: trackByMois" class="table-cell" style="min-width: 90px;">
+                <td *ngFor="let m of mois; trackBy: trackByMois" class="table-cell min-w-[90px]">
                   <input type="number" min="0" step="0.001"
                     [(ngModel)]="p.valeurs[m.num]"
-                    class="input-field w-full text-right text-sm py-1"
+                    class="input-field w-full text-right text-sm py-1 table-input"
                     placeholder="—"/>
                 </td>
                 <!-- Moyenne annuelle calculée -->
-                <td class="table-cell text-right font-semibold" style="background-color: #f0faf3; min-width: 90px;">
-                  <span *ngIf="cafMoyen(p) !== null" style="color: #163832;">
+                <td class="table-cell text-right font-semibold bg-[#f0faf3] min-w-[90px]">
+                  <span class="text-primary-600" *ngIf="cafMoyen(p) !== null">
                     {{ cafMoyen(p) | number:'1.3-3' }}
                   </span>
                   <span *ngIf="cafMoyen(p) === null" class="text-gray-300 text-xs">—</span>

@@ -1,23 +1,20 @@
-<div class="flex h-screen overflow-hidden" style="background-color: #DAF1DE;">
+<!-- h-dvh : hauteur reelle de l'ecran sur mobile (la barre d'adresse ne masque plus le bas de page) -->
+<div class="flex h-screen supports-[height:100dvh]:h-dvh overflow-hidden bg-primary-50">
 
-  <!-- ── Backdrop mobile (clic ferme le drawer) ── -->
+  <!-- ── Fond assombri en mode tiroir (clic ferme le menu) ── -->
   <div *ngIf="isMobile && sidebarOpen"
     class="fixed inset-0 z-40 bg-black/50"
     (click)="toggleSidebar()">
   </div>
 
-  <!-- ── Sidebar ── -->
-  <aside
+  <!-- ── Menu lateral : tiroir sous 1024 px, colonne fixe repliable au-dela ── -->
+  <aside class="bg-primary-800" aria-label="Menu principal"
     [class]="isMobile
-      ? 'fixed left-0 top-0 h-full z-50 w-64 flex flex-col shadow-xl transition-transform duration-300 ' + (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
-      : 'relative flex-shrink-0 flex flex-col shadow-xl transition-all duration-300 overflow-hidden'"
-    [style.width]="!isMobile ? (sidebarOpen ? '260px' : '64px') : null"
-    style="background-color: #051F20;"
-  >
+      ? 'fixed left-0 top-0 h-full z-50 w-64 max-w-[85vw] flex flex-col shadow-xl transition-transform duration-300 ' + (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
+      : 'relative flex-shrink-0 flex flex-col shadow-xl transition-all duration-300 overflow-hidden ' + (sidebarOpen ? 'w-[260px]' : 'w-16')">
     <!-- Logo -->
-    <div class="flex items-center gap-3 px-4 py-5 border-b flex-shrink-0" style="border-color: #163832;">
-      <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
-           style="background-color: #8EB69B; color: #051F20;">
+    <div class="flex items-center gap-3 px-4 py-5 border-b flex-shrink-0 border-primary-600">
+      <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm bg-primary-200 text-primary-800">
         S
       </div>
       <span *ngIf="sidebarOpen || isMobile" class="font-bold text-sm truncate text-white">SONABHY</span>
@@ -39,9 +36,9 @@
       <!-- Section Saisie -->
       <ng-container *ngIf="hasSaisieAccess">
         <div *ngIf="sidebarOpen || isMobile" class="px-3 pt-5 pb-1">
-          <span class="text-xs font-semibold uppercase tracking-wider" style="color: #235347;">Saisie</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-primary-500">Saisie</span>
         </div>
-        <div *ngIf="!sidebarOpen && !isMobile" class="my-3 mx-2 border-t" style="border-color: #163832;"></div>
+        <div *ngIf="!sidebarOpen && !isMobile" class="my-3 mx-2 border-t border-primary-600"></div>
       </ng-container>
 
       <a *ngIf="authService.isAdmin() || authService.hasPermission('stocks', 'READ')"
@@ -154,9 +151,9 @@
       <!-- Section Rapports -->
       <ng-container *ngIf="hasRapportsAccess">
         <div *ngIf="sidebarOpen || isMobile" class="px-3 pt-5 pb-1">
-          <span class="text-xs font-semibold uppercase tracking-wider" style="color: #235347;">Rapports</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-primary-500">Rapports</span>
         </div>
-        <div *ngIf="!sidebarOpen && !isMobile" class="my-3 mx-2 border-t" style="border-color: #163832;"></div>
+        <div *ngIf="!sidebarOpen && !isMobile" class="my-3 mx-2 border-t border-primary-600"></div>
       </ng-container>
 
       <a *ngIf="hasRapportsAccess" routerLink="/rapports" routerLinkActive="sidebar-link-active" class="sidebar-link">
@@ -170,9 +167,9 @@
       <!-- Section Administration -->
       <ng-container *ngIf="authService.isAdmin()">
         <div *ngIf="sidebarOpen || isMobile" class="px-3 pt-5 pb-1">
-          <span class="text-xs font-semibold uppercase tracking-wider" style="color: #235347;">Administration</span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-primary-500">Administration</span>
         </div>
-        <div *ngIf="!sidebarOpen && !isMobile" class="my-3 mx-2 border-t" style="border-color: #163832;"></div>
+        <div *ngIf="!sidebarOpen && !isMobile" class="my-3 mx-2 border-t border-primary-600"></div>
 
         <a routerLink="/administration/utilisateurs" routerLinkActive="sidebar-link-active" class="sidebar-link">
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,22 +199,20 @@
     </nav>
 
     <!-- User info -->
-    <div class="p-3 border-t flex-shrink-0" style="border-color: #163832;">
+    <div class="p-3 border-t flex-shrink-0 border-primary-600">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs"
-             style="background-color: #235347; color: #DAF1DE;">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs bg-primary-500 text-primary-50">
           {{ authService.currentUser?.agent?.nom?.charAt(0) | uppercase }}
         </div>
         <div *ngIf="sidebarOpen || isMobile" class="flex-1 min-w-0">
           <p class="text-sm font-medium text-white truncate">
             {{ authService.currentUser?.agent?.nom }}
           </p>
-          <p class="text-xs truncate" style="color: #8EB69B;">{{ authService.currentUser?.username }}</p>
+          <p class="text-xs truncate text-primary-200">{{ authService.currentUser?.username }}</p>
         </div>
         <button *ngIf="sidebarOpen || isMobile" (click)="authService.logout()"
-          class="transition-colors flex-shrink-0" style="color: #8EB69B;"
-          onmouseover="this.style.color='#DAF1DE'" onmouseout="this.style.color='#8EB69B'"
-          title="Déconnexion">
+          class="p-2 -m-2 rounded-lg transition-colors flex-shrink-0 text-primary-200 hover:text-primary-50"
+          title="Déconnexion" aria-label="Déconnexion">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -231,19 +226,20 @@
   <div class="flex-1 flex flex-col overflow-hidden min-w-0">
 
     <!-- Header -->
-    <header class="h-16 bg-white border-b flex items-center px-4 gap-3 flex-shrink-0 shadow-sm"
-            style="border-color: #8EB69B;">
-      <button (click)="toggleSidebar()" class="transition-colors flex-shrink-0" style="color: #235347;"
-              onmouseover="this.style.color='#051F20'" onmouseout="this.style.color='#235347'">
+    <header class="h-16 bg-white border-b flex items-center px-4 gap-3 flex-shrink-0 shadow-sm border-primary-200">
+      <!-- Zone tactile de 40 px minimum -->
+      <button (click)="toggleSidebar()"
+              class="p-2 -ml-2 rounded-lg transition-colors flex-shrink-0 text-primary-500 hover:text-primary-800 hover:bg-primary-50"
+              aria-label="Afficher ou masquer le menu" [attr.aria-expanded]="sidebarOpen">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
       </button>
-      <h1 class="text-sm md:text-base font-semibold flex-1 truncate" style="color: #0B2B26;">
+      <h1 class="text-sm md:text-base font-semibold flex-1 truncate text-primary-700">
         <span class="hidden sm:inline">Plateforme de suivi des stocks SONABHY</span>
         <span class="sm:hidden">SONABHY</span>
       </h1>
-      <span class="text-xs hidden md:block flex-shrink-0" style="color: #235347;">
+      <span class="text-xs hidden md:block flex-shrink-0 text-primary-500">
         {{ today | date:'EEEE d MMMM yyyy':'':'fr' }}
       </span>
     </header>

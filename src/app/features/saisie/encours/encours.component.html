@@ -1,18 +1,19 @@
-<div class="space-y-6">
+<div class="space-y-6 has-save-bar">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Dépôts intérieurs</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
         Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
-      <p class="text-xs mt-1 font-medium" style="color:#235347;" *ngIf="dateSaisie">
+      <p class="text-xs mt-1 font-medium text-primary-500" *ngIf="dateSaisie">
         Saisie du {{ dateSaisie | date:'EEEE dd MMMM yyyy':'':'fr' }}
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
+    <div class="save-bar">
       <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
         (click)="onArchive()" [disabled]="archiving || saving"
         class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -45,12 +46,12 @@
 
   <!-- Rapport archivé -->
   <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
-    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+    <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
     </svg>
-    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+    <p class="text-sm text-primary-600">Rapport archivé — données consultables en lecture seule.</p>
   </div>
 
   <!-- Erreur -->
@@ -64,7 +65,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -72,33 +73,33 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <fieldset [disabled]="!canWrite" style="border:none;padding:0;margin:0;" [class.opacity-60]="!canWrite">
+    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite" [class.opacity-60]="!canWrite">
 
     <div *ngFor="let depot of depots; let di = index" class="card">
       <!-- Titre dépôt + totaux -->
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h3 class="section-title">Dépôt {{ depot.depot_libelle }}</h3>
-        <div class="flex items-center gap-4 text-xs">
-          <span class="text-gray-500">
-            En attente : <strong style="color: #051F20;">{{ totalEnAttente(depot) }}</strong>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span class="text-gray-500 whitespace-nowrap">
+            En attente : <strong class="text-primary-800">{{ totalEnAttente(depot) }}</strong>
           </span>
-          <span class="text-gray-500">
-            Reçus : <strong style="color: #235347;">{{ totalRecus(depot) }}</strong>
+          <span class="text-gray-500 whitespace-nowrap">
+            Reçus : <strong class="text-primary-500">{{ totalRecus(depot) }}</strong>
           </span>
-          <span class="text-gray-500">
-            Dépotés : <strong style="color: #163832;">{{ totalDepotes(depot) }}</strong>
+          <span class="text-gray-500 whitespace-nowrap">
+            Dépotés : <strong class="text-primary-600">{{ totalDepotes(depot) }}</strong>
           </span>
-          <span [class]="totalTaux(depot) >= 80 ? 'badge-success' : totalTaux(depot) >= 50 ? 'badge-info' : 'badge-danger'">
+          <span class="whitespace-nowrap" [class]="totalTaux(depot) >= 80 ? 'badge-success' : totalTaux(depot) >= 50 ? 'badge-info' : 'badge-danger'">
             {{ totalTaux(depot) }} %
           </span>
         </div>
       </div>
 
-      <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
         <table class="min-w-full text-sm">
           <thead>
             <tr>
-              <th class="table-header rounded-tl-lg whitespace-nowrap">Produit</th>
+              <th class="table-header rounded-tl-lg whitespace-nowrap sticky-col">Produit</th>
               <th class="table-header whitespace-nowrap">Camions en attente</th>
               <th class="table-header whitespace-nowrap">Camions reçus</th>
               <th class="table-header whitespace-nowrap">Camions dépotés</th>
@@ -106,9 +107,9 @@
               <th class="table-header rounded-tr-lg whitespace-nowrap">Taux de dépotage</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+          <tbody class="bg-white divide-y border-primary-50">
             <tr *ngFor="let ligne of depot.lignes; let li = index" class="table-row-hover">
-              <td class="table-cell font-medium" style="color: #0B2B26;">
+              <td class="table-cell font-medium text-primary-700 sticky-col">
                 {{ ligne.produit_libelle }}
               </td>
               <td class="table-cell">
@@ -116,7 +117,7 @@
                   [name]="'att_' + di + '_' + li"
                   [(ngModel)]="ligne.camions_en_attente"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-sm py-1"
+                  class="input-field w-full text-right text-sm py-1 table-input"
                   placeholder="0"/>
               </td>
               <td class="table-cell">
@@ -124,7 +125,7 @@
                   [name]="'rec_' + di + '_' + li"
                   [(ngModel)]="ligne.camions_recus"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-sm py-1"
+                  class="input-field w-full text-right text-sm py-1 table-input"
                   placeholder="0"/>
               </td>
               <td class="table-cell">
@@ -132,10 +133,10 @@
                   [name]="'dep_' + di + '_' + li"
                   [(ngModel)]="ligne.camions_depotes"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-sm py-1"
+                  class="input-field w-full text-right text-sm py-1 table-input"
                   placeholder="0"/>
               </td>
-              <td class="table-cell text-right font-semibold" style="color: #051F20;">
+              <td class="table-cell text-right font-semibold text-primary-800">
                 {{ camionsEnInstance(ligne) }}
               </td>
               <td class="table-cell text-right">
@@ -148,8 +149,8 @@
               </td>
             </tr>
             <!-- Ligne totaux -->
-            <tr class="bg-gray-50 font-semibold text-xs border-t-2" style="border-color: #8EB69B;">
-              <td class="table-cell" style="color: #051F20;">TOTAL</td>
+            <tr class="bg-gray-50 font-semibold text-xs border-t-2 border-primary-200">
+              <td class="table-cell text-primary-800 sticky-col bg-gray-50">TOTAL</td>
               <td class="table-cell text-right">{{ totalEnAttente(depot) }}</td>
               <td class="table-cell text-right">{{ totalRecus(depot) }}</td>
               <td class="table-cell text-right">{{ totalDepotes(depot) }}</td>

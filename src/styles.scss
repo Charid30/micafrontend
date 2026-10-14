@@ -45,6 +45,7 @@ fieldset {
 /* Scrollbar personnalisée */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px; /* barre horizontale des tableaux */
 }
 ::-webkit-scrollbar-track {
   background: var(--color-forest-lightest);
@@ -115,6 +116,78 @@ fieldset {
   }
   .table-row-hover {
     @apply hover:bg-primary-50 transition-colors;
+  }
+  /* Cellule d'en-tete portant directement .table-header (cas le plus frequent dans les pages) :
+     sans cette regle, elle n'avait aucune marge interieure et les titres de colonnes se collaient */
+  th.table-header {
+    @apply px-2 py-2 md:px-4 md:py-3 text-left text-xs font-semibold uppercase tracking-wider align-bottom;
+  }
+
+  /* Champ de saisie dans un tableau : largeur minimale lisible (le tableau defile horizontalement) */
+  .table-input {
+    @apply min-w-[6.5rem];
+  }
+  .table-input-wide {
+    @apply min-w-[14rem];
+  }
+  /* Premiere colonne figee pendant le defilement horizontal (nom du produit toujours visible) */
+  /* rounded-none : le conteneur arrondit deja les coins ; un coin arrondi sur la cellule figee
+     laisserait voir le contenu qui defile dessous */
+  .sticky-col {
+    @apply sticky left-0 z-10 rounded-none bg-white shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] lg:shadow-none;
+  }
+  th.sticky-col.table-header,
+  .table-header .sticky-col {
+    @apply bg-primary-800;
+  }
+  .table-row-hover:hover > .sticky-col {
+    @apply bg-primary-50;
+  }
+
+  /* En-tete de page : titre + actions, empiles sur mobile */
+  .page-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+  }
+  .page-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  /* Barre d'actions des pages de saisie : fixee en bas de l'ecran sous 1024 px
+     (Enregistrer toujours accessible), integree a l'en-tete au-dela */
+  .save-bar {
+    /* pb : marge basse d'au moins 12 px, agrandie sur iPhone pour la zone de geste (safe-area) */
+    @apply fixed inset-x-0 bottom-0 z-30 flex items-center gap-2 border-t border-primary-200 bg-white/95 px-3 pt-3 backdrop-blur
+           pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.06)]
+           lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none;
+  }
+  .save-bar > * {
+    @apply flex-1 justify-center lg:flex-none;
+  }
+  /* Espace reserve en bas de page pour que la barre fixe ne masque pas le contenu */
+  .has-save-bar {
+    @apply pb-24 lg:pb-0;
+  }
+
+  /* Modales : marges sur mobile, hauteur limitee a l'ecran, defilement interne */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4;
+  }
+  .modal-panel {
+    @apply w-full max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl bg-white shadow-xl;
+  }
+
+  /* Barre d'onglets : defilement horizontal sur petit ecran au lieu de deborder */
+  /* Ligne du bas en ombre interne (et non en bordure) : l'onglet actif la recouvre sans decalage,
+     ce qui evite une barre de defilement verticale parasite dans un conteneur defilant */
+  .tabs {
+    @apply flex overflow-x-auto shadow-[inset_0_-1px_0_theme(colors.primary.200)];
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tabs > * {
+    @apply flex-shrink-0 whitespace-nowrap;
   }
 
   /* Sidebar */

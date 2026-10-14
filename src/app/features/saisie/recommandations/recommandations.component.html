@@ -1,7 +1,7 @@
-<div class="space-y-6">
+<div class="space-y-6 has-save-bar">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Recommandations hebdomadaires</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
@@ -9,7 +9,8 @@
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
+    <div class="save-bar">
       <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,12 +34,12 @@
 
   <!-- Rapport publié -->
   <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
-    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+    <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
     </svg>
-    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+    <p class="text-sm text-primary-600">Rapport archivé — données consultables en lecture seule.</p>
   </div>
 
   <!-- Erreur -->
@@ -52,7 +53,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -60,14 +61,14 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <fieldset [disabled]="!canWrite || rapport?.statut === 'PUBLIE'" style="border:none;padding:0;margin:0;"
+    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
       [class.opacity-60]="!canWrite">
 
       <div class="grid grid-cols-1 gap-6">
 
         <!-- Tendance générale -->
         <div class="card">
-          <label class="block text-sm font-semibold mb-2" style="color:#0B2B26;">
+          <label class="block text-sm font-semibold mb-2 text-primary-700">
             Tendance générale du marché pétrolier
           </label>
           <textarea rows="4" [(ngModel)]="tendance_generale"
@@ -77,7 +78,7 @@
 
         <!-- Risques majeurs -->
         <div class="card">
-          <label class="block text-sm font-semibold mb-2" style="color:#0B2B26;">
+          <label class="block text-sm font-semibold mb-2 text-primary-700">
             Risques majeurs identifiés
           </label>
           <textarea rows="4" [(ngModel)]="risques_majeurs"
@@ -87,7 +88,7 @@
 
         <!-- Impact SONABHY -->
         <div class="card">
-          <label class="block text-sm font-semibold mb-2" style="color:#0B2B26;">
+          <label class="block text-sm font-semibold mb-2 text-primary-700">
             Impact potentiel sur la SONABHY
           </label>
           <textarea rows="4" [(ngModel)]="impact_sonabhy"
@@ -97,7 +98,7 @@
 
         <!-- Recommandations -->
         <div class="card">
-          <label class="block text-sm font-semibold mb-2" style="color:#0B2B26;">
+          <label class="block text-sm font-semibold mb-2 text-primary-700">
             Recommandations
           </label>
           <textarea rows="5" [(ngModel)]="recommandations"

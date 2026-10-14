@@ -1,7 +1,7 @@
 <div class="space-y-6">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Historique &amp; Tendances</h2>
       <p class="text-sm text-gray-500 mt-1">Évolution des indicateurs semaine par semaine</p>
@@ -14,7 +14,7 @@
 
       <!-- Module -->
       <div class="flex flex-col gap-1 min-w-48">
-        <label class="text-xs font-semibold" style="color:#235347;">Indicateur</label>
+        <label class="text-xs font-semibold text-primary-500">Indicateur</label>
         <select [(ngModel)]="moduleKey" (ngModelChange)="onModuleChange()"
           class="input-field text-sm py-1.5 px-3">
           <option *ngFor="let m of modules" [value]="m.key">{{ m.label }}</option>
@@ -23,7 +23,7 @@
 
       <!-- Période -->
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold" style="color:#235347;">Période</label>
+        <label class="text-xs font-semibold text-primary-500">Période</label>
         <div class="flex gap-1 flex-wrap">
           <button *ngFor="let p of periodes"
             (click)="semaines = p.val; onPeriodeChange()"
@@ -50,7 +50,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -73,14 +73,14 @@
 
     <!-- Graphe ligne -->
     <div *ngIf="chartData.datasets?.length" class="card">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold" style="color:#0B2B26;">{{ moduleLabel }}</h3>
-        <span class="text-xs px-2 py-1 rounded-full font-medium"
-          style="background:#DAF1DE; color:#235347;">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <h3 class="text-sm font-semibold text-primary-700">{{ moduleLabel }}</h3>
+        <span class="text-xs px-2 py-1 rounded-full font-medium bg-primary-50 text-primary-500">
           {{ semaines }} semaines
         </span>
       </div>
-      <div style="height: 400px; position: relative;">
+      <!-- Hauteur adaptee a l'ecran (400 px sur grand ecran comme avant) -->
+      <div class="relative h-64 sm:h-80 lg:h-[400px]">
         <canvas baseChart
           [data]="chartData"
           [options]="chartOptions"

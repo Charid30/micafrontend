@@ -1,7 +1,7 @@
 <div class="space-y-6">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Paramètres</h2>
       <p class="text-sm text-gray-500 mt-1">Gestion des données de référence de l'application</p>
@@ -23,7 +23,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex items-center justify-center py-20">
-    <svg class="animate-spin w-8 h-8" style="color:#235347" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -33,7 +33,7 @@
 
     <!-- ══ PRODUITS ══ -->
     <div *ngIf="activeTab === 'produits'" class="card">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 class="section-title">Produits pétroliers</h3>
         <button (click)="openModal('produit')" class="btn-primary flex items-center gap-2 text-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@
 
     <!-- ══ DÉPÔTS ══ -->
     <div *ngIf="activeTab === 'depots'" class="card">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 class="section-title">Dépôts</h3>
         <button (click)="openModal('depot')" class="btn-primary flex items-center gap-2 text-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,7 +135,7 @@
 
     <!-- ══ CORRIDORS ══ -->
     <div *ngIf="activeTab === 'corridors'" class="card">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 class="section-title">Corridors d'approvisionnement</h3>
         <button (click)="openModal('corridor')" class="btn-primary flex items-center gap-2 text-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +182,7 @@
 
     <!-- ══ FOURNISSEURS ══ -->
     <div *ngIf="activeTab === 'fournisseurs'" class="card">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 class="section-title">Fournisseurs / Traders</h3>
         <button (click)="openModal('fournisseur')" class="btn-primary flex items-center gap-2 text-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +229,7 @@
 
     <!-- ══ MARKETEURS ══ -->
     <div *ngIf="activeTab === 'marketeurs'" class="card">
-      <div class="flex items-center justify-between mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 class="section-title">Marketeurs</h3>
         <button (click)="openModal('marketeur')" class="btn-primary flex items-center gap-2 text-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,8 +322,8 @@
 </div>
 
 <!-- ══ MODAL GÉNÉRIQUE ══ -->
-<div *ngIf="showModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" (click)="closeModal()">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-md" (click)="$event.stopPropagation()">
+<div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+  <div class="modal-panel max-w-md" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="flex items-center justify-between p-5 border-b">
       <h3 class="font-semibold text-gray-800">{{ modalTitle }}</h3>
       <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600">
@@ -338,7 +338,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
         <input [(ngModel)]="form.code" type="text" placeholder="Ex: SP"
-          class="input-field w-full" [disabled]="!!form.id" style="text-transform:uppercase"/>
+          class="input-field w-full uppercase" [disabled]="!!form.id" />
       </div>
 
       <!-- Libellé (tous) -->

@@ -24,9 +24,11 @@ export class LayoutComponent implements OnInit {
       .subscribe(() => { if (this.isMobile) this.sidebarOpen = false; });
   }
 
+  // Mode "tiroir" (menu en surimpression) sous 1024 px (breakpoint lg de Tailwind) :
+  // sur tablette, un menu fixe de 260 px ne laissait que ~500 px au contenu
   @HostListener('window:resize')
   checkMobile(): void {
-    const mobile = window.innerWidth < 768;
+    const mobile = window.innerWidth < 1024;
     if (mobile !== this.isMobile) {
       this.isMobile = mobile;
       this.sidebarOpen = !mobile; // ouvert par défaut sur desktop

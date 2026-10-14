@@ -1,7 +1,7 @@
-<div class="space-y-6">
+<div class="space-y-6 has-save-bar">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Achats traders</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
@@ -9,7 +9,8 @@
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
+    <div class="save-bar">
       <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
         (click)="onArchive()" [disabled]="archiving || saving"
         class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -26,7 +27,7 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
-          Ajouter une ligne
+          <span class="sm:hidden">Ajouter</span><span class="hidden sm:inline">Ajouter une ligne</span>
         </button>
         <button (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
           class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -52,12 +53,12 @@
 
   <!-- Rapport archivé -->
   <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
-    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+    <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
     </svg>
-    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+    <p class="text-sm text-primary-600">Rapport archivé — données consultables en lecture seule.</p>
   </div>
 
   <!-- Erreur -->
@@ -71,7 +72,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -79,42 +80,42 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <fieldset [disabled]="!canWrite" style="border:none;padding:0;margin:0;" [class.opacity-60]="!canWrite">
+    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite" [class.opacity-60]="!canWrite">
 
     <!-- Tableau principal -->
     <div class="card">
-      <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
         <table class="min-w-full text-xs">
           <thead>
             <tr>
-              <th class="table-header whitespace-nowrap rounded-tl-lg" style="min-width:130px">Produit</th>
-              <th class="table-header whitespace-nowrap" style="min-width:140px">Fournisseur</th>
-              <th class="table-header whitespace-nowrap" style="min-width:110px">Type opération</th>
-              <th class="table-header whitespace-nowrap" style="min-width:110px">Lieu livraison</th>
-              <th class="table-header whitespace-nowrap" style="min-width:115px">Date livraison</th>
-              <th class="table-header whitespace-nowrap" style="min-width:85px">Qté TM</th>
-              <th class="table-header whitespace-nowrap" style="min-width:85px">Qté m³ 15°</th>
-              <th class="table-header whitespace-nowrap" style="min-width:95px">Qté m³ Ambiant</th>
-              <th class="table-header whitespace-nowrap" style="min-width:110px">Période cotation</th>
-              <th class="table-header whitespace-nowrap" style="min-width:100px">Prix unit. CAF (USD)</th>
-              <th class="table-header whitespace-nowrap" style="min-width:100px">Valeur CAF (USD)</th>
-              <th class="table-header whitespace-nowrap" style="min-width:90px">Taux change</th>
-              <th class="table-header whitespace-nowrap" style="min-width:115px">Montant CFA</th>
-              <th class="table-header whitespace-nowrap" style="min-width:100px">Frais LC (CFA)</th>
-              <th class="table-header whitespace-nowrap" style="min-width:75px">Frais LC %</th>
-              <th class="table-header whitespace-nowrap" style="min-width:125px">Coût total unit. CFA</th>
-              <th class="table-header whitespace-nowrap rounded-tr-lg" style="min-width:45px"></th>
+              <th class="table-header whitespace-nowrap rounded-tl-lg min-w-[130px] sticky-col">Produit</th>
+              <th class="table-header whitespace-nowrap min-w-[140px]">Fournisseur</th>
+              <th class="table-header whitespace-nowrap min-w-[110px]">Type opération</th>
+              <th class="table-header whitespace-nowrap min-w-[110px]">Lieu livraison</th>
+              <th class="table-header whitespace-nowrap min-w-[115px]">Date livraison</th>
+              <th class="table-header whitespace-nowrap min-w-[85px]">Qté TM</th>
+              <th class="table-header whitespace-nowrap min-w-[85px]">Qté m³ 15°</th>
+              <th class="table-header whitespace-nowrap min-w-[95px]">Qté m³ Ambiant</th>
+              <th class="table-header whitespace-nowrap min-w-[110px]">Période cotation</th>
+              <th class="table-header whitespace-nowrap min-w-[100px]">Prix unit. CAF (USD)</th>
+              <th class="table-header whitespace-nowrap min-w-[100px]">Valeur CAF (USD)</th>
+              <th class="table-header whitespace-nowrap min-w-[90px]">Taux change</th>
+              <th class="table-header whitespace-nowrap min-w-[115px]">Montant CFA</th>
+              <th class="table-header whitespace-nowrap min-w-[100px]">Frais LC (CFA)</th>
+              <th class="table-header whitespace-nowrap min-w-[75px]">Frais LC %</th>
+              <th class="table-header whitespace-nowrap min-w-[125px]">Coût total unit. CFA</th>
+              <th class="table-header whitespace-nowrap rounded-tr-lg min-w-[45px]"></th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+          <tbody class="bg-white divide-y border-primary-50">
 
             <tr *ngFor="let row of achats; let i = index" class="table-row-hover">
 
               <!-- Produit -->
-              <td class="table-cell p-1">
+              <td class="table-cell p-1 sticky-col">
                 <select [name]="'produit_' + i" [(ngModel)]="row.produit_id"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-xs py-1">
+                  class="input-field w-full text-xs py-1 table-input">
                   <option value="">— Choisir —</option>
                   <option *ngFor="let p of produits" [value]="p.id">{{ p.code }}</option>
                 </select>
@@ -124,7 +125,7 @@
               <td class="table-cell p-1">
                 <select [name]="'fourn_' + i" [(ngModel)]="row.fournisseur_id"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-xs py-1">
+                  class="input-field w-full text-xs py-1 table-input">
                   <option value="">— Choisir —</option>
                   <option *ngFor="let f of fournisseurs" [value]="f.id">{{ f.libelle }}</option>
                 </select>
@@ -134,60 +135,60 @@
               <td class="table-cell p-1">
                 <input type="text" [name]="'type_' + i" [(ngModel)]="row.type_operation"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-xs py-1" placeholder="Ex: FOB, CIF"/>
+                  class="input-field w-full text-xs py-1 table-input" placeholder="Ex: FOB, CIF"/>
               </td>
 
               <!-- Lieu livraison -->
               <td class="table-cell p-1">
                 <input type="text" [name]="'lieu_' + i" [(ngModel)]="row.lieu_livraison"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-xs py-1" placeholder="Lieu"/>
+                  class="input-field w-full text-xs py-1 table-input" placeholder="Lieu"/>
               </td>
 
               <!-- Date livraison -->
               <td class="table-cell p-1">
                 <input type="date" [name]="'date_' + i" [(ngModel)]="row.date_livraison"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-xs py-1"/>
+                  class="input-field w-full text-xs py-1 table-input"/>
               </td>
 
               <!-- Quantité TM -->
               <td class="table-cell p-1">
                 <input type="number" min="0" step="0.001" [name]="'qtm_' + i" [(ngModel)]="row.quantite_tm"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-xs py-1" placeholder="0"/>
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
               </td>
 
               <!-- Quantité m3 15° -->
               <td class="table-cell p-1">
                 <input type="number" min="0" step="0.001" [name]="'qm15_' + i" [(ngModel)]="row.quantite_m3_15"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-xs py-1" placeholder="0"/>
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
               </td>
 
               <!-- Quantité m3 Ambiant -->
               <td class="table-cell p-1">
                 <input type="number" min="0" step="0.001" [name]="'qamb_' + i" [(ngModel)]="row.quantite_m3_ambiant"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-xs py-1" placeholder="0"/>
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
               </td>
 
               <!-- Période cotation -->
               <td class="table-cell p-1">
                 <input type="text" [name]="'pcot_' + i" [(ngModel)]="row.periode_cotation"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-xs py-1" placeholder="Ex: Q2 2026"/>
+                  class="input-field w-full text-xs py-1 table-input" placeholder="Ex: Q2 2026"/>
               </td>
 
               <!-- Prix unitaire CAF USD -->
               <td class="table-cell p-1">
                 <input type="number" min="0" step="0.0001" [name]="'prix_' + i" [(ngModel)]="row.prix_unitaire_caf_usd"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-xs py-1" placeholder="0"/>
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
               </td>
 
               <!-- Valeur CAF USD [calc] -->
-              <td class="table-cell text-right font-semibold" style="color:#235347;">
+              <td class="table-cell text-right font-semibold text-primary-500">
                 {{ valeurCafUsd(row) | number:'1.0-2' }}
               </td>
 
@@ -195,11 +196,11 @@
               <td class="table-cell p-1">
                 <input type="number" min="0" step="0.0001" [name]="'taux_' + i" [(ngModel)]="row.taux_change"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-xs py-1" placeholder="0"/>
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
               </td>
 
               <!-- Montant CFA [calc] -->
-              <td class="table-cell text-right font-semibold" style="color:#235347;">
+              <td class="table-cell text-right font-semibold text-primary-500">
                 {{ montantCfa(row) | number:'1.0-0' }}
               </td>
 
@@ -207,16 +208,16 @@
               <td class="table-cell p-1">
                 <input type="number" min="0" step="1" [name]="'frais_' + i" [(ngModel)]="row.frais_lc_cfa"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-xs py-1" placeholder="0"/>
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
               </td>
 
               <!-- Frais LC % [calc] -->
-              <td class="table-cell text-right font-semibold" style="color:#235347;">
+              <td class="table-cell text-right font-semibold text-primary-500">
                 {{ fraisLcPct(row) | number:'1.2-2' }} %
               </td>
 
               <!-- Coût total unitaire CFA [calc] -->
-              <td class="table-cell text-right font-semibold" style="color:#235347;">
+              <td class="table-cell text-right font-semibold text-primary-500">
                 {{ coutTotalUnitaire(row) | number:'1.0-0' }}
               </td>
 
@@ -236,14 +237,14 @@
 
             <!-- Ligne vide si aucune donnée -->
             <tr *ngIf="achats.length === 0">
-              <td colspan="17" class="table-cell text-center text-gray-400 py-8 italic">
+              <td colspan="17" class="table-cell text-center text-gray-400 py-8 italic sticky-col">
                 Aucune ligne. Cliquez sur « Ajouter une ligne » pour commencer.
               </td>
             </tr>
 
             <!-- Ligne de totaux -->
-            <tr *ngIf="achats.length > 0" style="background:#DAF1DE; font-weight:700; color:#0B2B26;">
-              <td class="table-cell" colspan="5">TOTAUX</td>
+            <tr class="bg-primary-50 font-bold text-primary-700" *ngIf="achats.length > 0">
+              <td class="table-cell sticky-col bg-primary-50" colspan="5">TOTAUX</td>
               <td class="table-cell text-right">{{ totalQtm() | number:'1.0-3' }}</td>
               <td class="table-cell text-right">{{ totalM315() | number:'1.0-3' }}</td>
               <td class="table-cell text-right">{{ totalM3Ambiant() | number:'1.0-3' }}</td>
@@ -264,7 +265,7 @@
 
       <!-- Légende colonnes calculées -->
       <div class="mt-3 flex flex-wrap gap-4 text-xs text-gray-400 italic">
-        <span><span class="inline-block w-3 h-3 rounded-sm mr-1" style="background:#f3f4f6; border:1px solid #d1d5db;"></span>Colonnes calculées automatiquement</span>
+        <span><span class="inline-block w-3 h-3 rounded-sm mr-1 bg-gray-100 border border-gray-300"></span>Colonnes calculées automatiquement</span>
         <span>Valeur CAF = Qté TM × Prix unit.</span>
         <span>Montant CFA = Valeur CAF × Taux change</span>
         <span>Frais LC % = Frais LC / Montant CFA</span>

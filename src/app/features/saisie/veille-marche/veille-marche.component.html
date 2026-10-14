@@ -1,7 +1,7 @@
-<div class="space-y-6">
+<div class="space-y-6 has-save-bar">
 
   <!-- En-tête -->
-  <div class="flex items-center justify-between flex-wrap gap-3">
+  <div class="page-header">
     <div>
       <h2 class="page-title">Veille marché pétrolier</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
@@ -9,7 +9,8 @@
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
+    <div class="save-bar">
       <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
         (click)="onArchive()" [disabled]="archiving || saving"
         class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -42,12 +43,12 @@
 
   <!-- Rapport archivé -->
   <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3" style="border-color:#8EB69B; background-color:#f0faf3;">
-    <svg class="w-5 h-5 flex-shrink-0" style="color:#235347;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+    <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
     </svg>
-    <p class="text-sm" style="color:#163832;">Rapport archivé — données consultables en lecture seule.</p>
+    <p class="text-sm text-primary-600">Rapport archivé — données consultables en lecture seule.</p>
   </div>
 
   <!-- Erreur -->
@@ -61,7 +62,7 @@
 
   <!-- Chargement -->
   <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
-    <svg class="animate-spin w-8 h-8" style="color: #235347;" fill="none" viewBox="0 0 24 24">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
     </svg>
@@ -69,17 +70,17 @@
   </div>
 
   <ng-container *ngIf="!loading">
-    <fieldset [disabled]="!canWrite" style="border:none;padding:0;margin:0;" [class.opacity-60]="!canWrite">
+    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite" [class.opacity-60]="!canWrite">
     <div class="card">
       <p class="text-xs text-gray-400 mb-4 italic">
         Cellules bleues = valeurs à saisir. La variation et la tendance sont calculées automatiquement.
       </p>
 
-      <div class="overflow-x-auto rounded-lg border" style="border-color: #8EB69B;">
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
         <table class="min-w-full text-sm">
           <thead>
             <tr>
-              <th class="table-header rounded-tl-lg whitespace-nowrap">Indicateur</th>
+              <th class="table-header rounded-tl-lg whitespace-nowrap sticky-col">Indicateur</th>
               <th class="table-header whitespace-nowrap">Semaine N-1</th>
               <th class="table-header whitespace-nowrap">Semaine N</th>
               <th class="table-header whitespace-nowrap">Variation</th>
@@ -88,10 +89,10 @@
               <th class="table-header rounded-tr-lg whitespace-nowrap">Fréquence</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y" style="border-color: #DAF1DE;">
+          <tbody class="bg-white divide-y border-primary-50">
             <tr *ngFor="let ind of indicateurs" class="table-row-hover">
               <!-- Indicateur -->
-              <td class="table-cell font-medium" style="color: #0B2B26;">
+              <td class="table-cell font-medium text-primary-700 sticky-col">
                 <div>{{ ind.libelle }}</div>
                 <div class="text-xs text-gray-400">{{ ind.unite }}</div>
               </td>
@@ -101,7 +102,7 @@
                 <input type="number" min="0" step="0.0001"
                   [(ngModel)]="ind.prix_semaine_n1"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-sm py-1"
+                  class="input-field w-full text-right text-sm py-1 table-input"
                   placeholder="0"/>
               </td>
 
@@ -110,7 +111,7 @@
                 <input type="number" min="0" step="0.0001"
                   [(ngModel)]="ind.prix_semaine_n"
                   [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-sm py-1"
+                  class="input-field w-full text-right text-sm py-1 table-input"
                   placeholder="0"/>
               </td>
 

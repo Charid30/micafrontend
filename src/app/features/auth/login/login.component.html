@@ -1,32 +1,30 @@
 <div class="min-h-screen flex">
 
   <!-- Côté gauche : Branding -->
-  <div class="hidden md:flex flex-col justify-between w-2/5 p-10 relative overflow-hidden"
-       style="background-color: #051F20;">
+  <div class="hidden md:flex flex-col justify-between w-2/5 p-10 relative overflow-hidden bg-primary-800">
     <!-- Image de fond avec overlay vert -->
     <div class="absolute inset-0 bg-cover bg-center bg-no-repeat"
          style="background-image: url('SONABY.jpg');"></div>
-    <div class="absolute inset-0" style="background-color: rgba(5,31,32,0.78);"></div>
+    <div class="absolute inset-0 bg-primary-800/[0.78]"></div>
     <!-- Contenu au-dessus de l'overlay -->
     <div class="relative z-10 flex flex-col justify-between h-full">
 
     <!-- Logo + nom -->
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0"
-           style="background-color: #8EB69B; color: #051F20;">S</div>
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0 bg-primary-200 text-primary-800">S</div>
       <div>
         <p class="text-white font-bold text-sm leading-tight">SONABHY</p>
-        <p class="text-xs" style="color: #8EB69B;">Société Nat. Burkinabé d'Hydrocarbures</p>
+        <p class="text-xs text-primary-200">Société Nat. Burkinabé d'Hydrocarbures</p>
       </div>
     </div>
 
     <!-- Message central -->
     <div>
-      <div class="w-12 h-1 rounded-full mb-6" style="background-color: #235347;"></div>
+      <div class="w-12 h-1 rounded-full mb-6 bg-primary-500"></div>
       <h1 class="text-2xl font-bold text-white leading-snug mb-3">
         Plateforme de suivi<br>des stocks hydrocarbures
       </h1>
-      <p class="text-sm leading-relaxed" style="color: #8EB69B;">
+      <p class="text-sm leading-relaxed text-primary-200">
         Accès sécurisé à la gestion hebdomadaire<br>
         des rapports de stocks hebdomadaires.
       </p>
@@ -36,16 +34,16 @@
     <div>
       <!-- Indicateurs décoratifs -->
       <div class="flex gap-3 mb-6">
-        <div class="flex-1 rounded-lg p-3" style="background-color: #0B2B26;">
-          <p class="text-xs mb-1" style="color: #8EB69B;">Dépôts intérieurs</p>
+        <div class="flex-1 rounded-lg p-3 bg-primary-700">
+          <p class="text-xs mb-1 text-primary-200">Dépôts intérieurs</p>
           <p class="text-white font-semibold text-sm">BINGO · PENI</p>
         </div>
-        <div class="flex-1 rounded-lg p-3" style="background-color: #0B2B26;">
-          <p class="text-xs mb-1" style="color: #8EB69B;">Produits suivis</p>
+        <div class="flex-1 rounded-lg p-3 bg-primary-700">
+          <p class="text-xs mb-1 text-primary-200">Produits suivis</p>
           <p class="text-white font-semibold text-sm">7 produits</p>
         </div>
       </div>
-      <p class="text-xs" style="color: #235347;">SONABHY © 2026. Tous droits réservés.</p>
+      <p class="text-xs text-primary-500">SONABHY © 2026. Tous droits réservés.</p>
     </div>
     </div><!-- fin z-10 wrapper -->
   </div>
@@ -56,21 +54,19 @@
 
       <!-- Logo mobile uniquement -->
       <div class="flex md:hidden items-center gap-3 mb-8">
-        <div class="w-9 h-9 rounded-lg flex items-center justify-center font-black"
-             style="background-color: #051F20; color: #8EB69B;">S</div>
-        <span class="font-bold" style="color: #051F20;">SONABHY</span>
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center font-black bg-primary-800 text-primary-200">S</div>
+        <span class="font-bold text-primary-800">SONABHY</span>
       </div>
 
       <!-- Titre -->
       <div class="mb-8">
-        <h2 class="text-2xl font-bold mb-1" style="color: #051F20;">Connexion</h2>
+        <h2 class="text-2xl font-bold mb-1 text-primary-800">Connexion</h2>
         <p class="text-sm text-gray-400">Entrez vos identifiants pour accéder à la plateforme.</p>
       </div>
 
       <!-- Alerte erreur -->
       <div *ngIf="error"
-           class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2 border"
-           style="background-color: #fff5f5; border-color: #fca5a5; color: #dc2626;">
+           class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2 border bg-[#fff5f5] border-red-300 text-red-600">
         <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -82,8 +78,10 @@
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
 
         <div>
-          <label class="block text-sm font-medium mb-1.5" style="color: #163832;">Identifiant ou adresse e-mail</label>
+          <label for="username" class="block text-sm font-medium mb-1.5 text-primary-600">Identifiant ou adresse e-mail</label>
           <input
+            id="username"
+            name="username"
             type="text"
             formControlName="username"
             class="input-field"
@@ -93,9 +91,11 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-1.5" style="color: #163832;">Mot de passe</label>
+          <label for="password" class="block text-sm font-medium mb-1.5 text-primary-600">Mot de passe</label>
           <div class="relative">
             <input
+              id="password"
+              name="password"
               [type]="showPassword ? 'text' : 'password'"
               formControlName="password"
               class="input-field pr-10"
@@ -120,11 +120,7 @@
         <button
           type="submit"
           [disabled]="form.invalid || loading"
-          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-          style="background-color: #235347;"
-          onmouseover="if(!this.disabled) this.style.backgroundColor='#163832'"
-          onmouseout="if(!this.disabled) this.style.backgroundColor='#235347'"
-        >
+          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-white text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2 bg-primary-500 enabled:hover:bg-primary-600">
           <svg *ngIf="loading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -136,9 +132,8 @@
 
       <!-- Info accès -->
       <div class="mt-10 pt-6 border-t border-gray-100 flex items-center gap-3">
-        <div class="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
-             style="background-color: #DAF1DE;">
-          <span class="text-xs font-black" style="color: #051F20;">S</span>
+        <div class="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 bg-primary-50">
+          <span class="text-xs font-black text-primary-800">S</span>
         </div>
         <p class="text-xs text-gray-400">
           Consultation des rapports publiés chaque vendredi.

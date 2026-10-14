@@ -1,11 +1,13 @@
-<div class="flex gap-3 md:gap-4 h-full" style="min-height: calc(100vh - 64px);">
+<!-- Sous 1024 px : liste en bande horizontale au-dessus de l'aperçu (pleine largeur) ;
+     à partir de 1024 px : deux colonnes, chacune avec son propre défilement -->
+<div class="flex flex-col lg:flex-row gap-3 md:gap-4 lg:min-h-[calc(100dvh-7rem)]">
 
-  <!-- ── Colonne gauche : liste des rapports ── -->
-  <div class="w-56 md:w-64 flex-shrink-0 card overflow-y-auto" style="max-height: calc(100vh - 100px);">
+  <!-- ── Liste des rapports ── -->
+  <div class="w-full lg:w-64 flex-shrink-0 card lg:overflow-y-auto lg:max-h-[calc(100dvh-7rem)]">
     <h3 class="section-title mb-3">Rapports disponibles</h3>
 
     <div *ngIf="loadingListe" class="flex justify-center py-8">
-      <svg class="animate-spin w-5 h-5" style="color:#235347;" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
@@ -16,14 +18,16 @@
       Aucun rapport trouvé.
     </p>
 
+    <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 lg:block lg:overflow-visible lg:pb-0 lg:mx-0 lg:px-0">
     <div *ngFor="let r of rapports"
-      (click)="selectionner(r)"
+      (click)="selectionner(r)" (keydown.enter)="selectionner(r)"
+      role="button" tabindex="0" [attr.aria-pressed]="selected?.id === r.id"
       [class.border-l-4]="selected?.id === r.id"
       [style.border-color]="selected?.id === r.id ? '#235347' : 'transparent'"
-      class="cursor-pointer rounded-lg p-3 mb-2 hover:bg-green-50 transition-colors border border-transparent"
+      class="flex-shrink-0 min-w-[11rem] lg:min-w-0 cursor-pointer rounded-lg p-3 lg:mb-2 hover:bg-green-50 transition-colors border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
       [class.bg-green-50]="selected?.id === r.id">
-      <div class="flex items-center justify-between">
-        <span class="text-sm font-medium" style="color:#0B2B26;">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-sm font-medium text-primary-700">
           Sem. {{ r.semaine_iso }} / {{ r.annee }}
         </span>
         <span [class]="r.statut === 'PUBLIE' ? 'badge-success' : 'badge-warning'" class="text-xs">
@@ -34,10 +38,11 @@
         {{ r.date_debut | date:'dd/MM' }} – {{ r.date_fin | date:'dd/MM/yyyy' }}
       </p>
     </div>
+    </div>
   </div>
 
-  <!-- ── Colonne droite : aperçu ── -->
-  <div class="flex-1 overflow-y-auto" style="max-height: calc(100vh - 100px);">
+  <!-- ── Aperçu ── -->
+  <div class="flex-1 min-w-0 lg:overflow-y-auto lg:max-h-[calc(100dvh-7rem)]">
 
     <!-- Aucun rapport sélectionné -->
     <div *ngIf="!selected" class="card flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
@@ -50,7 +55,7 @@
 
     <!-- Chargement aperçu -->
     <div *ngIf="selected && loadingApercu" class="card flex justify-center py-20">
-      <svg class="animate-spin w-8 h-8" style="color:#235347;" fill="none" viewBox="0 0 24 24">
+      <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
@@ -107,10 +112,10 @@
 
         <!-- En-tête PDF -->
         <div class="card text-center py-6 print-header">
-          <h1 class="text-lg font-bold uppercase tracking-wide" style="color:#0B2B26;">
+          <h1 class="text-lg font-bold uppercase tracking-wide text-primary-700">
             SITUATION DES STOCKS SONABHY
           </h1>
-          <p class="text-sm font-semibold mt-1" style="color:#235347;">
+          <p class="text-sm font-semibold mt-1 text-primary-500">
             À LA DATE DU {{ apercu.rapport.date_fin | date:'dd MMMM yyyy' | uppercase }}
           </p>
           <p class="text-xs text-gray-500 mt-1">
@@ -125,15 +130,15 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             <!-- Dépôts intérieurs -->
-            <div class="rounded-lg border overflow-hidden" style="border-color:#8EB69B;">
-              <div class="px-3 py-2 font-semibold text-sm text-center" style="background:#235347; color:#fff;">
+            <div class="rounded-lg border overflow-hidden border-primary-200">
+              <div class="px-3 py-2 font-semibold text-sm text-center bg-primary-500 text-white">
                 Stocks dans les dépôts intérieurs
               </div>
-              <ul class="divide-y bg-white" style="border-color:#DAF1DE;">
+              <ul class="divide-y bg-white border-primary-50">
                 <li *ngFor="let s of apercu.stocksInterieurs"
                   class="flex items-baseline justify-between px-3 py-2 text-sm">
-                  <span class="font-medium" style="color:#0B2B26;">{{ s.produit }}</span>
-                  <span class="text-right text-xs ml-2" style="color:#163832;">
+                  <span class="font-medium text-primary-700">{{ s.produit }}</span>
+                  <span class="text-right text-xs ml-2 text-primary-600">
                     <ng-container *ngIf="s.netStock !== 0">
                       {{ s.netStock | number:'1.0-0' }} {{ s.unite }}
                       <span class="text-gray-500">soit
@@ -153,15 +158,15 @@
             </div>
 
             <!-- Dépôts extérieurs -->
-            <div class="rounded-lg border overflow-hidden" style="border-color:#8EB69B;">
-              <div class="px-3 py-2 font-semibold text-sm text-center" style="background:#235347; color:#fff;">
+            <div class="rounded-lg border overflow-hidden border-primary-200">
+              <div class="px-3 py-2 font-semibold text-sm text-center bg-primary-500 text-white">
                 Stocks dans les dépôts extérieurs
               </div>
-              <ul class="divide-y bg-white" style="border-color:#DAF1DE;">
+              <ul class="divide-y bg-white border-primary-50">
                 <li *ngFor="let s of apercu.stocksExterieurs"
                   class="flex items-baseline justify-between px-3 py-2 text-sm">
-                  <span class="font-medium" style="color:#0B2B26;">{{ s.produit }}</span>
-                  <span class="text-right text-xs ml-2" style="color:#163832;">
+                  <span class="font-medium text-primary-700">{{ s.produit }}</span>
+                  <span class="text-right text-xs ml-2 text-primary-600">
                     <ng-container *ngIf="s.netStock !== 0">
                       {{ s.netStock | number:'1.0-0' }} {{ s.unite }}
                       <span class="text-gray-500">soit
@@ -186,31 +191,31 @@
         <!-- ── 2. Sorties volumes récapitulatives ── -->
         <div class="card" *ngIf="apercu.marketeurs.length > 0">
           <h3 class="section-title mb-3">2. Sorties volumes récapitulatives SONABHY</h3>
-          <div class="overflow-x-auto rounded-lg border" style="border-color:#8EB69B;">
+          <div class="overflow-x-auto rounded-lg border border-primary-200">
             <table class="min-w-full text-xs">
               <thead>
                 <tr>
-                  <th class="table-header rounded-tl-lg whitespace-nowrap sticky left-0" style="min-width:180px">CLIENTS</th>
+                  <th class="table-header rounded-tl-lg whitespace-nowrap sticky left-0 min-w-[180px]">CLIENTS</th>
                   <th *ngFor="let p of apercu.produits"
-                    class="table-header whitespace-nowrap text-center" style="min-width:80px">{{ p }}</th>
-                  <th class="table-header rounded-tr-lg whitespace-nowrap text-right" style="min-width:100px">TOTAUX</th>
+                    class="table-header whitespace-nowrap text-center min-w-[80px]">{{ p }}</th>
+                  <th class="table-header rounded-tr-lg whitespace-nowrap text-right min-w-[100px]">TOTAUX</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y" style="border-color:#DAF1DE;">
+              <tbody class="bg-white divide-y border-primary-50">
                 <tr *ngFor="let m of apercu.marketeurs" class="table-row-hover">
-                  <td class="table-cell font-medium sticky left-0 bg-white whitespace-nowrap" style="color:#0B2B26;">
+                  <td class="table-cell font-medium sticky left-0 bg-white whitespace-nowrap text-primary-700">
                     {{ m.libelle }}
                   </td>
                   <td *ngFor="let p of apercu.produits" class="table-cell text-right">
                     <span *ngIf="getVente(m.id, p) > 0">{{ getVente(m.id, p) | number:'1.0-0' }}</span>
                     <span *ngIf="getVente(m.id, p) === 0" class="text-gray-300">—</span>
                   </td>
-                  <td class="table-cell text-right font-semibold" style="color:#235347;">
+                  <td class="table-cell text-right font-semibold text-primary-500">
                     {{ getTotalMarketeur(m.id) | number:'1.0-0' }}
                   </td>
                 </tr>
-                <tr style="background:#DAF1DE; font-weight:700; color:#0B2B26;">
-                  <td class="table-cell sticky left-0 z-10" style="background:#DAF1DE;">TOTAUX</td>
+                <tr class="bg-primary-50 font-bold text-primary-700">
+                  <td class="table-cell sticky left-0 z-10 bg-primary-50">TOTAUX</td>
                   <td *ngFor="let p of apercu.produits" class="table-cell text-right">
                     {{ (apercu.ventesTotauxMap[p] || 0) | number:'1.0-0' }}
                   </td>
@@ -228,15 +233,15 @@
         <div class="card" *ngIf="apercu.detteEtat > 0 || apercu.engagementFourn > 0">
           <h3 class="section-title mb-3">3. Situation financière</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="rounded-lg p-4 border" style="border-color:#8EB69B; background:#f0f9f4;">
+            <div class="rounded-lg p-4 border border-primary-200 bg-[#f0f9f4]">
               <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Dettes État envers SONABHY</p>
-              <p class="text-xl font-bold" style="color:#235347;">
+              <p class="text-xl font-bold text-primary-500">
                 {{ apercu.detteEtat | number:'1.0-0' }} <span class="text-sm font-normal">FCFA</span>
               </p>
             </div>
-            <div class="rounded-lg p-4 border" style="border-color:#8EB69B; background:#f0f9f4;">
+            <div class="rounded-lg p-4 border border-primary-200 bg-[#f0f9f4]">
               <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Engagements fournisseurs</p>
-              <p class="text-xl font-bold" style="color:#235347;">
+              <p class="text-xl font-bold text-primary-500">
                 {{ apercu.engagementFourn | number:'1.0-0' }} <span class="text-sm font-normal">FCFA</span>
               </p>
             </div>
