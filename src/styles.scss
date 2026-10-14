@@ -1,3 +1,14 @@
+/* ============================================================
+   Styles globaux MICA (Tailwind CSS 3.4)
+   - Couleurs : utiliser la palette primary-* / forest-* de tailwind.config.js
+     (pas de style="color:#..." dans les templates)
+   - Responsive : menu en tiroir sous 1024 px (lg), classes partagees ci-dessous :
+       .page-header / .page-actions  en-tete de page (empile sur mobile)
+       .save-bar + .has-save-bar     actions de saisie fixees en bas sous lg
+       .table-input / .sticky-col    champs lisibles et 1re colonne figee
+       .modal-overlay / .modal-panel modales adaptees aux petits ecrans
+       .tabs                         onglets defilants
+   ============================================================ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
