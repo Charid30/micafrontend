@@ -54,7 +54,8 @@ export class ReferentielStocksComponent implements OnInit {
   }
 
   private envoyer(section: string, url: string, body: any): void {
-    if (section !== 'parametres' && !this.dateValide()) return;
+    // Parametres et densites : pas de date d'effet
+    if (!['parametres', 'densites'].includes(section) && !this.dateValide()) return;
     this.saving = section;
     this.http.put(url, body).subscribe({
       next: (res: any) => {
@@ -92,6 +93,12 @@ export class ReferentielStocksComponent implements OnInit {
     const besoins = this.data.besoins.map((b: any) => ({ produit_id: b.produit_id, besoin_journalier: Number(b.besoin_journalier) || 0 }));
     if (besoins.some((b: any) => b.besoin_journalier < 0)) { this.toast.error('Les besoins doivent être positifs.'); return; }
     this.envoyer('besoins', `${this.api}/besoins`, { date_effet: this.dateEffet, besoins });
+  }
+
+  enregistrerDensites(): void {
+    const densites = this.data.densites.filter((d: any) => !d.en_kg).map((d: any) => ({ produit_id: d.produit_id, densite: Number(d.densite) }));
+    if (densites.some((d: any) => !(d.densite >= 0.3 && d.densite <= 1.5))) { this.toast.error('Densité invalide (0,3 à 1,5 t/m³).'); return; }
+    this.envoyer('densites', `${this.api}/densites`, { densites });
   }
 
   enregistrerParametres(): void {

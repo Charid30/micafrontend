@@ -5,12 +5,32 @@
     <div>
       <h2 class="page-title">Tableau de bord</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="stats?.rapport; else aucunRapport">
-        Dernier rapport publié : semaine {{ stats.rapport.semaine_iso }} / {{ stats.rapport.annee }}
+        {{ stats.provisoire ? 'Semaine en cours' : (rapportId ? 'Rapport publié' : 'Dernier rapport publié') }} :
+        semaine {{ stats.rapport.semaine_iso }} / {{ stats.rapport.annee }}
         (du {{ stats.rapport.date_debut | date:'dd/MM' }} au {{ stats.rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
       <ng-template #aucunRapport><p class="text-sm text-gray-500 mt-1">Aucun rapport publié pour le moment</p></ng-template>
     </div>
-    <span class="badge-info">{{ today | date:'dd/MM/yyyy' }}</span>
+    <!-- Sélecteur de semaine : dernier rapport publié par défaut, semaines passées ou semaine en cours -->
+    <div class="flex items-center gap-2">
+      <label for="semaine" class="text-sm font-medium text-primary-700 whitespace-nowrap">Semaine</label>
+      <select id="semaine" [ngModel]="rapportId" (ngModelChange)="choisirSemaine($event)" class="input-field w-auto py-1.5 max-w-[18rem]">
+        <option [ngValue]="null">Dernier rapport publié</option>
+        <option *ngFor="let r of rapports" [ngValue]="r.id">
+          Sem. {{ r.semaine_iso }} / {{ r.annee }} – du {{ r.date_debut | date:'dd/MM' }} au {{ r.date_fin | date:'dd/MM' }}{{ r.statut === 'PUBLIE' ? '' : ' (en cours)' }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Semaine non publiée : chiffres provisoires -->
+  <div *ngIf="!loading && stats?.provisoire" class="card py-3 flex items-center gap-3 border-yellow-200 bg-yellow-50">
+    <svg class="w-5 h-5 flex-shrink-0 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-yellow-800">
+      <strong>Chiffres provisoires</strong> : cette semaine n'est pas encore publiée, la saisie est en cours.
+    </p>
   </div>
 
   <!-- Chargement -->
@@ -33,42 +53,54 @@
 
   <ng-container *ngIf="!loading">
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
-      <div class="card">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Autonomie moy. (Intérieur)</p>
-        <p class="text-3xl font-bold mt-2 text-primary-800">
-          {{ stats?.autonomieMoyenneInt | number:'1.1-1' }}<span class="text-base font-normal text-gray-500 ml-1">j</span>
-        </p>
-        <p class="text-xs text-gray-400 mt-1">Objectif ≥ 15 jours</p>
+    <!-- Indicateurs clés : tuiles compactes (icône, libellé, valeur, précision) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div class="kpi">
+        <span class="kpi-icone kpi-icone-vert" aria-hidden="true"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Autonomie moy. intérieur</p>
+          <p class="kpi-valeur" [ngClass]="classeAutonomie(stats?.autonomieMoyenneInt)">{{ stats?.autonomieMoyenneInt | number:'1.1-1' }}<span class="kpi-unite">jours</span></p>
+          <p class="kpi-precision">Objectif ≥ 15 jours</p>
+        </div>
       </div>
-      <div class="card">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Autonomie moy. (Extérieur)</p>
-        <p class="text-3xl font-bold mt-2 text-primary-800">
-          {{ stats?.autonomieMoyenneExt | number:'1.1-1' }}<span class="text-base font-normal text-gray-500 ml-1">j</span>
-        </p>
-        <p class="text-xs text-gray-400 mt-1">Dépôts extérieurs</p>
+      <div class="kpi">
+        <span class="kpi-icone kpi-icone-vert" aria-hidden="true"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Autonomie moy. extérieur</p>
+          <p class="kpi-valeur" [ngClass]="classeAutonomie(stats?.autonomieMoyenneExt)">{{ stats?.autonomieMoyenneExt | number:'1.1-1' }}<span class="kpi-unite">jours</span></p>
+          <p class="kpi-precision">Dépôts extérieurs</p>
+        </div>
       </div>
-      <div class="card">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Camions chargés</p>
-        <p class="text-3xl font-bold mt-2 text-primary-800">{{ stats?.camionsCharges | number }}</p>
-        <p class="text-xs text-gray-400 mt-1">Taux: {{ stats?.tauxRealisation | percent:'1.0-1' }}</p>
+      <div class="kpi">
+        <span class="kpi-icone kpi-icone-vert" aria-hidden="true"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/></svg></span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Camions chargés</p>
+          <p class="kpi-valeur">{{ stats?.camionsCharges | number }}</p>
+          <p class="kpi-precision">Taux de réalisation : {{ stats?.tauxRealisation | percent:'1.0-1' }}</p>
+        </div>
       </div>
-      <div class="card">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Dettes de l'État envers SONABHY</p>
-        <p class="text-3xl font-bold mt-2 text-primary-800" [attr.title]="formatFcfa(etat?.dettesEtat?.montant)">
-          {{ milliards(etat?.dettesEtat?.montant) }}<span class="text-base font-normal text-gray-500 ml-1">Mds FCFA</span>
-        </p>
-        <p class="text-xs text-gray-400 mt-1">Moins-values, subventions gaz et SONABEL</p>
+      <div class="kpi">
+        <span class="kpi-icone kpi-icone-vert" aria-hidden="true"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Dettes de l'État envers SONABHY</p>
+          <p *ngIf="etat?.dettesEtat?.montant != null; else nonRenseigne" class="kpi-valeur" [attr.title]="formatFcfa(etat?.dettesEtat?.montant)">
+            {{ milliards(etat?.dettesEtat?.montant) }}<span class="kpi-unite">Mds FCFA</span>
+          </p>
+          <p class="kpi-precision">Moins-values, subventions gaz et SONABEL</p>
+        </div>
       </div>
-      <div class="card">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Créances de l'État sur SONABHY</p>
-        <p class="text-3xl font-bold mt-2 text-red-700" [attr.title]="formatFcfa(etat?.creancesEtat?.montant)">
-          {{ milliards(etat?.creancesEtat?.montant) }}<span class="text-base font-normal text-gray-500 ml-1">Mds FCFA</span>
-        </p>
-        <p class="text-xs text-gray-400 mt-1">Plus-values, dettes fiscales</p>
+      <div class="kpi">
+        <span class="kpi-icone kpi-icone-rouge" aria-hidden="true"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg></span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Créances de l'État sur SONABHY</p>
+          <p *ngIf="etat?.creancesEtat?.montant != null; else nonRenseigne" class="kpi-valeur text-red-700" [attr.title]="formatFcfa(etat?.creancesEtat?.montant)">
+            {{ milliards(etat?.creancesEtat?.montant) }}<span class="kpi-unite">Mds FCFA</span>
+          </p>
+          <p class="kpi-precision">Plus-values, dettes fiscales</p>
+        </div>
       </div>
     </div>
+    <ng-template #nonRenseigne><p class="kpi-vide">Non renseigné</p></ng-template>
 
     <!-- Situation avec l'État (saisie Trésorerie du dernier rapport publié) -->
     <div class="card" *ngIf="etat">

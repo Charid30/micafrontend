@@ -15,6 +15,9 @@ export class RecommandationsComponent implements OnInit {
   error: string | null = null;
   rapport: any = null;
 
+  // Informations utiles du rapport : reprises de la derniere semaine renseignee tant qu'elles ne sont pas modifiees
+  informations_utiles = '';
+  informationsRepriseDe: { semaine_iso: number; annee: number } | null = null;
   tendance_generale  = '';
   risques_majeurs    = '';
   impact_sonabhy     = '';
@@ -33,10 +36,14 @@ export class RecommandationsComponent implements OnInit {
     this.http.get<any>(`${environment.apiUrl}/recommandations/semaine-courante`).subscribe({
       next: (data) => {
         this.rapport           = data.rapport;
-        this.tendance_generale = data.recommandation?.tendance_generale  || '';
-        this.risques_majeurs   = data.recommandation?.risques_majeurs    || '';
-        this.impact_sonabhy    = data.recommandation?.impact_sonabhy     || '';
-        this.recommandations   = data.recommandation?.recommandations    || '';
+        // Le serveur renvoie les champs a plat (auparavant lus sous data.recommandation : les textes
+        // enregistres ne se reaffichaient pas et etaient effaces au prochain enregistrement)
+        this.informations_utiles   = data.informations_utiles || '';
+        this.informationsRepriseDe = data.informations_reprises_de || null;
+        this.tendance_generale = data.tendance_generale || '';
+        this.risques_majeurs   = data.risques_majeurs   || '';
+        this.impact_sonabhy    = data.impact_sonabhy    || '';
+        this.recommandations   = data.recommandations   || '';
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -52,6 +59,7 @@ export class RecommandationsComponent implements OnInit {
     this.saving = true;
     this.http.post(`${environment.apiUrl}/recommandations/saisie`, {
       rapport_id:          this.rapport.id,
+      informations_utiles: this.informations_utiles,
       tendance_generale:   this.tendance_generale,
       risques_majeurs:     this.risques_majeurs,
       impact_sonabhy:      this.impact_sonabhy,
@@ -59,6 +67,7 @@ export class RecommandationsComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.saving = false;
+        this.informationsRepriseDe = null;
         this.toast.success('Recommandations enregistrées avec succès.');
         this.cdr.detectChanges();
       },

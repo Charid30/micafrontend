@@ -173,6 +173,31 @@ fieldset {
     @apply inline-flex items-center gap-1 text-sm font-medium text-gray-500;
   }
 
+  /* Tuiles d'indicateurs (tableau de bord) : compactes, icone + libelle + valeur + precision */
+  .kpi {
+    @apply flex items-start gap-3 rounded-xl border border-primary-100 bg-white px-4 py-3 shadow-sm;
+  }
+  .kpi-icone {
+    @apply flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg;
+  }
+  .kpi-icone-vert { @apply bg-primary-50 text-primary-600; }
+  .kpi-icone-rouge { @apply bg-red-50 text-red-600; }
+  .kpi-libelle {
+    @apply text-[11px] font-semibold uppercase leading-tight tracking-wide text-primary-500;
+  }
+  .kpi-valeur {
+    @apply mt-1 text-xl font-bold leading-tight text-primary-800;
+  }
+  .kpi-unite {
+    @apply ml-1 text-xs font-medium text-gray-500;
+  }
+  .kpi-precision {
+    @apply mt-0.5 text-xs leading-snug text-gray-400;
+  }
+  .kpi-vide {
+    @apply mt-1 text-sm font-medium italic text-gray-400;
+  }
+
   /* Tableau */
   .table-header {
     @apply bg-primary-800;

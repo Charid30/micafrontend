@@ -66,6 +66,20 @@
 
       <div class="grid grid-cols-1 gap-6">
 
+        <!-- Informations utiles (rubrique 1 du rapport) -->
+        <div class="card">
+          <label class="block text-sm font-semibold mb-2 text-primary-700" for="infosUtiles">
+            Informations utiles <span class="font-normal text-gray-500">(rubrique « Situation des stocks » du rapport)</span>
+          </label>
+          <p *ngIf="informationsRepriseDe" class="text-xs text-primary-600 bg-primary-50 border border-primary-200 rounded-lg px-3 py-2 mb-2">
+            Texte repris de la semaine {{ informationsRepriseDe.semaine_iso }} / {{ informationsRepriseDe.annee }} :
+            vérifiez-le, modifiez-le si besoin, puis enregistrez.
+          </p>
+          <textarea id="infosUtiles" rows="4" [(ngModel)]="informations_utiles"
+            class="input-field w-full text-sm resize-y"
+            placeholder="Une information par ligne. Ex. : Autonomie maximale des dépôts intérieurs en essence et gasoil : 14 jours"></textarea>
+        </div>
+
         <!-- Tendance générale -->
         <div class="card">
           <label class="block text-sm font-semibold mb-2 text-primary-700">
@@ -79,7 +93,8 @@
         <!-- Risques majeurs -->
         <div class="card">
           <label class="block text-sm font-semibold mb-2 text-primary-700">
-            Risques majeurs identifiés
+            Difficultés et risques majeurs
+            <span class="font-normal text-gray-500">(rubrique « Difficultés majeures » du rapport, une par ligne)</span>
           </label>
           <textarea rows="4" [(ngModel)]="risques_majeurs"
             class="input-field w-full text-sm resize-y"

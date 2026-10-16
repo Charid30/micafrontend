@@ -73,16 +73,44 @@ export class RapportsComponent implements OnInit {
   get aTresorerie(): boolean {
     return !!this.apercu?.tresorerie?.lignes?.some((l: any) => l.montant_n !== null || l.montant_n1 !== null);
   }
-  numero(section: 'autonomie' | 'tresorerie' | 'ventes' | 'dettes'): number {
+  // Annexes (detail de l'autonomie, tresorerie, ventes par marketeur) : numerotees selon leur presence
+  annexe(section: 'autonomie' | 'tresorerie' | 'ventes'): number {
     const presentes = [
-      'stocks',
       ...(this.aAutonomie ? ['autonomie'] : []),
       ...(this.aTresorerie ? ['tresorerie'] : []),
       ...(this.apercu?.marketeurs?.length ? ['ventes'] : []),
-      ...(this.apercu?.detteEtat > 0 || this.apercu?.engagementFourn > 0 ? ['dettes'] : []),
     ];
     return presentes.indexOf(section) + 1;
   }
+
+  // ── Rapport au format du document REPORTING
+  get rep(): any { return this.apercu?.reporting; }
+  get blocsStocks(): any[] {
+    return this.rep ? [
+      { titre: 'Stocks dans les dépôts intérieurs', lignes: this.rep.stocks.interieurs },
+      { titre: 'Stocks dans les dépôts extérieurs', lignes: this.rep.stocks.exterieurs },
+    ] : [];
+  }
+  get aEncours(): boolean { return !!this.rep?.encours.lignes.some((l: any) => l.quantite > 0); }
+  get lignesDettes(): any[] {
+    const d = this.rep?.dettes || {};
+    return [
+      { libelle: "Dettes de l'État envers SONABHY", valeur: d.dettes_etat ?? null },
+      { libelle: "Créances de l'État sur SONABHY (plus-values, fiscalité)", valeur: d.creances_etat ?? null },
+      { libelle: 'Engagement fournisseurs SONABHY', valeur: d.engagement_fournisseurs ?? null },
+    ];
+  }
+  aObservations(lignes: any[]): boolean { return lignes.some(l => l.evolution_jours !== null); }
+  // « 05 jours », « -02 jours » : format du document
+  jours(n: number): string {
+    const v = `${n < 0 ? '-' : ''}${String(Math.abs(n)).padStart(2, '0')}`;
+    return `${v} jour${Math.abs(n) > 1 ? 's' : ''}`;
+  }
+  evolution(n: number): string {
+    return n === 0 ? 'stable' : `en ${n > 0 ? 'hausse' : 'baisse'} de ${this.jours(Math.abs(n))}`;
+  }
+  abs(n: number): number { return Math.abs(n); }
+
   get objectifAutonomie(): number {
     return this.apercu?.autonomie?.depots_interieurs?.[0]?.lignes?.[0]?.objectif_jours ?? 15;
   }

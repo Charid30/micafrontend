@@ -151,6 +151,27 @@
       </div>
     </div>
 
+    <!-- ══════════ Densités : conversion des tonnes achetées en litres (encours de livraison) ══════════ -->
+    <div class="card">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">
+        <h3 class="section-title flex items-center">Densités des produits (t/m³ à 15 °C)
+          <button type="button" class="info-tip ml-1" aria-label="À propos des densités"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Servent à convertir en litres les quantités achetées en tonnes (encours de livraison du rapport) lorsque le volume à 15 °C n'est pas saisi dans l'achat. Gaz : les tonnes sont données en kg, sans conversion.</span></button>
+        </h3>
+        <button *ngIf="droits.exterieur" (click)="enregistrerDensites()" [disabled]="saving === 'densites'"
+          class="btn-primary flex-shrink-0 disabled:opacity-50">
+          {{ saving === 'densites' ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+        <div *ngFor="let d of data.densites">
+          <label class="label" [attr.for]="'densite' + d.produit_id">{{ d.produit_libelle }}</label>
+          <input *ngIf="!d.en_kg; else enKg" type="number" min="0.3" max="1.5" step="0.001" [(ngModel)]="d.densite"
+            [id]="'densite' + d.produit_id" [disabled]="!droits.exterieur" class="input-field text-right"/>
+          <ng-template #enKg><p class="input-field bg-gray-50 text-gray-500 text-sm">en kg</p></ng-template>
+        </div>
+      </div>
+    </div>
+
     <!-- ══════════ Exclusions du total extérieur ══════════ -->
     <div class="card">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4">

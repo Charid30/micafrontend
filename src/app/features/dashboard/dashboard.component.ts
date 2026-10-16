@@ -20,7 +20,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
+  // Semaine affichee : null = dernier rapport publie
+  rapportId: number | null = null;
+  rapports: any[] = [];
+
   ngOnInit(): void {
+    this.http.get<any[]>(`${environment.apiUrl}/rapports/liste`).subscribe({
+      next: (liste) => { this.rapports = liste; this.cdr.detectChanges(); },
+      error: () => { /* le selecteur reste limite au dernier rapport publie */ },
+    });
+    this.charger();
+  }
+
+  choisirSemaine(id: number | null): void {
+    this.rapportId = id;
+    this.charger();
+  }
+
+  private charger(): void {
+    this.loading = true;
+    this.error = null;
+    this.sub?.unsubscribe();
+    clearTimeout(this.timer);
     this.timer = setTimeout(() => {
       if (this.loading) {
         this.loading = false;
@@ -30,7 +51,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     }, 8000);
 
-    this.sub = this.http.get(`${environment.apiUrl}/dashboard/synthese`).subscribe({
+    const params = this.rapportId ? `?rapport_id=${this.rapportId}` : '';
+    this.sub = this.http.get(`${environment.apiUrl}/dashboard/synthese${params}`).subscribe({
       next: (data: any) => {
         clearTimeout(this.timer);
         this.stats = data;
@@ -61,6 +83,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return v === null || v === undefined ? '—' : (v / 1e9).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   abs(v: number): number { return Math.abs(v); }
+  // Couleur de l'autonomie moyenne : meme echelle que les stocks (rouge < 10 j, jaune < 15 j)
+  classeAutonomie(v: number | null | undefined): string {
+    if (v === null || v === undefined) return '';
+    return v < 10 ? 'text-red-700' : v < 15 ? 'text-yellow-700' : 'text-primary-800';
+  }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
