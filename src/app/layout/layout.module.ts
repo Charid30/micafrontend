@@ -11,7 +11,11 @@ const routes: Routes = [
     component: LayoutComponent,
     children: [
       { path: 'dashboard', loadChildren: () => import('../features/dashboard/dashboard.module').then(m => m.DashboardModule) },
-      { path: 'saisie/stocks', loadChildren: () => import('../features/saisie/stocks/stocks.module').then(m => m.StocksModule) },
+      // Stocks : une page par perimetre (meme composant, meme calcul) ; l'ancienne adresse ouvre l'interieur
+      { path: 'saisie/stocks', redirectTo: 'saisie/stocks/interieurs', pathMatch: 'full' },
+      { path: 'saisie/stocks/interieurs', data: { perimetre: 'INTERIEUR' }, loadChildren: () => import('../features/saisie/stocks/stocks.module').then(m => m.StocksModule) },
+      { path: 'saisie/stocks/exterieurs', data: { perimetre: 'EXTERIEUR' }, loadChildren: () => import('../features/saisie/stocks/stocks.module').then(m => m.StocksModule) },
+      { path: 'saisie/referentiel-stocks', loadChildren: () => import('../features/saisie/referentiel-stocks/referentiel-stocks.module').then(m => m.ReferentielStocksModule) },
       { path: 'saisie/corridors', loadChildren: () => import('../features/saisie/corridors/corridors.module').then(m => m.CorridorsModule) },
       { path: 'saisie/depots-int', loadChildren: () => import('../features/saisie/encours/encours.module').then(m => m.EncoursModule) },
       { path: 'saisie/temps-attente', loadChildren: () => import('../features/saisie/camions/camions.module').then(m => m.CamionsModule) },

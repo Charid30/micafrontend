@@ -7,6 +7,8 @@ export interface Permission {
   id: number;
   module: string;
   action: string;
+  depot_id?: number | null;
+  depot?: { id: number; code: string; libelle: string; type: 'INTERIEUR' | 'EXTERIEUR' } | null;
 }
 
 export interface Agent {

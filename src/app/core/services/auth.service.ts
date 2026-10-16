@@ -59,6 +59,14 @@ export class AuthService {
     });
   }
 
+  // Pages Stocks (interieur / exterieur) utiles a l'utilisateur :
+  // un agent limite a un depot ne voit que la page du type de son depot ; la DSTA (actions) voit les deux
+  peutVoirStocks(type: 'INTERIEUR' | 'EXTERIEUR'): boolean {
+    if (this.isAdmin() || this.hasPermission('actions-stocks', 'READ')) return true;
+    const perms = (this.userSubject.value?.permissions ?? []).filter(p => p.module === 'stocks' && (p.action === 'READ' || p.action === 'WRITE'));
+    return perms.some(p => !p.depot_id || !p.depot || p.depot.type === type);
+  }
+
   mustChangePassword(): boolean {
     return !!this.userSubject.value?.must_change_password;
   }

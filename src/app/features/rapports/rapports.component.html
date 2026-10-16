@@ -78,7 +78,7 @@
             </span>
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <ng-container *ngIf="canExport; else noExportTpl">
             <!-- Télécharger PDF -->
             <button (click)="telecharger()"
@@ -88,6 +88,15 @@
                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
               </svg>
               Télécharger PDF
+            </button>
+            <!-- Export Excel (format Indicateurs.xlsx) -->
+            <button (click)="exporterExcel()" [disabled]="exportEnCours"
+              class="btn-secondary flex items-center gap-2 disabled:opacity-50">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 10h18M3 14h18M10 3v18M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+              </svg>
+              {{ exportEnCours ? 'Export...' : 'Exporter en Excel' }}
             </button>
             <!-- Imprimer -->
             <button (click)="imprimer()"
@@ -139,15 +148,15 @@
                   class="flex items-baseline justify-between px-3 py-2 text-sm">
                   <span class="font-medium text-primary-700">{{ s.produit }}</span>
                   <span class="text-right text-xs ml-2 text-primary-600">
-                    <ng-container *ngIf="s.netStock !== 0">
+                    <ng-container *ngIf="s.netStock !== 0 || s.conso > 0">
                       {{ s.netStock | number:'1.0-0' }} {{ s.unite }}
                       <span class="text-gray-500">soit
-                        <strong [style.color]="s.autonomie !== null && s.autonomie < 15 ? '#b91c1c' : '#235347'">
+                        <strong [ngClass]="couleurTexte(s.couleur)">
                           {{ s.autonomie !== null ? (s.autonomie | number:'1.0-0') : '—' }} j
                         </strong>
                       </span>
                     </ng-container>
-                    <ng-container *ngIf="s.netStock === 0">
+                    <ng-container *ngIf="s.netStock === 0 && !s.conso">
                       <span class="text-gray-400 italic text-xs">pas de bac dédié</span>
                     </ng-container>
                   </span>
@@ -167,15 +176,15 @@
                   class="flex items-baseline justify-between px-3 py-2 text-sm">
                   <span class="font-medium text-primary-700">{{ s.produit }}</span>
                   <span class="text-right text-xs ml-2 text-primary-600">
-                    <ng-container *ngIf="s.netStock !== 0">
+                    <ng-container *ngIf="s.netStock !== 0 || s.conso > 0">
                       {{ s.netStock | number:'1.0-0' }} {{ s.unite }}
                       <span class="text-gray-500">soit
-                        <strong [style.color]="s.autonomie !== null && s.autonomie < 15 ? '#b91c1c' : '#235347'">
+                        <strong [ngClass]="couleurTexte(s.couleur)">
                           {{ s.autonomie !== null ? (s.autonomie | number:'1.0-0') : '—' }} j
                         </strong>
                       </span>
                     </ng-container>
-                    <ng-container *ngIf="s.netStock === 0">
+                    <ng-container *ngIf="s.netStock === 0 && !s.conso">
                       <span class="text-gray-400 italic text-xs">pas de bac dédié</span>
                     </ng-container>
                   </span>
@@ -188,9 +197,181 @@
           </div>
         </div>
 
-        <!-- ── 2. Sorties volumes récapitulatives ── -->
+        <!-- ── Autonomie par site et par produit ── -->
+        <div class="card" *ngIf="aAutonomie">
+          <h3 class="section-title mb-1">{{ numero('autonomie') }}. Suivi de l'autonomie par site et par produit</h3>
+          <p class="text-xs text-gray-500 mb-4">
+            Stocks au {{ (apercu.autonomie.date_stocks || apercu.rapport.date_fin) | date:'dd/MM/yyyy' }}, en m³.
+            <span class="auto-rouge">&lt; {{ apercu.autonomie.parametres.seuil_rouge_jours }} j</span>
+            <span class="auto-jaune ml-1">&lt; {{ objectifAutonomie }} j</span>
+            <span class="auto-vert ml-1">≥ {{ objectifAutonomie }} j</span>
+          </p>
+
+          <!-- Dépôts intérieurs : détail -->
+          <h4 class="text-sm font-semibold text-primary-600 mb-2">Dépôts intérieurs</h4>
+          <div class="overflow-x-auto rounded-lg border border-primary-200 mb-4">
+            <table class="min-w-full text-xs">
+              <thead>
+                <tr>
+                  <th class="table-header rounded-tl-lg">Site</th>
+                  <th class="table-header">Produit</th>
+                  <th class="table-header text-right">Bacs</th>
+                  <th class="table-header text-right">Embranch.</th>
+                  <th class="table-header text-right">Volume total</th>
+                  <th class="table-header text-right">Impompable</th>
+                  <th class="table-header text-right">Conso j.</th>
+                  <th class="table-header text-right">Autonomie (j)</th>
+                  <th class="table-header text-right rounded-tr-lg">Couverture</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y border-primary-50">
+                <ng-container *ngFor="let d of apercu.autonomie.depots_interieurs">
+                  <tr *ngFor="let l of lignesPertinentes(d); let first = first">
+                    <td class="table-cell py-1 font-semibold text-primary-700">{{ first ? d.depot_libelle : '' }}</td>
+                    <td class="table-cell py-1">{{ l.produit_libelle }}</td>
+                    <td class="table-cell py-1 text-right">{{ l.stock_bacs | number:'1.0-0' }}</td>
+                    <td class="table-cell py-1 text-right">{{ l.stock_embranchement | number:'1.0-0' }}</td>
+                    <td class="table-cell py-1 text-right font-semibold">{{ l.volume_total | number:'1.0-0' }}</td>
+                    <td class="table-cell py-1 text-right">{{ l.impompable | number:'1.0-0' }}</td>
+                    <td class="table-cell py-1 text-right">{{ l.conso_moyenne | number:'1.0-0' }}</td>
+                    <td class="table-cell py-1 text-right">
+                      <span [class]="classeAutonomie(l.couleur)">{{ l.autonomie === null ? '—' : (l.autonomie | number:'1.1-1') }}</span>
+                    </td>
+                    <td class="table-cell py-1 text-right" [class.text-red-600]="l.couverture_ok === false">
+                      {{ l.couverture === null ? '—' : (l.couverture | number:'1.0-0') + ' %' }}
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Synthèse intérieure -->
+            <div>
+              <h4 class="text-sm font-semibold text-primary-600 mb-2">Situation des stocks intérieurs</h4>
+              <div class="overflow-x-auto rounded-lg border border-primary-200">
+                <table class="min-w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th class="table-header rounded-tl-lg">Produit</th>
+                      <th *ngFor="let d of apercu.autonomie.depots_interieurs" class="table-header text-right">{{ d.depot_libelle }}</th>
+                      <th class="table-header text-right">Total</th>
+                      <th class="table-header text-right rounded-tr-lg">Autonomie (j)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y border-primary-50">
+                    <tr *ngFor="let s of apercu.autonomie.synthese_interieure">
+                      <td class="table-cell py-1 font-medium text-primary-700">{{ s.produit_libelle }}</td>
+                      <td *ngFor="let d of apercu.autonomie.depots_interieurs" class="table-cell py-1 text-right">{{ s.par_depot[d.depot_code] | number:'1.0-0' }}</td>
+                      <td class="table-cell py-1 text-right font-semibold">
+                        {{ s.volume_total | number:'1.0-0' }}
+                        <span *ngIf="s.volume_total_tonnes !== null" class="block text-gray-500 font-normal">≈ {{ s.volume_total_tonnes | number:'1.0-1' }} t</span>
+                      </td>
+                      <td class="table-cell py-1 text-right">
+                        <span [class]="classeAutonomie(s.couleur)">{{ s.autonomie === null ? '—' : (s.autonomie | number:'1.1-1') }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Synthèse extérieure -->
+            <div *ngIf="apercu.autonomie.depots_exterieurs.length">
+              <h4 class="text-sm font-semibold text-primary-600 mb-2">Situation des stocks extérieurs</h4>
+              <div class="overflow-x-auto rounded-lg border border-primary-200">
+                <table class="min-w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th class="table-header rounded-tl-lg">Produit</th>
+                      <th *ngFor="let d of apercu.autonomie.depots_exterieurs" class="table-header text-right">{{ d.pays || d.depot_libelle }}</th>
+                      <th class="table-header text-right">Total</th>
+                      <th class="table-header text-right rounded-tr-lg">Autonomie (j)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y border-primary-50">
+                    <tr *ngFor="let s of apercu.autonomie.synthese_exterieure">
+                      <td class="table-cell py-1 font-medium text-primary-700">{{ s.produit_libelle }}</td>
+                      <td *ngFor="let d of apercu.autonomie.depots_exterieurs" class="table-cell py-1 text-right"
+                        [class.line-through]="s.exclus.includes(d.depot_code)" [class.text-gray-400]="s.exclus.includes(d.depot_code)">
+                        {{ s.par_pays[d.depot_code] | number:'1.0-0' }}
+                      </td>
+                      <td class="table-cell py-1 text-right font-semibold">
+                        {{ s.volume_total | number:'1.0-0' }}
+                        <span *ngIf="s.volume_total_tonnes !== null" class="block text-gray-500 font-normal">≈ {{ s.volume_total_tonnes | number:'1.0-1' }} t</span>
+                      </td>
+                      <td class="table-cell py-1 text-right">
+                        <span [class]="classeAutonomie(s.couleur)">{{ s.autonomie === null ? '—' : (s.autonomie | number:'1.1-1') }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Valeurs barrées : exclues du total (dette de produit).</p>
+            </div>
+          </div>
+
+          <!-- Actions entreprises -->
+          <div *ngIf="actions.length" class="mt-4">
+            <h4 class="text-sm font-semibold text-primary-600 mb-2">Actions entreprises pour relever le niveau des stocks</h4>
+            <ul class="divide-y rounded-lg border border-primary-200 bg-white">
+              <li *ngFor="let a of actions" class="px-3 py-2 text-xs flex flex-col sm:flex-row sm:gap-3">
+                <span class="font-semibold text-primary-700 sm:w-48 flex-shrink-0">{{ a.site }} – {{ a.produit }}
+                  <span [class]="classeAutonomie(a.couleur)" class="ml-1">{{ a.autonomie | number:'1.1-1' }} j</span>
+                </span>
+                <span class="whitespace-pre-line text-gray-700">{{ a.action }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ── Situation de la trésorerie ── -->
+        <div class="card" *ngIf="aTresorerie">
+          <h3 class="section-title mb-3">{{ numero('tresorerie') }}. Situation de la trésorerie</h3>
+          <div class="overflow-x-auto rounded-lg border border-primary-200">
+            <table class="min-w-full text-xs">
+              <thead>
+                <tr>
+                  <th class="table-header rounded-tl-lg">Indicateur</th>
+                  <th class="table-header text-right whitespace-nowrap">
+                    Semaine {{ apercu.rapport.semaine_iso }}
+                  </th>
+                  <th class="table-header text-right whitespace-nowrap">
+                    {{ apercu.tresorerie.rapport_precedent ? 'Semaine ' + apercu.tresorerie.rapport_precedent.semaine_iso : 'N-1' }}
+                  </th>
+                  <th class="table-header text-right">Variation</th>
+                  <th class="table-header text-center rounded-tr-lg">Tendance</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y border-primary-50">
+                <tr *ngFor="let l of apercu.tresorerie.lignes" [ngClass]="{ 'bg-primary-50 font-semibold': l.type === 'SOUS_TOTAL', 'bg-[#e6f4ea] font-bold': l.type === 'TOTAL' }">
+                  <td class="table-cell py-1 text-primary-700" [class.pl-8]="l.niveau === 1">{{ l.libelle }}</td>
+                  <td class="table-cell py-1 text-right whitespace-nowrap">{{ montantSigne(l, l.montant_n) }}</td>
+                  <td class="table-cell py-1 text-right whitespace-nowrap text-gray-600">{{ montantSigne(l, l.montant_n1) }}</td>
+                  <td class="table-cell py-1 text-right whitespace-nowrap font-semibold">
+                    <ng-container *ngIf="l.ecart !== null; else sansVar">
+                      <span [ngClass]="classeTendance(l)">
+                        {{ l.changement_signe ? ((l.ecart > 0 ? '+' : '') + (l.ecart | number:'1.0-0') + ' FCFA') : ((l.variation_pct > 0 ? '+' : '') + (l.variation_pct | percent:'1.1-1')) }}
+                      </span>
+                    </ng-container>
+                    <ng-template #sansVar><span class="text-gray-300">—</span></ng-template>
+                  </td>
+                  <td class="table-cell py-1 text-center whitespace-nowrap">
+                    <span *ngIf="l.tendance" [ngClass]="classeTendance(l)">
+                      {{ l.tendance === 'hausse' ? '▲ Hausse' : l.tendance === 'baisse' ? '▼ Baisse' : '→ Stable' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Montants en FCFA ; dettes en négatif. Flèche verte : évolution favorable, rouge : défavorable.</p>
+        </div>
+
+        <!-- ── Sorties volumes récapitulatives ── -->
         <div class="card" *ngIf="apercu.marketeurs.length > 0">
-          <h3 class="section-title mb-3">2. Sorties volumes récapitulatives SONABHY</h3>
+          <h3 class="section-title mb-3">{{ numero('ventes') }}. Sorties volumes récapitulatives SONABHY</h3>
           <div class="overflow-x-auto rounded-lg border border-primary-200">
             <table class="min-w-full text-xs">
               <thead>
@@ -229,9 +410,9 @@
           </p>
         </div>
 
-        <!-- ── 3. Dettes ── -->
+        <!-- ── Dettes ── -->
         <div class="card" *ngIf="apercu.detteEtat > 0 || apercu.engagementFourn > 0">
-          <h3 class="section-title mb-3">3. Situation financière</h3>
+          <h3 class="section-title mb-3">{{ numero('dettes') }}. Situation financière</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="rounded-lg p-4 border border-primary-200 bg-[#f0f9f4]">
               <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Dettes État envers SONABHY</p>

@@ -6,11 +6,13 @@ import { environment } from '../../../../environments/environment';
 const API = environment.apiUrl;
 
 // Modules pour lesquels on peut restreindre à un dépôt précis
-const DEPOT_MODULES = new Set(['stocks', 'depots-int']);
+const DEPOT_MODULES = new Set(['stocks', 'depots-int', 'impompable']);
 
 const MODULE_LABELS: Record<string, string> = {
-  'stocks': 'Stocks dépôts',
-  'impompable': 'Impompable (responsable désigné)',
+  'stocks': 'Stocks dépôts (saisie quotidienne)',
+  'impompable': 'Référentiel dépôt : impompable et consommation (responsable de dépôt)',
+  'referentiel-stocks': 'Référentiel stocks : besoins extérieurs, exclusions, paramètres (DSTA)',
+  'actions-stocks': 'Actions pour relever les stocks (DSTA)',
   'corridors': 'Corridors',
   'depots-int': 'Dépôts intérieurs',
   'temps-attente': "Temps d'attente",
@@ -18,7 +20,8 @@ const MODULE_LABELS: Record<string, string> = {
   'veille-geo': 'Veille géopolitique',
   'achats-traders': 'Achats traders',
   'ventes': 'Ventes',
-  'tresorerie': 'Trésorerie',
+  'tresorerie': 'Trésorerie (saisie hebdomadaire)',
+  'tresorerie-lignes': 'Trésorerie : gestion des lignes (chef Tréso)',
   'recommandations': 'Recommandations',
   'caf_moyen': 'CAF moyen des achats',
   'rapports': 'Rapports PDF',

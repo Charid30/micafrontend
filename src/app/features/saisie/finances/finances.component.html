@@ -3,7 +3,9 @@
   <!-- En-tête -->
   <div class="page-header">
     <div>
-      <h2 class="page-title">Trésorerie hebdomadaire</h2>
+      <h2 class="page-title flex items-center">Trésorerie hebdomadaire
+        <button type="button" class="info-tip ml-1" aria-label="À propos de la saisie de trésorerie"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Montants en FCFA, saisis en valeur positive : le sens (avoir ou dette) est appliqué dans le total. N-1 : valeurs du rapport précédent, non modifiables. Sous-totaux et situation simulée calculés automatiquement.</span></button>
+      </h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
         Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
@@ -11,7 +13,13 @@
     </div>
     <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
     <div class="save-bar">
-      <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
+      <button *ngIf="droits.lignes" (click)="ouvrirLignes()" class="btn-secondary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h7m9-3v6m-3-3h6"/>
+        </svg>
+        Gérer les lignes
+      </button>
+      <button *ngIf="droits.saisie" (click)="onSave()" [disabled]="saving || loading || estPublie"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -23,7 +31,7 @@
         </svg>
         {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
       </button>
-      <span *ngIf="!canWrite" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+      <span *ngIf="!droits.saisie && !loading" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
@@ -33,8 +41,7 @@
   </div>
 
   <!-- Rapport publié -->
-  <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+  <div *ngIf="estPublie" class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
     <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
@@ -60,91 +67,195 @@
     <p class="text-sm text-gray-400">Chargement des données...</p>
   </div>
 
-  <ng-container *ngIf="!loading">
-    <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
-      [class.opacity-60]="!canWrite">
-      <div class="card">
-        <p class="text-xs text-gray-400 mb-4 italic">
-          Saisissez les montants en FCFA. La situation simulée est calculée automatiquement.
-        </p>
+  <ng-container *ngIf="!loading && !error">
+    <div class="card">
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-500 mb-4">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-primary-600"></span> Avoir</span>
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-600"></span> Dette</span>
+        <span class="tendance-favorable">▲ favorable</span>
+        <span class="tendance-defavorable">▲ défavorable</span>
+      </div>
 
-        <div class="overflow-x-auto rounded-lg border border-primary-200">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th class="table-header rounded-tl-lg whitespace-nowrap sticky-col">Poste</th>
-                <th class="table-header whitespace-nowrap text-right">Semaine N-1 (FCFA)</th>
-                <th class="table-header whitespace-nowrap text-right">Semaine N (FCFA)</th>
-                <th class="table-header whitespace-nowrap text-right">Variation</th>
-                <th class="table-header rounded-tr-lg whitespace-nowrap text-center">Tendance</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y border-primary-50">
-              <tr *ngFor="let l of lignes"
-                [class]="l.calculee ? 'font-bold' : 'table-row-hover'"
-                [style.background]="l.calculee ? '#f0faf3' : null">
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg sticky-col">Indicateur</th>
+              <th class="table-header whitespace-nowrap text-right">
+                N-1 (FCFA)
+                <span *ngIf="rapportPrecedent" class="block normal-case font-normal text-primary-200">sem. {{ rapportPrecedent.semaine_iso }}/{{ rapportPrecedent.annee }}</span>
+              </th>
+              <th class="table-header whitespace-nowrap text-right">Semaine N (FCFA)</th>
+              <th class="table-header whitespace-nowrap text-right">Variation</th>
+              <th class="table-header rounded-tr-lg whitespace-nowrap text-center">Tendance</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let l of lignes" [ngClass]="{
+                'table-row-hover': l.type === 'SAISIE',
+                'bg-primary-50 font-semibold': l.type === 'SOUS_TOTAL',
+                'bg-[#e6f4ea] font-bold': l.type === 'TOTAL' }">
 
-                <!-- Libellé (cellule figée : reprend le fond des lignes calculées) -->
-                <td class="table-cell text-primary-700 sticky-col" [ngClass]="{ 'bg-[#f0faf3]': l.calculee }">
-                  <div class="flex items-center gap-2">
-                    <span class="inline-block w-2 h-2 rounded-full flex-shrink-0"
-                      [style.background]="l.signe === 1 ? '#166534' : '#b91c1c'"></span>
-                    {{ l.libelle }}
-                  </div>
-                </td>
+              <td class="table-cell text-primary-700 sticky-col max-w-[22rem]"
+                [ngClass]="{ 'bg-primary-50': l.type === 'SOUS_TOTAL', 'bg-[#e6f4ea]': l.type === 'TOTAL' }">
+                <div class="flex items-start gap-2" [class.pl-6]="l.niveau === 1">
+                  <span *ngIf="l.type !== 'TOTAL'" class="mt-1.5 inline-block w-2 h-2 rounded-full flex-shrink-0"
+                    [ngClass]="l.sens === 'DETTE' ? 'bg-red-600' : 'bg-primary-600'"></span>
+                  <span>{{ l.libelle }}</span>
+                  <span *ngIf="!l.actif" class="badge-neutral">désactivée</span>
+                </div>
+              </td>
 
-                <!-- Semaine N-1 -->
-                <td class="table-cell text-right">
-                  <ng-container *ngIf="!l.calculee">
-                    <input type="number" min="0" step="1"
-                      [(ngModel)]="l.montant_n1"
-                      class="input-field w-full text-right text-sm py-1 table-input"
-                      placeholder="0"/>
-                  </ng-container>
-                  <ng-container *ngIf="l.calculee">
-                    <span class="font-bold" [style.color]="simuleeN1() >= 0 ? '#166534' : '#b91c1c'">
-                      {{ formatMontant(simuleeN1()) }}
-                    </span>
-                  </ng-container>
-                </td>
+              <!-- N-1 : repris automatiquement du rapport précédent -->
+              <td class="table-cell text-right whitespace-nowrap text-gray-600">{{ montant(l, l.montant_n1) }}</td>
 
-                <!-- Semaine N -->
-                <td class="table-cell text-right">
-                  <ng-container *ngIf="!l.calculee">
-                    <input type="number" min="0" step="1"
-                      [(ngModel)]="l.montant_n"
-                      class="input-field w-full text-right text-sm py-1 table-input"
-                      placeholder="0"/>
-                  </ng-container>
-                  <ng-container *ngIf="l.calculee">
-                    <span class="font-bold" [style.color]="simulee() >= 0 ? '#166534' : '#b91c1c'">
-                      {{ formatMontant(simulee()) }}
-                    </span>
-                  </ng-container>
-                </td>
-
-                <!-- Variation -->
-                <td class="table-cell text-right font-semibold whitespace-nowrap">
-                  <ng-container *ngIf="variation(l) !== null">
-                    <span [style.color]="variation(l)! > 0 ? '#166534' : variation(l)! < 0 ? '#b91c1c' : '#6b7280'">
-                      {{ variation(l)! > 0 ? '+' : '' }}{{ variation(l)! | percent:'1.1-1' }}
-                    </span>
-                  </ng-container>
-                  <span *ngIf="variation(l) === null" class="text-gray-300 text-xs">—</span>
-                </td>
-
-                <!-- Tendance -->
-                <td class="table-cell text-center">
-                  <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                    [class]="tendanceClass(l)">
-                    {{ tendance(l) }}
+              <!-- N -->
+              <td class="table-cell text-right whitespace-nowrap">
+                <input *ngIf="l.saisissable && droits.saisie && !estPublie; else montantN" type="number" min="0" step="1"
+                  [(ngModel)]="l.montant_n" (ngModelChange)="recalculer()"
+                  class="input-field w-full text-right text-sm py-1 table-input min-w-[10rem]" placeholder="0"/>
+                <ng-template #montantN>
+                  <span [ngClass]="{ 'text-red-700': l.type === 'TOTAL' && l.montant_n < 0, 'text-primary-800': l.type === 'TOTAL' && l.montant_n >= 0 }">
+                    {{ montant(l, l.montant_n) }}
                   </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </ng-template>
+              </td>
+
+              <!-- Variation : % ; écart en FCFA lorsque le solde change de signe -->
+              <td class="table-cell text-right font-semibold whitespace-nowrap">
+                <ng-container *ngIf="l.ecart !== null; else sansVariation">
+                  <span *ngIf="!l.changement_signe" [ngClass]="classeTendance(l)">
+                    {{ l.variation_pct > 0 ? '+' : '' }}{{ l.variation_pct | percent:'1.1-1' }}
+                  </span>
+                  <span *ngIf="l.changement_signe" [ngClass]="classeTendance(l)" title="Changement de signe : écart exprimé en FCFA">
+                    {{ l.ecart > 0 ? '+' : '' }}{{ formatMontant(l.ecart) }}
+                  </span>
+                </ng-container>
+                <ng-template #sansVariation><span class="text-gray-300 text-xs">—</span></ng-template>
+              </td>
+
+              <!-- Tendance : flèche verte si favorable, rouge si défavorable -->
+              <td class="table-cell text-center whitespace-nowrap">
+                <span *ngIf="l.tendance" [ngClass]="classeTendance(l)">
+                  {{ l.tendance === 'hausse' ? '▲ Hausse' : l.tendance === 'baisse' ? '▼ Baisse' : '→ Stable' }}
+                </span>
+                <span *ngIf="!l.tendance" class="text-gray-300 text-xs">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- ══════════ Modale : gestion des lignes ══════════ -->
+<div *ngIf="modalLignes" class="modal-overlay" (click)="fermerLignes()">
+  <div class="modal-panel max-w-5xl" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="titreLignes">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-primary-100 sticky top-0 bg-white z-20">
+      <h3 id="titreLignes" class="text-base font-semibold text-primary-800 flex items-center">Lignes de la situation de trésorerie
+        <button type="button" class="info-tip ml-1" aria-label="À propos des lignes"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Une ligne n'est jamais supprimée : la désactiver la retire des prochaines saisies tout en conservant l'historique. Les lignes de détail sont rattachées à un sous-total et en prennent le sens.</span></button>
+      </h3>
+      <button (click)="fermerLignes()" class="text-gray-400 hover:text-gray-600" aria-label="Fermer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-5">
+
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg">Libellé</th>
+              <th class="table-header">Type</th>
+              <th class="table-header">Sens</th>
+              <th class="table-header">Sous-total</th>
+              <th class="table-header">Ordre</th>
+              <th class="table-header text-center">Active</th>
+              <th class="table-header rounded-tr-lg"></th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let g of gestion" [class.opacity-60]="!g.actif">
+              <td class="table-cell">
+                <input type="text" maxlength="255" [(ngModel)]="g.libelle" class="input-field text-sm py-1 table-input-wide"/>
+              </td>
+              <td class="table-cell">
+                <span *ngIf="g.type === 'TOTAL'; else typeEdit" class="badge-info">Total</span>
+                <ng-template #typeEdit>
+                  <select [(ngModel)]="g.type" class="input-field text-sm py-1 w-auto">
+                    <option value="SAISIE">Saisie</option>
+                    <option value="SOUS_TOTAL">Sous-total</option>
+                  </select>
+                </ng-template>
+              </td>
+              <td class="table-cell">
+                <select *ngIf="g.type !== 'TOTAL'" [(ngModel)]="g.sens" [disabled]="!!g.parent_id" class="input-field text-sm py-1 w-auto">
+                  <option value="AVOIR">Avoir</option>
+                  <option value="DETTE">Dette</option>
+                </select>
+              </td>
+              <td class="table-cell">
+                <select *ngIf="g.type === 'SAISIE'" [(ngModel)]="g.parent_id" class="input-field text-sm py-1 w-auto max-w-[14rem]">
+                  <option [ngValue]="null">— aucun —</option>
+                  <option *ngFor="let st of sousTotaux" [ngValue]="st.id">{{ st.libelle }}</option>
+                </select>
+              </td>
+              <td class="table-cell">
+                <input *ngIf="g.type !== 'TOTAL'" type="number" min="0" step="1" [(ngModel)]="g.ordre" class="input-field text-sm py-1 w-20 text-right"/>
+              </td>
+              <td class="table-cell text-center">
+                <input *ngIf="g.type !== 'TOTAL'" type="checkbox" [(ngModel)]="g.actif" class="w-4 h-4 accent-primary-600" aria-label="Ligne active"/>
+              </td>
+              <td class="table-cell">
+                <button (click)="enregistrerLigne(g)" [disabled]="savingLigne === g.id" class="btn-secondary text-xs py-1 px-3 disabled:opacity-50">
+                  {{ savingLigne === g.id ? '...' : 'Enregistrer' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Ajout -->
+      <div class="rounded-lg border border-dashed border-primary-300 p-4">
+        <h4 class="text-sm font-semibold text-primary-700 mb-3">Ajouter une ligne</h4>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div class="md:col-span-2">
+            <label class="label" for="nvLibelle">Libellé</label>
+            <input id="nvLibelle" type="text" maxlength="255" [(ngModel)]="nouvelle.libelle" class="input-field"/>
+          </div>
+          <div>
+            <label class="label" for="nvType">Type</label>
+            <select id="nvType" [(ngModel)]="nouvelle.type" class="input-field">
+              <option value="SAISIE">Saisie</option>
+              <option value="SOUS_TOTAL">Sous-total</option>
+            </select>
+          </div>
+          <div>
+            <label class="label" for="nvSens">Sens</label>
+            <select id="nvSens" [(ngModel)]="nouvelle.sens" [disabled]="!!nouvelle.parent_id" class="input-field">
+              <option value="AVOIR">Avoir</option>
+              <option value="DETTE">Dette</option>
+            </select>
+          </div>
+          <div *ngIf="nouvelle.type === 'SAISIE'" class="md:col-span-2">
+            <label class="label" for="nvParent">Rattachée au sous-total</label>
+            <select id="nvParent" [(ngModel)]="nouvelle.parent_id" class="input-field">
+              <option [ngValue]="null">— aucun (ligne principale) —</option>
+              <option *ngFor="let st of sousTotaux" [ngValue]="st.id">{{ st.libelle }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end mt-4">
+          <button (click)="ajouterLigne()" [disabled]="savingLigne === 'nouvelle' || !nouvelle.libelle.trim()" class="btn-primary disabled:opacity-50">
+            {{ savingLigne === 'nouvelle' ? 'Ajout...' : 'Ajouter' }}
+          </button>
         </div>
       </div>
-    </fieldset>
-  </ng-container>
+    </div>
+  </div>
 </div>

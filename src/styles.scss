@@ -8,6 +8,7 @@
        .table-input / .sticky-col    champs lisibles et 1re colonne figee
        .modal-overlay / .modal-panel modales adaptees aux petits ecrans
        .tabs                         onglets defilants
+       .auto-rouge/jaune/vert        couleur d'autonomie ; .tendance-* fleches de tresorerie
    ============================================================ */
 @tailwind base;
 @tailwind components;
@@ -112,6 +113,66 @@ fieldset {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600;
   }
 
+  /* Autonomie des stocks : rouge sous le seuil rouge (10 j), jaune sous l'objectif (15 j), vert au-dela */
+  .auto-rouge {
+    @apply inline-flex items-center justify-end min-w-[3.5rem] px-2 py-0.5 rounded-md text-sm font-semibold bg-red-100 text-red-700;
+  }
+  .auto-jaune {
+    @apply inline-flex items-center justify-end min-w-[3.5rem] px-2 py-0.5 rounded-md text-sm font-semibold bg-yellow-100 text-yellow-800;
+  }
+  .auto-vert {
+    @apply inline-flex items-center justify-end min-w-[3.5rem] px-2 py-0.5 rounded-md text-sm font-semibold bg-primary-50 text-primary-700;
+  }
+  .auto-aucune {
+    @apply inline-flex items-center justify-end min-w-[3.5rem] px-2 py-0.5 text-sm text-gray-300;
+  }
+  /* Legende des statuts d'autonomie : pastille + statut + seuil */
+  .legende-statut {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs;
+  }
+  .legende-point {
+    @apply inline-block w-2.5 h-2.5 rounded-full flex-shrink-0;
+  }
+  .legende-seuil {
+    @apply text-gray-500;
+  }
+  .legende-rouge { @apply border-red-200 bg-red-50 text-red-700; }
+  .legende-rouge .legende-point { @apply bg-red-500; }
+  .legende-jaune { @apply border-yellow-200 bg-yellow-50 text-yellow-800; }
+  .legende-jaune .legende-point { @apply bg-yellow-400; }
+  .legende-vert { @apply border-primary-200 bg-primary-50 text-primary-700; }
+  .legende-vert .legende-point { @apply bg-primary-500; }
+
+  /* Info-bulle : icone « i » cerclee, le texte d'aide s'affiche au survol, au clic ou au clavier (Tab).
+     Usage : <button type="button" class="info-tip" aria-label="..."><svg/><span class="info-tip-bulle" role="tooltip">...</span></button>
+     .info-tip-droite : bulle alignee a droite de l'icone (icone proche du bord droit) */
+  .info-tip {
+    @apply relative inline-flex items-center justify-center w-5 h-5 rounded-full align-middle cursor-help
+           text-primary-400 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400;
+  }
+  .info-tip-bulle {
+    @apply invisible opacity-0 absolute left-0 top-full mt-2 z-40 w-72 max-w-[80vw] rounded-lg bg-primary-800 px-3 py-2
+           text-left text-xs font-normal normal-case tracking-normal leading-relaxed text-white shadow-lg transition-opacity;
+  }
+  .info-tip-droite .info-tip-bulle {
+    @apply left-auto right-0;
+  }
+  .info-tip:hover .info-tip-bulle,
+  .info-tip:focus .info-tip-bulle {
+    @apply visible opacity-100;
+  }
+
+  /* Tendance (tresorerie) : fleche verte = evolution favorable, rouge = defavorable */
+  .tendance-favorable {
+    @apply inline-flex items-center gap-1 text-sm font-semibold text-primary-600;
+  }
+  .tendance-defavorable {
+    @apply inline-flex items-center gap-1 text-sm font-semibold text-red-600;
+  }
+  .tendance-stable {
+    @apply inline-flex items-center gap-1 text-sm font-medium text-gray-500;
+  }
+
   /* Tableau */
   .table-header {
     @apply bg-primary-800;
@@ -132,6 +193,15 @@ fieldset {
      sans cette regle, elle n'avait aucune marge interieure et les titres de colonnes se collaient */
   th.table-header {
     @apply px-2 py-2 md:px-4 md:py-3 text-left text-xs font-semibold uppercase tracking-wider align-bottom;
+  }
+  /* Le titre suit l'alignement de sa colonne : sans ces regles, text-right / text-center poses sur
+     le <th> etaient ignores (th.table-header est plus specifique) et le titre semblait decale
+     par rapport aux chiffres alignes a droite */
+  th.table-header.text-right {
+    text-align: right;
+  }
+  th.table-header.text-center {
+    text-align: center;
   }
 
   /* Champ de saisie dans un tableau : largeur minimale lisible (le tableau defile horizontalement) */

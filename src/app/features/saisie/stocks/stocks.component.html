@@ -3,7 +3,7 @@
   <!-- En-tête -->
   <div class="page-header">
     <div>
-      <h2 class="page-title">Stocks dépôts</h2>
+      <h2 class="page-title">{{ interieur ? 'Stocks dépôts intérieurs' : 'Stocks dépôts extérieurs' }}</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
         Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
@@ -14,6 +14,14 @@
     </div>
     <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
     <div class="save-bar">
+      <a *ngIf="canSeeReferentiel" routerLink="/saisie/referentiel-stocks"
+        class="btn-secondary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+        </svg>
+        Référentiel
+      </a>
       <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
         (click)="onArchive()" [disabled]="archiving || saving"
         class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -23,7 +31,7 @@
         </svg>
         {{ archiving ? 'Archivage...' : 'Archiver' }}
       </button>
-      <button *ngIf="canWriteAny" (click)="onSave()" [disabled]="saving || loading || rapport?.statut === 'PUBLIE'"
+      <button *ngIf="canWriteAny" (click)="onSave()" [disabled]="saving || loading || estPublie"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -35,7 +43,7 @@
         </svg>
         {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
       </button>
-      <span *ngIf="!canWriteAny" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+      <span *ngIf="!canWriteAny && !loading" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
@@ -45,8 +53,7 @@
   </div>
 
   <!-- Rapport archivé -->
-  <div *ngIf="rapport?.statut === 'PUBLIE'"
-    class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+  <div *ngIf="estPublie" class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
     <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
@@ -72,96 +79,65 @@
     <p class="text-sm text-gray-400">Chargement des données...</p>
   </div>
 
-  <ng-container *ngIf="!loading">
+  <ng-container *ngIf="!loading && !error">
 
     <!-- ══════════ DÉPÔTS INTÉRIEURS ══════════ -->
-    <div class="card">
-      <h3 class="section-title mb-4">Dépôts intérieurs</h3>
-      <p class="text-xs text-gray-500 mb-4">
-        * Stock disponible = stocks en bacs + camions en embranchement (en attente de dépotage)
-      </p>
+    <div class="card" *ngIf="interieur">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between mb-4">
+        <h3 class="section-title flex items-center">Dépôts intérieurs
+        <button type="button" class="info-tip ml-1" aria-label="À propos des dépôts intérieurs"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Volume total = stock en bacs + stock en embranchement (camions en attente de dépotage). * Valeurs du référentiel (impompable et consommation moyenne), fixées par les responsables de dépôt. Quantités en m³ (gaz compris) ; équivalent en tonnes du gaz dans les synthèses (densité {{ parametres.densite_gaz }}).</span></button>
+      </h3>
+        <ng-container *ngTemplateOutlet="legendeAutonomie"></ng-container>
+      </div>
 
       <div *ngFor="let depot of depotsInterieurs" class="mb-8 last:mb-0">
-        <h4 class="text-sm font-bold mb-2 px-1 text-primary-600">
-          Site : {{ depot.depot_libelle }}
-        </h4>
+        <h4 class="text-sm font-bold mb-2 px-1 text-primary-600">Site : {{ depot.depot_libelle }}</h4>
         <div class="overflow-x-auto rounded-lg border border-primary-200">
           <table class="min-w-full text-sm">
             <thead>
               <tr>
                 <th class="table-header rounded-tl-lg sticky-col">Produit</th>
-                <th class="table-header">Stock disponible * (m³)</th>
-                <th class="table-header">
-                  Impompable (m³)
-                  <span *ngIf="!canWriteImpompable" title="Valeur saisie par le responsable désigné"
-                    class="ml-1 inline-block align-middle text-primary-200">
-                    <svg class="inline w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                  </span>
-                </th>
-                <th class="table-header">Conso moy. j. (m³/j)</th>
-                <th class="table-header">Stock sécurité (m³)</th>
-                <th class="table-header">Autonomie (j)</th>
-                <th class="table-header">Couverture (%)</th>
-                <th class="table-header rounded-tr-lg">Statut</th>
+                <th class="table-header">Stock en bacs (m³)</th>
+                <th class="table-header">Embranchement (m³)</th>
+                <th class="table-header text-right">Volume total (m³)</th>
+                <th class="table-header text-right">Impompable* (m³)</th>
+                <th class="table-header text-right">Conso moy. j.* (m³/j)</th>
+                <th class="table-header text-right">Autonomie (j)</th>
+                <th class="table-header text-right">Stock sécurité (m³)</th>
+                <th class="table-header text-right" [class.rounded-tr-lg]="!afficherActions">Couverture</th>
+                <th *ngIf="afficherActions" class="table-header rounded-tr-lg">Actions entreprises</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y border-primary-50">
-              <tr *ngFor="let ligne of depot.lignes" class="table-row-hover">
-                <td class="table-cell font-medium text-primary-700 sticky-col">
-                  {{ ligne.produit_libelle }}
-                  <span class="text-xs text-gray-400 ml-1">({{ ligne.unite }})</span>
+              <tr *ngFor="let l of lignesVisibles(depot)" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ l.produit_libelle }}</td>
+                <td class="table-cell">
+                  <input type="number" min="0" step="0.001" [(ngModel)]="l.stock_bacs" (ngModelChange)="recalculer()"
+                    [disabled]="!droits.stocks || estPublie"
+                    class="input-field w-full text-right text-sm py-1 table-input" placeholder="0"/>
                 </td>
                 <td class="table-cell">
-                  <input type="number" min="0" step="0.001"
-                    [(ngModel)]="ligne.stock_disponible"
-                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
-                    class="input-field w-full text-right text-sm py-1 table-input"
-                    placeholder="0"/>
+                  <input type="number" min="0" step="0.001" [(ngModel)]="l.stock_embranchement" (ngModelChange)="recalculer()"
+                    [disabled]="!droits.stocks || estPublie"
+                    class="input-field w-full text-right text-sm py-1 table-input" placeholder="0"/>
                 </td>
-                <td class="table-cell">
-                  <!-- Impompable : éditable uniquement par le responsable désigné -->
-                  <ng-container *ngIf="canWriteImpompable; else impompableLectureTd">
-                    <input type="number" min="0" step="0.001"
-                      [(ngModel)]="ligne.stock_impompable"
-                      [disabled]="rapport?.statut === 'PUBLIE'"
-                      class="input-field w-full text-right text-sm py-1 table-input"
-                      placeholder="0"/>
-                  </ng-container>
-                  <ng-template #impompableLectureTd>
-                    <span class="block text-right text-sm font-medium px-2 text-primary-500">
-                      {{ ligne.stock_impompable | number:'1.0-3' }}
-                    </span>
-                  </ng-template>
+                <td class="table-cell text-right font-semibold text-primary-800">{{ l.volume_total | number:'1.0-0' }}</td>
+                <td class="table-cell text-right text-primary-500">{{ l.impompable | number:'1.0-0' }}</td>
+                <td class="table-cell text-right text-primary-500">{{ l.conso_moyenne | number:'1.0-0' }}</td>
+                <td class="table-cell text-right">
+                  <span [class]="classeAutonomie(l.couleur)">{{ l.autonomie === null ? '—' : (l.autonomie | number:'1.1-1') }}</span>
                 </td>
-                <td class="table-cell">
-                  <input type="number" min="0" step="0.001"
-                    [(ngModel)]="ligne.conso_moyenne"
-                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
-                    class="input-field w-full text-right text-sm py-1 table-input"
-                    placeholder="0"/>
+                <td class="table-cell text-right">{{ l.stock_securite | number:'1.0-0' }}</td>
+                <td class="table-cell text-right font-medium" [class.text-red-600]="l.couverture_ok === false" [class.text-primary-600]="l.couverture_ok">
+                  {{ l.couverture === null ? '—' : (l.couverture | number:'1.0-0') + ' %' }}
                 </td>
-                <td class="table-cell">
-                  <input type="number" min="0" step="0.001"
-                    [(ngModel)]="ligne.stock_securite"
-                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
-                    class="input-field w-full text-right text-sm py-1 table-input"
-                    placeholder="0"/>
+                <td *ngIf="afficherActions" class="table-cell">
+                  <ng-container *ngTemplateOutlet="celluleAction; context: { $implicit: l }"></ng-container>
                 </td>
-                <td class="table-cell text-right font-semibold text-primary-800">
-                  {{ autonomieInt(ligne) | number:'1.1-1' }}
-                </td>
-                <td class="table-cell text-right text-primary-500">
-                  {{ couvertureInt(ligne) | number:'1.0-0' }} %
-                </td>
-                <td class="table-cell">
-                  <span *ngIf="ligne.stock_disponible > 0"
-                    [class]="statutClass(autonomieInt(ligne), ligne.seuil_jours)">
-                    {{ autonomieInt(ligne) >= ligne.seuil_jours ? 'OK' : 'ALERTE' }}
-                  </span>
-                  <span *ngIf="!ligne.stock_disponible" class="text-gray-300 text-xs">—</span>
+              </tr>
+              <tr *ngIf="lignesVisibles(depot).length === 0">
+                <td [attr.colspan]="afficherActions ? 10 : 9" class="table-cell text-center text-gray-400">
+                  Aucun produit configuré pour ce dépôt dans le référentiel.
                 </td>
               </tr>
             </tbody>
@@ -170,69 +146,179 @@
       </div>
 
       <p *ngIf="depotsInterieurs.length === 0" class="text-sm text-gray-400 text-center py-6">
-        Aucun dépôt intérieur configuré. Lancez le seeder de données de référence.
+        Aucun dépôt intérieur dans votre périmètre.
       </p>
-    </div>
 
-    <!-- ══════════ DÉPÔTS EXTÉRIEURS ══════════ -->
-    <div class="card">
-      <h3 class="section-title mb-4">Dépôts extérieurs</h3>
-
-      <div *ngFor="let depot of depotsExterieurs" class="mb-8 last:mb-0">
-        <h4 class="text-sm font-bold mb-2 px-1 text-primary-600">
-          Site : {{ depot.depot_libelle }}
+      <!-- Synthèse intérieure -->
+      <ng-container *ngIf="syntheseInterieure.length && depotsInterieurs.length > 0">
+        <h4 class="text-sm font-bold mt-8 mb-2 px-1 text-primary-600 flex items-center">Situation des stocks intérieurs (tous dépôts)
+          <button type="button" class="info-tip ml-1" aria-label="À propos de l'autonomie consolidée"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Autonomie consolidée = (somme des volumes − somme des impompables) / somme des consommations moyennes.</span></button>
         </h4>
         <div class="overflow-x-auto rounded-lg border border-primary-200">
           <table class="min-w-full text-sm">
             <thead>
               <tr>
                 <th class="table-header rounded-tl-lg sticky-col">Produit</th>
-                <th class="table-header">Stock disponible (m³)</th>
-                <th class="table-header">Besoins moy. j. (m³/j)</th>
-                <th class="table-header">Autonomie (j)</th>
-                <th class="table-header rounded-tr-lg">Statut</th>
+                <th *ngFor="let d of depotsInterieurs" class="table-header text-right">{{ d.depot_libelle }} (m³)</th>
+                <th class="table-header text-right">Total (m³)</th>
+                <th class="table-header text-right rounded-tr-lg">Autonomie (j)</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y border-primary-50">
-              <tr *ngFor="let ligne of depot.lignes" class="table-row-hover">
-                <td class="table-cell font-medium text-primary-700 sticky-col">
-                  {{ ligne.produit_libelle }}
-                  <span class="text-xs text-gray-400 ml-1">({{ ligne.unite }})</span>
-                </td>
-                <td class="table-cell">
-                  <input type="number" min="0" step="0.001"
-                    [(ngModel)]="ligne.stock_disponible"
-                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
-                    class="input-field w-full text-right text-sm py-1 table-input"
-                    placeholder="0"/>
-                </td>
-                <td class="table-cell">
-                  <input type="number" min="0" step="0.001"
-                    [(ngModel)]="ligne.conso_moyenne"
-                    [disabled]="!canWrite || rapport?.statut === 'PUBLIE'"
-                    class="input-field w-full text-right text-sm py-1 table-input"
-                    placeholder="0"/>
-                </td>
+              <tr *ngFor="let s of syntheseInterieure" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ s.produit_libelle }}</td>
+                <td *ngFor="let d of depotsInterieurs" class="table-cell text-right">{{ s.par_depot[d.depot_code] | number:'1.0-0' }}</td>
                 <td class="table-cell text-right font-semibold text-primary-800">
-                  {{ autonomieExt(ligne) | number:'1.1-1' }}
+                  {{ s.volume_total | number:'1.0-0' }}
+                  <span *ngIf="s.volume_total_tonnes !== null" class="block text-xs font-normal text-gray-500">≈ {{ s.volume_total_tonnes | number:'1.0-1' }} t</span>
                 </td>
-                <td class="table-cell">
-                  <span *ngIf="ligne.stock_disponible > 0"
-                    [class]="statutClass(autonomieExt(ligne), ligne.seuil_jours)">
-                    {{ autonomieExt(ligne) >= ligne.seuil_jours ? 'OK' : 'ALERTE' }}
-                  </span>
-                  <span *ngIf="!ligne.stock_disponible" class="text-gray-300 text-xs">—</span>
+                <td class="table-cell text-right">
+                  <span [class]="classeAutonomie(s.couleur)">{{ s.autonomie === null ? '—' : (s.autonomie | number:'1.1-1') }}</span>
                 </td>
+              </tr>
+              <tr class="bg-primary-50 font-semibold">
+                <td class="table-cell sticky-col bg-primary-50 text-primary-800">Cumul</td>
+                <td *ngFor="let d of depotsInterieurs" class="table-cell text-right text-primary-800">{{ cumulInterieur.par_depot[d.depot_code] | number:'1.0-0' }}</td>
+                <td class="table-cell text-right text-primary-800">{{ cumulInterieur.total | number:'1.0-0' }}</td>
+                <td class="table-cell"></td>
               </tr>
             </tbody>
           </table>
         </div>
+      </ng-container>
+    </div>
+
+    <p *ngIf="!interieur && !depotsExterieurs.length" class="card text-sm text-gray-400 text-center py-6">
+      Aucun dépôt extérieur dans votre périmètre.
+    </p>
+
+    <!-- ══════════ DÉPÔTS EXTÉRIEURS ══════════ -->
+    <div class="card" *ngIf="!interieur && depotsExterieurs.length">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between mb-4">
+        <h3 class="section-title flex items-center">Dépôts extérieurs
+        <button type="button" class="info-tip ml-1" aria-label="À propos des dépôts extérieurs"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">* Besoin journalier fixé par la DSTA pour chaque produit. Un stock négatif correspond à une dette de produit. Quantités en m³ (gaz compris) ; équivalent en tonnes du gaz dans les synthèses (densité {{ parametres.densite_gaz }}).</span></button>
+      </h3>
+        <ng-container *ngTemplateOutlet="legendeAutonomie"></ng-container>
       </div>
 
-      <p *ngIf="depotsExterieurs.length === 0" class="text-sm text-gray-400 text-center py-6">
-        Aucun dépôt extérieur configuré. Lancez le seeder de données de référence.
-      </p>
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div *ngFor="let depot of depotsExterieurs">
+          <h4 class="text-sm font-bold mb-2 px-1 text-primary-600">{{ depot.pays || depot.depot_libelle }}</h4>
+          <div class="overflow-x-auto rounded-lg border border-primary-200">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="table-header rounded-tl-lg sticky-col">Produit</th>
+                  <th class="table-header">Stock disponible (m³)</th>
+                  <th class="table-header text-right">Besoin j.* (m³/j)</th>
+                  <th class="table-header text-right" [class.rounded-tr-lg]="!afficherActions">Autonomie (j)</th>
+                  <th *ngIf="afficherActions" class="table-header rounded-tr-lg">Actions entreprises</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y border-primary-50">
+                <tr *ngFor="let l of depot.lignes" class="table-row-hover">
+                  <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">
+                    {{ l.produit_libelle }}
+                    <span *ngIf="l.exclu_total" class="badge-neutral ml-1" title="Ligne exclue du total extérieur (dette de produit)">hors total</span>
+                  </td>
+                  <td class="table-cell">
+                    <input type="number" step="0.001" [(ngModel)]="l.stock_bacs" (ngModelChange)="recalculer()"
+                      [disabled]="!droits.stocks || estPublie"
+                      [class.text-red-600]="l.negatif"
+                      class="input-field w-full text-right text-sm py-1 table-input" placeholder="0"/>
+                  </td>
+                  <td class="table-cell text-right text-primary-500">{{ l.besoin_journalier | number:'1.0-0' }}</td>
+                  <td class="table-cell text-right">
+                    <span *ngIf="l.negatif" class="badge-danger mr-1">dette</span>
+                    <span [class]="classeAutonomie(l.couleur)">{{ l.autonomie === null ? '—' : (l.autonomie | number:'1.1-1') }}</span>
+                  </td>
+                  <td *ngIf="afficherActions" class="table-cell">
+                    <ng-container *ngTemplateOutlet="celluleAction; context: { $implicit: l }"></ng-container>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Synthèse extérieure -->
+      <h4 class="text-sm font-bold mt-8 mb-2 px-1 text-primary-600 flex items-center">Situation des stocks extérieurs (tous pays)
+        <button type="button" class="info-tip ml-1" aria-label="À propos des valeurs barrées"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Les valeurs barrées sont exclues du total (dette de produit) ; le cumul par pays les inclut.</span></button>
+      </h4>
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg sticky-col">Produit</th>
+              <th *ngFor="let d of depotsExterieurs" class="table-header text-right">{{ d.pays || d.depot_libelle }}</th>
+              <th class="table-header text-right">Total (m³)</th>
+              <th class="table-header text-right">Besoin j. (m³/j)</th>
+              <th class="table-header text-right rounded-tr-lg">Autonomie (j)</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let s of syntheseExterieure" class="table-row-hover">
+              <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ s.produit_libelle }}</td>
+              <td *ngFor="let d of depotsExterieurs" class="table-cell text-right"
+                [class.text-gray-400]="s.exclus.includes(d.depot_code)" [class.line-through]="s.exclus.includes(d.depot_code)"
+                [attr.title]="s.exclus.includes(d.depot_code) ? 'Exclu du total (dette de produit)' : null">
+                {{ s.par_pays[d.depot_code] | number:'1.0-0' }}
+              </td>
+              <td class="table-cell text-right font-semibold text-primary-800">
+                {{ s.volume_total | number:'1.0-0' }}
+                <span *ngIf="s.volume_total_tonnes !== null" class="block text-xs font-normal text-gray-500">≈ {{ s.volume_total_tonnes | number:'1.0-1' }} t</span>
+              </td>
+              <td class="table-cell text-right text-primary-500">{{ s.besoin_journalier | number:'1.0-0' }}</td>
+              <td class="table-cell text-right">
+                <span [class]="classeAutonomie(s.couleur)">{{ s.autonomie === null ? '—' : (s.autonomie | number:'1.1-1') }}</span>
+              </td>
+            </tr>
+            <tr class="bg-primary-50 font-semibold">
+              <td class="table-cell sticky-col bg-primary-50 text-primary-800">Cumul</td>
+              <td *ngFor="let d of depotsExterieurs" class="table-cell text-right text-primary-800">{{ cumulExterieur.par_pays[d.depot_code] | number:'1.0-0' }}</td>
+              <td class="table-cell text-right text-primary-800">{{ cumulExterieur.total | number:'1.0-0' }}</td>
+              <td class="table-cell" colspan="2"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </ng-container>
 </div>
+
+<!-- Cellule « actions entreprises » : saisie par la DSTA, signalée quand l'autonomie est sous l'objectif -->
+<ng-template #celluleAction let-l>
+  <textarea *ngIf="droits.actions && !estPublie; else actionLecture" rows="1" maxlength="2000"
+    [(ngModel)]="l.action"
+    [placeholder]="l.action_requise ? 'Action à renseigner' : ''"
+    [class.border-red-300]="l.action_requise && !l.action" [class.bg-red-50]="l.action_requise && !l.action"
+    class="input-field text-sm py-1 table-input-wide resize-y"></textarea>
+  <ng-template #actionLecture>
+    <span class="block text-sm whitespace-pre-line min-w-[12rem]" [class.text-gray-300]="!l.action">
+      {{ l.action || (l.action_requise ? 'Aucune action renseignée' : '—') }}
+    </span>
+  </ng-template>
+</ng-template>
+
+<!-- Échelle d'autonomie, affichée dans l'en-tête des blocs dépôts intérieurs et extérieurs -->
+<ng-template #legendeAutonomie>
+      <ul class="flex flex-wrap items-center gap-2" aria-label="Échelle d'autonomie">
+        <li class="legende-statut legende-rouge">
+          <span class="legende-point" aria-hidden="true"></span>
+          <span class="font-semibold">Alerte</span>
+          <span class="legende-seuil">moins de {{ parametres.seuil_rouge_jours }} jours</span>
+        </li>
+        <li class="legende-statut legende-jaune">
+          <span class="legende-point" aria-hidden="true"></span>
+          <span class="font-semibold">Vigilance</span>
+          <span class="legende-seuil">{{ parametres.seuil_rouge_jours }} à {{ objectifDefaut - 1 }} jours</span>
+        </li>
+        <li class="legende-statut legende-vert">
+          <span class="legende-point" aria-hidden="true"></span>
+          <span class="font-semibold">Objectif atteint</span>
+          <span class="legende-seuil">{{ objectifDefaut }} jours et plus</span>
+        </li>
+      </ul>
+</ng-template>

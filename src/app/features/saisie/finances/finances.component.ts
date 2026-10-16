@@ -2,8 +2,9 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/services/toast.service';
-import { AuthService } from '../../../core/services/auth.service';
 
+// Situation de tresorerie : lignes parametrables, N-1 repris du rapport precedent.
+// Les calculs reproduisent ceux du serveur (Backend/src/services/tresorerie.service.js) pour l'affichage en direct.
 @Component({
   selector: 'app-finances',
   templateUrl: './finances.component.html',
@@ -14,103 +15,174 @@ export class FinancesComponent implements OnInit {
   saving  = false;
   error: string | null = null;
   rapport: any = null;
+  rapportPrecedent: any = null;
+  droits = { saisie: false, lignes: false };
   lignes: any[] = [];
 
-  constructor(
-    private http:  HttpClient,
-    private cdr:   ChangeDetectorRef,
-    private toast: ToastService,
-    public authService: AuthService,
-  ) {}
+  // Gestion des lignes
+  modalLignes = false;
+  gestion: any[] = [];
+  savingLigne: number | string | null = null;
+  nouvelle = { libelle: '', type: 'SAISIE', sens: 'AVOIR', parent_id: null as number | null };
+  private lignesModifiees = false;
 
-  get canWrite(): boolean { return this.authService.hasPermission('tresorerie', 'WRITE'); }
+  private readonly api = `${environment.apiUrl}/finances`;
+  private readonly fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
 
-  ngOnInit(): void {
-    this.http.get(`${environment.apiUrl}/finances/semaine-courante`).subscribe({
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private toast: ToastService) {}
+
+  get estPublie(): boolean { return this.rapport?.statut === 'PUBLIE'; }
+  get sousTotaux(): any[] { return this.gestion.filter(g => g.type === 'SOUS_TOTAL' && g.id); }
+
+  ngOnInit(): void { this.charger(); }
+
+  charger(): void {
+    this.http.get(`${this.api}/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport = data.rapport;
-        this.lignes  = data.lignes;
+        this.rapportPrecedent = data.rapport_precedent;
+        this.droits = data.droits || this.droits;
+        // Valeur saisie directement pour un sous-total (anciens rapports) : conservee si aucun detail n'est renseigne
+        this.lignes = (data.lignes || []).map((l: any) => ({ ...l, montant_direct: l.type === 'SOUS_TOTAL' ? l.montant_n : null }));
+        this.recalculer();
+        this.error = null;
         this.loading = false;
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.error   = 'Erreur lors du chargement (' + (err.status || 'réseau') + ').';
+        this.error   = err.error?.message || 'Erreur lors du chargement (' + (err.status || 'réseau') + ').';
         this.loading = false;
         this.cdr.detectChanges();
       },
     });
   }
 
-  variation(l: any): number | null {
-    if (l.calculee) return this.variationSimulee();
-    if (l.montant_n1 == null || l.montant_n == null) return null;
-    const n1 = parseFloat(l.montant_n1);
-    if (n1 === 0) return null;
-    return (parseFloat(l.montant_n) - n1) / Math.abs(n1);
+  // ── Calculs en direct
+  private num(v: any): number | null {
+    if (v === null || v === undefined || v === '') return null;
+    const n = parseFloat(v); return Number.isFinite(n) ? n : null;
   }
 
-  tendance(l: any): string {
-    if (l.calculee) return this.tendanceSimulee();
-    const v = this.variation(l);
-    if (v == null) return '—';
-    if (Math.abs(v) < 0.0001) return '→ Stable';
-    return v > 0 ? '▲ Hausse' : '▼ Baisse';
+  recalculer(): void {
+    const parId: Record<number, any> = {};
+    this.lignes.forEach(l => { parId[l.id] = l; });
+    for (const st of this.lignes.filter(l => l.type === 'SOUS_TOTAL')) {
+      const details = this.lignes.filter(l => l.parent_id === st.id && l.type === 'SAISIE').map(l => this.num(l.montant_n)).filter(v => v !== null) as number[];
+      st.montant_n = details.length ? details.reduce((s, v) => s + v, 0) : this.num(st.montant_direct);
+    }
+    const premiers = this.lignes.filter(l => !l.parent_id && l.type !== 'TOTAL' && this.num(l.montant_n) !== null);
+    const total = premiers.length ? premiers.reduce((s, l) => s + (l.sens === 'DETTE' ? -1 : 1) * (this.num(l.montant_n) as number), 0) : null;
+    this.lignes.filter(l => l.type === 'TOTAL').forEach(t => { t.montant_n = total; });
+    this.lignes.forEach(l => Object.assign(l, this.evolution(l, this.num(l.montant_n1), this.num(l.montant_n))));
   }
 
-  tendanceClass(l: any): string {
-    const t = this.tendance(l);
-    if (t.includes('Hausse')) return 'badge-success';
-    if (t.includes('Baisse')) return 'badge-danger';
-    return 'badge-info';
+  // % de variation, ou ecart en FCFA quand le signe change ; une hausse de dette est defavorable
+  private evolution(l: any, n1: number | null, n: number | null) {
+    if (n1 === null || n === null) return { ecart: null, variation_pct: null, changement_signe: false, tendance: null, favorable: null };
+    const ecart = n - n1;
+    const changementSigne = Math.abs(n1) < 0.005 || (Math.sign(n1) !== Math.sign(n) && Math.abs(n) >= 0.005);
+    const tendance = Math.abs(ecart) < 0.005 ? 'stable' : (ecart > 0 ? 'hausse' : 'baisse');
+    const favorable = tendance === 'stable' ? null : (l.sens === 'DETTE' && l.type !== 'TOTAL' ? ecart < 0 : ecart > 0);
+    return { ecart, variation_pct: changementSigne ? null : ecart / Math.abs(n1), changement_signe: changementSigne, tendance, favorable };
   }
 
-  simulee(): number {
-    return this.lignes
-      .filter(l => !l.calculee)
-      .reduce((s, l) => s + (l.montant_n != null ? l.signe * parseFloat(l.montant_n) : 0), 0);
+  classeTendance(l: any): string {
+    if (l.favorable === null || l.favorable === undefined) return 'tendance-stable';
+    return l.favorable ? 'tendance-favorable' : 'tendance-defavorable';
   }
 
-  simuleeN1(): number {
-    return this.lignes
-      .filter(l => !l.calculee)
-      .reduce((s, l) => s + (l.montant_n1 != null ? l.signe * parseFloat(l.montant_n1) : 0), 0);
-  }
-
-  variationSimulee(): number | null {
-    const n1 = this.simuleeN1();
-    const n  = this.simulee();
-    if (n1 === 0) return null;
-    return (n - n1) / Math.abs(n1);
-  }
-
-  tendanceSimulee(): string {
-    const v = this.variationSimulee();
-    if (v == null) return '—';
-    if (Math.abs(v) < 0.0001) return '→ Stable';
-    return v > 0 ? '▲ Hausse' : '▼ Baisse';
+  montant(l: any, v: any): string {
+    const n = this.num(v);
+    return n === null ? '—' : this.fmt.format(n);
   }
 
   formatMontant(v: any): string {
-    if (v == null || v === '') return '—';
-    const n = parseFloat(v);
-    if (isNaN(n)) return '—';
-    return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n) + ' FCFA';
+    const n = this.num(v);
+    return n === null ? '—' : this.fmt.format(n) + ' FCFA';
   }
 
   onSave(): void {
+    const saisies = this.lignes.filter(l => l.saisissable);
+    if (saisies.some(l => (this.num(l.montant_n) ?? 0) < 0)) {
+      this.toast.error('Saisissez des montants positifs : le sens avoir/dette est appliqué automatiquement.');
+      return;
+    }
     this.saving = true;
-    this.http.post(`${environment.apiUrl}/finances/saisie`, {
+    this.http.post(`${this.api}/saisie`, {
       rapport_id: this.rapport.id,
-      lignes: this.lignes,
+      lignes: saisies.map(l => ({ code: l.code, montant_n: this.num(l.montant_n) })),
     }).subscribe({
-      next: () => {
+      next: (res: any) => {
         this.saving = false;
-        this.toast.success('Trésorerie enregistrée avec succès.');
-        this.cdr.detectChanges();
+        this.toast.success(res?.message || 'Trésorerie enregistrée avec succès.');
+        this.charger();
       },
       error: (err) => {
         this.saving = false;
         this.toast.error(err.error?.message || 'Erreur lors de l\'enregistrement.');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  // ── Gestion des lignes
+  ouvrirLignes(): void {
+    this.http.get<any[]>(`${this.api}/lignes`).subscribe({
+      next: (lignes) => {
+        this.gestion = lignes.map(l => ({ ...l }));
+        this.modalLignes = true;
+        this.lignesModifiees = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => { this.toast.error(err.error?.message || 'Erreur lors du chargement des lignes.'); },
+    });
+  }
+
+  fermerLignes(): void {
+    this.modalLignes = false;
+    if (this.lignesModifiees) this.charger();
+    this.cdr.detectChanges();
+  }
+
+  enregistrerLigne(g: any): void {
+    if (!String(g.libelle || '').trim()) { this.toast.error('Le libellé est obligatoire.'); return; }
+    const body: any = { libelle: g.libelle.trim() };
+    if (g.type !== 'TOTAL') {
+      Object.assign(body, { type: g.type, sens: g.sens, parent_id: g.type === 'SAISIE' ? g.parent_id : null, ordre: Number(g.ordre) || 0, actif: !!g.actif });
+    }
+    this.savingLigne = g.id;
+    this.http.put(`${this.api}/lignes/${g.id}`, body).subscribe({
+      next: (res: any) => {
+        this.savingLigne = null;
+        this.lignesModifiees = true;
+        this.toast.success(res?.message || 'Ligne mise à jour.');
+        this.ouvrirLignes();
+      },
+      error: (err) => {
+        this.savingLigne = null;
+        this.toast.error(err.error?.message || 'Erreur lors de l\'enregistrement.');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  ajouterLigne(): void {
+    const n = this.nouvelle;
+    if (!n.libelle.trim()) return;
+    this.savingLigne = 'nouvelle';
+    this.http.post(`${this.api}/lignes`, {
+      libelle: n.libelle.trim(), type: n.type, sens: n.sens, parent_id: n.type === 'SAISIE' ? n.parent_id : null,
+    }).subscribe({
+      next: (res: any) => {
+        this.savingLigne = null;
+        this.lignesModifiees = true;
+        this.nouvelle = { libelle: '', type: 'SAISIE', sens: 'AVOIR', parent_id: null };
+        this.toast.success(res?.message || 'Ligne ajoutée.');
+        this.ouvrirLignes();
+      },
+      error: (err) => {
+        this.savingLigne = null;
+        this.toast.error(err.error?.message || 'Erreur lors de l\'ajout.');
         this.cdr.detectChanges();
       },
     });
