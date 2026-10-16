@@ -1,3 +1,12 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
 /* ============================================================
    Styles globaux MICA (Tailwind CSS 3.4)
    - Couleurs : utiliser la palette primary-* / forest-* de tailwind.config.js
@@ -70,11 +79,23 @@ fieldset {
 /* Classes utilitaires personnalisées */
 @layer components {
   /* Boutons */
+  /* Boutons : 14 px, hauteur homogene ; les icones suivent la taille du texte (w-4 h-4) */
   .btn-primary {
-    @apply bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-transparent bg-primary-500 px-3.5 py-1.5 text-sm font-medium text-white
+           transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-secondary {
-    @apply bg-primary-50 text-primary-700 px-4 py-2 rounded-lg font-medium hover:bg-primary-100 transition-colors border border-primary-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3.5 py-1.5 text-sm font-medium text-primary-700
+           transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* Action destructive (suppression) : bouton plein pour la confirmation, contour pour la barre d'actions */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-transparent bg-red-600 px-3.5 py-1.5 text-sm font-medium text-white
+           transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-danger-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3.5 py-1.5 text-sm font-medium text-red-700
+           transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-outline {
     @apply border border-primary-500 text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-primary-50 transition-colors;

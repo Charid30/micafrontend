@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
@@ -12,6 +23,7 @@ const API = `${environment.apiUrl}/rapports`;
   standalone: false,
 })
 export class RapportsComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   rapports: any[] = [];
   selected: any = null;
   apercu: any = null;
@@ -145,15 +157,17 @@ export class RapportsComponent implements OnInit {
   }
 
   // ── Suppression (administrateur) : brouillon ou publié
-  supprimer(): void {
+  async supprimer(): Promise<void> {
     const r = this.selected;
     if (!r) return;
     const etat = r.statut === 'PUBLIE'
       ? 'Ce rapport est PUBLIÉ : il ne sera plus consultable ni exportable.'
       : "Ce rapport est en brouillon : s'il s'agit de la semaine en cours, un nouveau rapport vide sera créé à la prochaine saisie.";
-    if (!confirm(`Supprimer le rapport de la semaine ${r.semaine_iso}/${r.annee} (${r.date_debut} au ${r.date_fin}) ?
-
-${etat}`)) return;
+    if (!(await this.dialog.confirmer({
+      titre: `Supprimer le rapport de la semaine ${r.semaine_iso} / ${r.annee} ?`,
+      message: `Période du ${r.date_debut.split('-').reverse().join('/')} au ${r.date_fin.split('-').reverse().join('/')}.\n${etat}`,
+      confirmer: 'Supprimer', danger: true,
+    }))) return;
     this.suppressionEnCours = true;
     this.http.delete<any>(`${API}/${r.id}`).subscribe({
       next: (res) => {

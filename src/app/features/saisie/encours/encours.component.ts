@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
@@ -10,6 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: false,
 })
 export class EncoursComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   loading = true;
   saving  = false;
   archiving = false;
@@ -80,8 +92,12 @@ export class EncoursComponent implements OnInit {
     return total > 0 ? Math.round((dep / total) * 100) : 0;
   }
 
-  onArchive(): void {
-    if (!this.rapport || !confirm('Archiver ce rapport ? Cette action est irréversible.')) return;
+  async onArchive(): Promise<void> {
+    if (!this.rapport || !(await this.dialog.confirmer({
+      titre: `Archiver le rapport de la semaine ${this.rapport.semaine_iso} / ${this.rapport.annee} ?`,
+      message: 'Le rapport sera publié et ne pourra plus être modifié. La saisie passera à la semaine suivante.',
+      confirmer: 'Archiver',
+    }))) return;
     this.archiving = true;
     this.http.post(`${environment.apiUrl}/rapports/${this.rapport.id}/archiver`, {}).subscribe({
       next: () => { this.archiving = false; this.toast.success('Rapport archivé. Saisie ouverte pour la semaine suivante.'); this.ngOnInit(); this.cdr.detectChanges(); },
@@ -90,7 +106,8 @@ export class EncoursComponent implements OnInit {
   }
 
   // ── Sauvegarde
-  onSave(): void {
+  async onSave(): Promise<void> {
+    if (!(await this.dialog.confirmerEnregistrement('la situation des dépôts intérieurs'))) return;
     this.saving = true;
     this.http.post(`${environment.apiUrl}/encours/saisie`, {
       rapport_id: this.rapport.id,

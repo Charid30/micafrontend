@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
@@ -35,6 +46,7 @@ const MODULE_LABELS: Record<string, string> = {
   standalone: false,
 })
 export class UtilisateursComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   tabs = [
     { key: 'agents', label: 'Agents' },
     { key: 'comptes', label: 'Comptes utilisateurs' },
@@ -133,10 +145,11 @@ export class UtilisateursComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  saveAgent(): void {
+  async saveAgent(): Promise<void> {
     if (!this.agentForm.direction_id || !this.agentForm.matricule || !this.agentForm.nom) {
       this.toast.error('Direction, matricule et nom sont requis.'); return;
     }
+    if (!(await this.dialog.confirmerEnregistrement(`l'agent « ${this.agentForm.nom} »`))) return;
     this.saving = true;
     const payload = {
       direction_id: this.agentForm.direction_id,
@@ -158,8 +171,8 @@ export class UtilisateursComponent implements OnInit {
     });
   }
 
-  deleteAgent(agent: any): void {
-    if (!confirm(`Supprimer l'agent "${agent.nom}" ?`)) return;
+  async deleteAgent(agent: any): Promise<void> {
+    if (!(await this.dialog.confirmer({ titre: `Supprimer l'agent « ${agent.nom} » ?`, message: 'Cette action est définitive.', confirmer: 'Supprimer', danger: true }))) return;
     this.http.delete(`${API}/agents/${agent.id}`).subscribe({
       next: () => { this.toast.success('Agent supprimé.'); this.loadAll(); },
       error: (e) => this.toast.error(e.error?.message || 'Erreur.'),
@@ -179,7 +192,8 @@ export class UtilisateursComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  saveUser(): void {
+  async saveUser(): Promise<void> {
+    if (!(await this.dialog.confirmerEnregistrement(`le compte « ${this.userForm.username} »`))) return;
     this.saving = true;
     const req = this.editingUser?.id
       ? this.http.put(`${API}/utilisateurs/${this.editingUser.id}`, this.userForm)
@@ -195,8 +209,8 @@ export class UtilisateursComponent implements OnInit {
     });
   }
 
-  deleteUser(user: any): void {
-    if (!confirm(`Supprimer le compte "${user.username}" ?`)) return;
+  async deleteUser(user: any): Promise<void> {
+    if (!(await this.dialog.confirmer({ titre: `Supprimer le compte « ${user.username} » ?`, message: "L'utilisateur ne pourra plus se connecter.", confirmer: 'Supprimer', danger: true }))) return;
     this.http.delete(`${API}/utilisateurs/${user.id}`).subscribe({
       next: () => { this.toast.success('Compte supprimé.'); this.loadAll(); },
       error: (e) => this.toast.error(e.error?.message || 'Erreur.'),
@@ -228,7 +242,8 @@ export class UtilisateursComponent implements OnInit {
   getPermDepot(module: string): number | null { return this.currentDepots[module] ?? null; }
   setPermDepot(module: string, depotId: number | null): void { this.currentDepots[module] = depotId; this.cdr.detectChanges(); }
 
-  savePermissions(): void {
+  async savePermissions(): Promise<void> {
+    if (!(await this.dialog.confirmerEnregistrement(`les permissions de « ${this.permUser.username} »`, 'Les droits de cet utilisateur seront modifiés dès sa prochaine action.'))) return;
     this.saving = true;
     const permissions = this.modulesList.map(m => ({
       module: m.key,
@@ -257,10 +272,11 @@ export class UtilisateursComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  saveDir(): void {
+  async saveDir(): Promise<void> {
     if (!this.dirForm.entreprise_id || !this.dirForm.acronyme) {
       this.toast.error('Entreprise et acronyme sont requis.'); return;
     }
+    if (!(await this.dialog.confirmerEnregistrement(`la direction « ${this.dirForm.acronyme} »`))) return;
     this.saving = true;
     const req = this.editingDir?.id
       ? this.http.put(`${API}/directions/${this.editingDir.id}`, this.dirForm)
@@ -276,8 +292,8 @@ export class UtilisateursComponent implements OnInit {
     });
   }
 
-  deleteDir(dir: any): void {
-    if (!confirm(`Supprimer la direction "${dir.acronyme}" ?`)) return;
+  async deleteDir(dir: any): Promise<void> {
+    if (!(await this.dialog.confirmer({ titre: `Supprimer la direction « ${dir.acronyme} » ?`, message: 'Cette action est définitive.', confirmer: 'Supprimer', danger: true }))) return;
     this.http.delete(`${API}/directions/${dir.id}`).subscribe({
       next: () => { this.toast.success('Direction supprimée.'); this.loadAll(); },
       error: (e) => this.toast.error(e.error?.message || 'Erreur.'),
@@ -294,10 +310,11 @@ export class UtilisateursComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  doResetPassword(): void {
+  async doResetPassword(): Promise<void> {
     if (!this.newPassword || this.newPassword.length < 6) {
       this.toast.error('Le mot de passe doit contenir au moins 6 caractères.'); return;
     }
+    if (!(await this.dialog.confirmerEnregistrement(`le nouveau mot de passe de « ${this.pwdUser.username} »`, 'L\'ancien mot de passe ne fonctionnera plus.'))) return;
     this.saving = true;
     this.http.post(`${API}/utilisateurs/${this.pwdUser.id}/reset-password`, { password: this.newPassword, must_change_password: this.pwdMustChange }).subscribe({
       next: () => {

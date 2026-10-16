@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
@@ -11,6 +22,7 @@ const API = environment.apiUrl;
   standalone: false,
 })
 export class ParametresComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   loading = true;
   saving = false;
   activeTab = 'produits';
@@ -89,7 +101,7 @@ export class ParametresComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  saveModal(): void {
+  async saveModal(): Promise<void> {
     if (!this.form.code || !this.form.libelle) {
       this.toast.error('Code et libellé sont obligatoires.');
       return;
@@ -99,6 +111,7 @@ export class ParametresComponent implements OnInit {
       fournisseur: 'fournisseurs', marketeur: 'marketeurs',
     };
     const url = `${API}/${urlMap[this.modalType]}`;
+    if (!(await this.dialog.confirmerEnregistrement(`« ${this.form.libelle} »`))) return;
     const payload = { ...this.form };
     if (payload.code) payload.code = payload.code.toUpperCase();
 
@@ -122,8 +135,8 @@ export class ParametresComponent implements OnInit {
     });
   }
 
-  delete(type: string, id: number): void {
-    if (!confirm('Confirmer la suppression ?')) return;
+  async delete(type: string, id: number): Promise<void> {
+    if (!(await this.dialog.confirmer({ titre: 'Confirmer la suppression ?', message: "L'élément ne sera plus proposé dans les saisies.", confirmer: 'Supprimer', danger: true }))) return;
     const urlMap: Record<string, string> = {
       produit: 'produits', depot: 'depots', corridor: 'corridors',
       fournisseur: 'fournisseurs', marketeur: 'marketeurs',
@@ -141,7 +154,8 @@ export class ParametresComponent implements OnInit {
   }
 
   // ── Alertes ────────────────────────────────────────────────────
-  saveAlerte(a: any): void {
+  async saveAlerte(a: any): Promise<void> {
+    if (!(await this.dialog.confirmerEnregistrement(`le seuil d'alerte (${a.seuil_jours} jours)`))) return;
     this.http.put(`${API}/parametres/alertes/${a.id}`, {
       seuil_jours: a.seuil_jours,
       actif: a.actif,

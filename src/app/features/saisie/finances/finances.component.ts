@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
@@ -11,6 +22,7 @@ import { ToastService } from '../../../core/services/toast.service';
   standalone: false,
 })
 export class FinancesComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   loading = true;
   saving  = false;
   error: string | null = null;
@@ -101,12 +113,13 @@ export class FinancesComponent implements OnInit {
     return n === null ? '—' : this.fmt.format(n) + ' FCFA';
   }
 
-  onSave(): void {
+  async onSave(): Promise<void> {
     const saisies = this.lignes.filter(l => l.saisissable);
     if (saisies.some(l => (this.num(l.montant_n) ?? 0) < 0)) {
       this.toast.error('Saisissez des montants positifs : le sens avoir/dette est appliqué automatiquement.');
       return;
     }
+    if (!(await this.dialog.confirmerEnregistrement('la situation de trésorerie'))) return;
     this.saving = true;
     this.http.post(`${this.api}/saisie`, {
       rapport_id: this.rapport.id,
@@ -144,12 +157,13 @@ export class FinancesComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  enregistrerLigne(g: any): void {
+  async enregistrerLigne(g: any): Promise<void> {
     if (!String(g.libelle || '').trim()) { this.toast.error('Le libellé est obligatoire.'); return; }
     const body: any = { libelle: g.libelle.trim() };
     if (g.type !== 'TOTAL') {
       Object.assign(body, { type: g.type, sens: g.sens, parent_id: g.type === 'SAISIE' ? g.parent_id : null, ordre: Number(g.ordre) || 0, actif: !!g.actif });
     }
+    if (!(await this.dialog.confirmerEnregistrement(`la ligne « ${g.libelle} »`))) return;
     this.savingLigne = g.id;
     this.http.put(`${this.api}/lignes/${g.id}`, body).subscribe({
       next: (res: any) => {
@@ -166,9 +180,10 @@ export class FinancesComponent implements OnInit {
     });
   }
 
-  ajouterLigne(): void {
+  async ajouterLigne(): Promise<void> {
     const n = this.nouvelle;
     if (!n.libelle.trim()) return;
+    if (!(await this.dialog.confirmerEnregistrement(`la nouvelle ligne « ${this.nouvelle.libelle.trim()} »`))) return;
     this.savingLigne = 'nouvelle';
     this.http.post(`${this.api}/lignes`, {
       libelle: n.libelle.trim(), type: n.type, sens: n.sens, parent_id: n.type === 'SAISIE' ? n.parent_id : null,

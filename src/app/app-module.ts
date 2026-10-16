@@ -1,6 +1,15 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
 import { NgModule, LOCALE_ID, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 import { registerLocaleData } from '@angular/common';
 import localeFr from '@angular/common/locales/fr';
@@ -15,12 +24,13 @@ registerLocaleData(localeFr);
   declarations: [App],
   imports: [
     BrowserModule,
-    HttpClientModule,
     ReactiveFormsModule,
     AppRoutingModule,
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),
+    // Remplace HttpClientModule (deprecie) ; withInterceptorsFromDi garde l'intercepteur AuthInterceptor ci-dessous
+    provideHttpClient(withInterceptorsFromDi()),
     { provide: LOCALE_ID, useValue: 'fr' },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
   ],

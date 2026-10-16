@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
@@ -10,6 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: false,
 })
 export class RecommandationsComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   loading = true;
   saving  = false;
   error: string | null = null;
@@ -55,7 +67,8 @@ export class RecommandationsComponent implements OnInit {
     });
   }
 
-  onSave(): void {
+  async onSave(): Promise<void> {
+    if (!(await this.dialog.confirmerEnregistrement('les recommandations de la semaine'))) return;
     this.saving = true;
     this.http.post(`${environment.apiUrl}/recommandations/saisie`, {
       rapport_id:          this.rapport.id,

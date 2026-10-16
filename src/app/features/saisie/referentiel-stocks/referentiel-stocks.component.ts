@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
@@ -11,6 +22,7 @@ import { ToastService } from '../../../core/services/toast.service';
   standalone: false,
 })
 export class ReferentielStocksComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   loading = true;
   saving: string | null = null;
   error: string | null = null;
@@ -47,15 +59,24 @@ export class ReferentielStocksComponent implements OnInit {
     return this.droits.depots && (!this.droits.depot_restreint || this.droits.depot_restreint === depot.depot_id);
   }
 
+  private objetSection(section: string): string {
+    return ({
+      interieurs: 'le référentiel des dépôts intérieurs', besoins: 'les besoins journaliers',
+      exclusions: 'les exclusions du total extérieur', parametres: 'les paramètres de calcul',
+      densites: 'les densités des produits',
+    } as Record<string, string>)[section] || 'le référentiel';
+  }
+
   private dateValide(): boolean {
     if (/^\d{4}-\d{2}-\d{2}$/.test(this.dateEffet)) return true;
     this.toast.error("Indiquez la date d'effet des nouvelles valeurs.");
     return false;
   }
 
-  private envoyer(section: string, url: string, body: any): void {
+  private async envoyer(section: string, url: string, body: any): Promise<void> {
     // Parametres et densites : pas de date d'effet
     if (!['parametres', 'densites'].includes(section) && !this.dateValide()) return;
+    if (!(await this.dialog.confirmerEnregistrement(this.objetSection(section), ['parametres', 'densites'].includes(section) ? undefined : `Les nouvelles valeurs seront en vigueur à partir du ${this.dateEffet.split('-').reverse().join('/')}.`))) return;
     this.saving = section;
     this.http.put(url, body).subscribe({
       next: (res: any) => {

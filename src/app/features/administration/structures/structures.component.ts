@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
@@ -11,6 +22,7 @@ const API = environment.apiUrl;
   standalone: false,
 })
 export class StructuresComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   tabs = [
     { key: 'entreprises', label: 'Entreprises' },
     { key: 'directions', label: 'Directions' },
@@ -51,8 +63,9 @@ export class StructuresComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  saveEnt(): void {
+  async saveEnt(): Promise<void> {
     if (!this.entForm.nom || !this.entForm.acronyme) { this.toast.error('Nom et acronyme sont requis.'); return; }
+    if (!(await this.dialog.confirmerEnregistrement(`l'entreprise « ${this.entForm.nom} »`))) return;
     this.saving = true;
     const req = this.editingEnt?.id
       ? this.http.put(`${API}/entreprises/${this.editingEnt.id}`, this.entForm)
@@ -63,8 +76,8 @@ export class StructuresComponent implements OnInit {
     });
   }
 
-  deleteEnt(e: any): void {
-    if (!confirm(`Supprimer "${e.nom}" ?`)) return;
+  async deleteEnt(e: any): Promise<void> {
+    if (!(await this.dialog.confirmer({ titre: `Supprimer l'entreprise « ${e.nom} » ?`, message: 'Cette action est définitive.', confirmer: 'Supprimer', danger: true }))) return;
     this.http.delete(`${API}/entreprises/${e.id}`).subscribe({
       next: () => { this.toast.success('Entreprise supprimée.'); this.loadAll(); },
       error: (err) => this.toast.error(err.error?.message || 'Erreur.'),
@@ -82,8 +95,9 @@ export class StructuresComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  saveDir(): void {
+  async saveDir(): Promise<void> {
     if (!this.dirForm.entreprise_id || !this.dirForm.acronyme) { this.toast.error('Entreprise et acronyme sont requis.'); return; }
+    if (!(await this.dialog.confirmerEnregistrement(`la direction « ${this.dirForm.acronyme} »`))) return;
     this.saving = true;
     const req = this.editingDir?.id
       ? this.http.put(`${API}/directions/${this.editingDir.id}`, this.dirForm)
@@ -94,8 +108,8 @@ export class StructuresComponent implements OnInit {
     });
   }
 
-  deleteDir(d: any): void {
-    if (!confirm(`Supprimer "${d.acronyme}" ?`)) return;
+  async deleteDir(d: any): Promise<void> {
+    if (!(await this.dialog.confirmer({ titre: `Supprimer la direction « ${d.acronyme} » ?`, message: 'Cette action est définitive.', confirmer: 'Supprimer', danger: true }))) return;
     this.http.delete(`${API}/directions/${d.id}`).subscribe({
       next: () => { this.toast.success('Direction supprimée.'); this.loadAll(); },
       error: (e) => this.toast.error(e.error?.message || 'Erreur.'),

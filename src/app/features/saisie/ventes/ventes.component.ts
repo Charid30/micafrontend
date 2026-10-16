@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
@@ -12,6 +23,7 @@ const API = `${environment.apiUrl}/ventes`;
   standalone: false,
 })
 export class VentesComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   rapport: any = null;
   marketeurs: any[] = [];
   produits: any[] = [];
@@ -71,8 +83,12 @@ export class VentesComponent implements OnInit {
     return this.produits.reduce((s, p) => s + this.totalParProduit(p.id), 0);
   }
 
-  onArchive(): void {
-    if (!this.rapport || !confirm('Archiver ce rapport ? Cette action est irréversible.')) return;
+  async onArchive(): Promise<void> {
+    if (!this.rapport || !(await this.dialog.confirmer({
+      titre: `Archiver le rapport de la semaine ${this.rapport.semaine_iso} / ${this.rapport.annee} ?`,
+      message: 'Le rapport sera publié et ne pourra plus être modifié. La saisie passera à la semaine suivante.',
+      confirmer: 'Archiver',
+    }))) return;
     this.archiving = true;
     this.http.post(`${environment.apiUrl}/rapports/${this.rapport.id}/archiver`, {}).subscribe({
       next: () => { this.archiving = false; this.toast.success('Rapport archivé. Saisie ouverte pour la semaine suivante.'); this.ngOnInit(); this.cdr.detectChanges(); },
@@ -80,8 +96,9 @@ export class VentesComponent implements OnInit {
     });
   }
 
-  onSave(): void {
+  async onSave(): Promise<void> {
     if (!this.rapport) return;
+    if (!(await this.dialog.confirmerEnregistrement('les ventes de la semaine'))) return;
     this.saving = true;
     this.cdr.detectChanges();
 

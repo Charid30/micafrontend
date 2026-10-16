@@ -1,0 +1,36 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     ================================================================== -->
+<!-- Boîte de dialogue MICA : confirmation (Annuler / Confirmer) ou information (Compris) -->
+<div *ngIf="dialogService.dialog$ | async as d" class="modal-overlay z-[60] animate-fade-in-down" (click)="d.resoudre(false)">
+  <div class="modal-panel max-w-md" (click)="$event.stopPropagation()"
+    role="alertdialog" aria-modal="true" aria-labelledby="dialogTitre" aria-describedby="dialogMessage">
+    <div class="flex items-start gap-4 p-5">
+      <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full"
+        [ngClass]="d.danger ? 'bg-red-50 text-red-600' : 'bg-primary-50 text-primary-600'" aria-hidden="true">
+        <svg *ngIf="d.danger" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <svg *ngIf="!d.danger" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </span>
+      <div class="min-w-0 pt-0.5">
+        <h3 id="dialogTitre" class="text-base font-semibold text-primary-800">{{ d.titre }}</h3>
+        <p *ngIf="d.message" id="dialogMessage" class="mt-2 text-sm leading-relaxed text-gray-600 whitespace-pre-line">{{ d.message }}</p>
+      </div>
+    </div>
+    <div class="flex flex-col-reverse gap-2 border-t border-primary-100 bg-primary-50/40 px-5 py-3 sm:flex-row sm:justify-end rounded-b-xl">
+      <button *ngIf="d.annuler" type="button" class="btn-secondary" (click)="d.resoudre(false)">{{ d.annuler }}</button>
+      <button #boutonPrincipal type="button" (click)="d.resoudre(true)"
+        [ngClass]="d.danger ? 'btn-danger' : 'btn-primary'">{{ d.confirmer }}</button>
+    </div>
+  </div>
+</div>

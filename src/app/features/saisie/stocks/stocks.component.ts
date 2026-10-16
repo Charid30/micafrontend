@@ -1,3 +1,14 @@
+/* ==================================================================
+ *  Auteur : BATIONO Ulrich Rachid Kévin
+ *           Expert en Sécurité Informatique
+ *           Développeur FullStack
+ *           Tel: +226 51 57 82 89 // 66 72 02 32
+ *           Whatsapp: +226 51 57 82 89
+ *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+ *  Projet : MICA – SONABHY
+ * ================================================================== */
+import { inject } from '@angular/core';
+import { DialogService } from '../../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
@@ -13,6 +24,7 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: false,
 })
 export class StocksComponent implements OnInit {
+  private readonly dialog = inject(DialogService);
   loading = true;
   saving = false;
   archiving = false;
@@ -178,8 +190,12 @@ export class StocksComponent implements OnInit {
   }
 
   // ── Archivage
-  onArchive(): void {
-    if (!this.rapport || !confirm('Archiver ce rapport ? Cette action est irréversible.')) return;
+  async onArchive(): Promise<void> {
+    if (!this.rapport || !(await this.dialog.confirmer({
+      titre: `Archiver le rapport de la semaine ${this.rapport.semaine_iso} / ${this.rapport.annee} ?`,
+      message: 'Le rapport sera publié et ne pourra plus être modifié. La saisie passera à la semaine suivante.',
+      confirmer: 'Archiver',
+    }))) return;
     this.archiving = true;
     this.http.post(`${environment.apiUrl}/rapports/${this.rapport.id}/archiver`, {}).subscribe({
       next: () => {
@@ -196,7 +212,7 @@ export class StocksComponent implements OnInit {
   }
 
   // ── Sauvegarde : chaque utilisateur n'envoie que les champs de son droit
-  onSave(): void {
+  async onSave(): Promise<void> {
     const vide = (v: any) => v === null || v === undefined || v === '';
     const interieurs = this.depotsInterieurs.flatMap(d => this.lignesVisibles(d).map(l => ({ ...l, depot_id: d.depot_id, interieur: true })));
     const exterieurs = this.depotsExterieurs.flatMap(d => d.lignes.map((l: any) => ({ ...l, depot_id: d.depot_id, interieur: false })));
@@ -216,6 +232,7 @@ export class StocksComponent implements OnInit {
     }
     if (!lignes.length) { this.toast.error('Aucune ligne à enregistrer.'); return; }
 
+    if (!(await this.dialog.confirmerEnregistrement(`la saisie des stocks ${this.interieur ? 'intérieurs' : 'extérieurs'} du jour`))) return;
     this.saving = true;
     this.http.post(`${environment.apiUrl}/stocks/saisie`, { rapport_id: this.rapport.id, lignes }).subscribe({
       next: (res: any) => {
