@@ -4,7 +4,11 @@
   <div class="page-header">
     <div>
       <h2 class="page-title">Tableau de bord</h2>
-      <p class="text-sm text-gray-500 mt-1">Situation des stocks SONABHY, semaine en cours</p>
+      <p class="text-sm text-gray-500 mt-1" *ngIf="stats?.rapport; else aucunRapport">
+        Dernier rapport publié : semaine {{ stats.rapport.semaine_iso }} / {{ stats.rapport.annee }}
+        (du {{ stats.rapport.date_debut | date:'dd/MM' }} au {{ stats.rapport.date_fin | date:'dd/MM/yyyy' }})
+      </p>
+      <ng-template #aucunRapport><p class="text-sm text-gray-500 mt-1">Aucun rapport publié pour le moment</p></ng-template>
     </div>
     <span class="badge-info">{{ today | date:'dd/MM/yyyy' }}</span>
   </div>
@@ -30,7 +34,7 @@
   <ng-container *ngIf="!loading">
 
     <!-- KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
       <div class="card">
         <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Autonomie moy. (Intérieur)</p>
         <p class="text-3xl font-bold mt-2 text-primary-800">
@@ -51,12 +55,45 @@
         <p class="text-xs text-gray-400 mt-1">Taux: {{ stats?.tauxRealisation | percent:'1.0-1' }}</p>
       </div>
       <div class="card">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Dette État → SONABHY</p>
-        <p class="text-2xl font-bold text-red-600 mt-2">
-          {{ stats?.detteEtat | number }} <span class="text-sm font-normal">FCFA</span>
+        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Dettes de l'État envers SONABHY</p>
+        <p class="text-3xl font-bold mt-2 text-primary-800" [attr.title]="formatFcfa(etat?.dettesEtat?.montant)">
+          {{ milliards(etat?.dettesEtat?.montant) }}<span class="text-base font-normal text-gray-500 ml-1">Mds FCFA</span>
         </p>
-        <p class="text-xs text-gray-400 mt-1">Au {{ today | date:'dd/MM/yyyy' }}</p>
+        <p class="text-xs text-gray-400 mt-1">Moins-values, subventions gaz et SONABEL</p>
       </div>
+      <div class="card">
+        <p class="text-xs font-semibold uppercase tracking-wide text-primary-500">Créances de l'État sur SONABHY</p>
+        <p class="text-3xl font-bold mt-2 text-red-700" [attr.title]="formatFcfa(etat?.creancesEtat?.montant)">
+          {{ milliards(etat?.creancesEtat?.montant) }}<span class="text-base font-normal text-gray-500 ml-1">Mds FCFA</span>
+        </p>
+        <p class="text-xs text-gray-400 mt-1">Plus-values, dettes fiscales</p>
+      </div>
+    </div>
+
+    <!-- Situation avec l'État (saisie Trésorerie du dernier rapport publié) -->
+    <div class="card" *ngIf="etat">
+      <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between mb-4">
+        <h3 class="section-title flex items-center">Situation avec l'État
+          <button type="button" class="info-tip ml-1" aria-label="À propos de la situation avec l'État"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Montants issus de la saisie Trésorerie du rapport publié (sous-totaux « Sommes dues par l'État » et « Dettes envers l'État » et leurs lignes de détail). N-1 : rapport précédent.</span></button>
+        </h3>
+        <span class="text-xs text-gray-500">Situation au {{ etat.rapport.date_fin | date:'dd/MM/yyyy' }}</span>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ng-container *ngTemplateOutlet="blocEtat; context: { $implicit: etat.dettesEtat, titre: titreDettes }"></ng-container>
+        <ng-container *ngTemplateOutlet="blocEtat; context: { $implicit: etat.creancesEtat, titre: titreCreances }"></ng-container>
+      </div>
+
+      <div *ngIf="etat.solde !== null" class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-3"
+        [ngClass]="etat.solde >= 0 ? 'border-primary-200 bg-primary-50' : 'border-red-200 bg-red-50'">
+        <span class="text-sm font-semibold" [ngClass]="etat.solde >= 0 ? 'text-primary-800' : 'text-red-800'">
+          {{ etat.solde >= 0 ? libelleSoldeSonabhy : libelleSoldeEtat }}
+        </span>
+        <span class="text-lg font-bold" [ngClass]="etat.solde >= 0 ? 'text-primary-800' : 'text-red-800'">{{ formatFcfa(abs(etat.solde)) }}</span>
+      </div>
+      <p *ngIf="etat.dettesEtat?.montant === null && etat.creancesEtat?.montant === null" class="text-sm text-gray-400 text-center mt-2">
+        Trésorerie non renseignée pour ce rapport.
+      </p>
     </div>
 
     <!-- Stocks par produit -->
@@ -139,3 +176,46 @@
   </button>
 
 </div>
+
+<!-- Bloc détaillé (dettes ou créances de l'État) : lignes de détail, total, N-1 et tendance -->
+<ng-template #blocEtat let-b let-titre="titre">
+  <div *ngIf="b">
+    <h4 class="text-sm font-semibold text-primary-600 mb-2">{{ titre }}</h4>
+    <div class="overflow-x-auto rounded-lg border border-primary-200">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr>
+            <th class="table-header rounded-tl-lg">Détail</th>
+            <th class="table-header text-right whitespace-nowrap">Montant (FCFA)</th>
+            <th class="table-header text-right whitespace-nowrap">N-1</th>
+            <th class="table-header text-center rounded-tr-lg">Tendance</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y border-primary-50">
+          <tr *ngFor="let d of b.details" class="table-row-hover">
+            <td class="table-cell text-gray-700">{{ d.libelle }}</td>
+            <td class="table-cell text-right whitespace-nowrap">{{ formatNombre(d.montant) }}</td>
+            <td class="table-cell text-right whitespace-nowrap text-gray-500">{{ formatNombre(d.montant_n1) }}</td>
+            <td class="table-cell text-center whitespace-nowrap"><ng-container *ngTemplateOutlet="tendance; context: { $implicit: d }"></ng-container></td>
+          </tr>
+          <tr class="bg-primary-50 font-semibold">
+            <td class="table-cell text-primary-800">Total</td>
+            <td class="table-cell text-right whitespace-nowrap text-primary-800">{{ formatNombre(b.montant) }}</td>
+            <td class="table-cell text-right whitespace-nowrap text-gray-600">{{ formatNombre(b.montant_n1) }}</td>
+            <td class="table-cell text-center whitespace-nowrap"><ng-container *ngTemplateOutlet="tendance; context: { $implicit: b }"></ng-container></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Flèche de tendance : verte si favorable, rouge si défavorable (même règle que l'écran Trésorerie) -->
+<ng-template #tendance let-l>
+  <span *ngIf="l.tendance; else sansTendance"
+    [ngClass]="l.favorable === null ? 'tendance-stable' : (l.favorable ? 'tendance-favorable' : 'tendance-defavorable')">
+    {{ l.tendance === 'hausse' ? '▲' : l.tendance === 'baisse' ? '▼' : '→' }}
+    <span class="text-xs">{{ l.variation_pct === null ? '' : ((l.variation_pct > 0 ? '+' : '') + (l.variation_pct | percent:'1.1-1')) }}</span>
+  </span>
+  <ng-template #sansTendance><span class="text-gray-300">—</span></ng-template>
+</ng-template>
