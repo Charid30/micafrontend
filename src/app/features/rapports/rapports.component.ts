@@ -19,6 +19,7 @@ export class RapportsComponent implements OnInit {
   loadingListe = true;
   loadingApercu = false;
   exportEnCours = false;
+  suppressionEnCours = false;
 
   get canExport(): boolean {
     return this.authService.hasPermission('rapports', 'READ');
@@ -113,6 +114,34 @@ export class RapportsComponent implements OnInit {
   classeTendance(l: any): string {
     if (l.favorable === null || l.favorable === undefined) return 'tendance-stable';
     return l.favorable ? 'tendance-favorable' : 'tendance-defavorable';
+  }
+
+  // ── Suppression (administrateur) : brouillon ou publié
+  supprimer(): void {
+    const r = this.selected;
+    if (!r) return;
+    const etat = r.statut === 'PUBLIE'
+      ? 'Ce rapport est PUBLIÉ : il ne sera plus consultable ni exportable.'
+      : "Ce rapport est en brouillon : s'il s'agit de la semaine en cours, un nouveau rapport vide sera créé à la prochaine saisie.";
+    if (!confirm(`Supprimer le rapport de la semaine ${r.semaine_iso}/${r.annee} (${r.date_debut} au ${r.date_fin}) ?
+
+${etat}`)) return;
+    this.suppressionEnCours = true;
+    this.http.delete<any>(`${API}/${r.id}`).subscribe({
+      next: (res) => {
+        this.suppressionEnCours = false;
+        this.rapports = this.rapports.filter(x => x.id !== r.id);
+        this.selected = null;
+        this.apercu = null;
+        this.toast.success(res?.message || 'Rapport supprimé.');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.suppressionEnCours = false;
+        this.toast.error(err.error?.message || 'Erreur lors de la suppression.');
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   // ── Export Excel (onglets Autonomie et Treso, format Indicateurs.xlsx)
