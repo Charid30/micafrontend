@@ -76,6 +76,36 @@ export class AuthService {
     return perms.some(p => !p.depot_id || !p.depot || p.depot.type === type);
   }
 
+  /** Relit le profil de session (rappel d'expiration du mot de passe, droits a jour) */
+  rafraichir(): void {
+    this.http.get<AuthResponse>(`${environment.apiUrl}/auth/me`).subscribe({
+      next: (res) => this.mettreAJour(res.utilisateur),
+      error: () => { /* 401 : l'intercepteur ferme la session */ },
+    });
+  }
+
+  /** Change le mot de passe depuis le profil (ancien mot de passe requis) */
+  changerMotDePasse(ancienMotDePasse: string, nouveauMotDePasse: string) {
+    return this.http.put<{ message: string }>(`${environment.apiUrl}/auth/change-password`, { ancienMotDePasse, nouveauMotDePasse }).pipe(
+      tap(() => this.mettreAJour({ must_change_password: false, mot_de_passe_expire: false, mot_de_passe: { expire_le: null, jours_restants: null, rappel: false } })),
+    );
+  }
+
+  /** Met a jour le profil memorise (affichage) */
+  mettreAJour(modifs: Partial<Utilisateur>): void {
+    const user = this.userSubject.value;
+    if (!user) return;
+    const updated = { ...user, ...modifs };
+    localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
+    this.userSubject.next(updated);
+  }
+
+  /** Le serveur exige un changement de mot de passe (premiere connexion ou expiration) */
+  exigerChangementMotDePasse(): void {
+    this.mettreAJour({ must_change_password: true });
+    this.router.navigate(['/auth/force-change-password']);
+  }
+
   mustChangePassword(): boolean {
     return !!this.userSubject.value?.must_change_password;
   }
@@ -85,7 +115,7 @@ export class AuthService {
       tap(() => {
         const user = this.userSubject.value;
         if (user) {
-          const updated = { ...user, must_change_password: false };
+          const updated = { ...user, must_change_password: false, mot_de_passe_expire: false, mot_de_passe: { expire_le: null, jours_restants: null, rappel: false } };
           localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
           this.userSubject.next(updated);
         }

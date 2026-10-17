@@ -47,6 +47,8 @@ export interface Utilisateur {
   email: string;
   is_admin: boolean;
   must_change_password?: boolean;
+  mot_de_passe_expire?: boolean;                 // changement exige parce que le mot de passe a expire
+  mot_de_passe?: { expire_le: string | null; jours_restants: number | null; rappel: boolean };
   agent: Agent;
   permissions: Permission[];
 }

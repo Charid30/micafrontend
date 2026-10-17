@@ -1,0 +1,201 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     ================================================================== -->
+<div class="space-y-6">
+
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Mon profil</h2>
+      <p class="text-sm text-gray-500 mt-1">Vos informations, vos droits et la sécurité de votre compte.</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="card border-red-200 bg-red-50 text-sm text-red-700">{{ error }}</div>
+
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement du profil...</p>
+  </div>
+
+  <ng-container *ngIf="!loading && profil as p">
+
+    <!-- ══════════ Identité ══════════ -->
+    <div class="card flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-primary-700 text-xl font-bold text-white" aria-hidden="true">
+        {{ initiales() }}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-lg font-semibold text-primary-800">{{ p.identite.prenoms }} {{ p.identite.nom }}</p>
+        <p class="text-sm text-gray-500">{{ p.identite.direction || 'Direction non renseignée' }}</p>
+        <p class="text-xs text-gray-400">{{ p.identite.entreprise }}</p>
+      </div>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:text-right">
+        <dt class="text-gray-500">Matricule</dt><dd class="font-medium text-primary-800">{{ p.identite.matricule || '—' }}</dd>
+        <dt class="text-gray-500">Profil</dt><dd class="font-medium text-primary-800">{{ p.compte.profil }}</dd>
+        <dt class="text-gray-500">Dernière connexion</dt>
+        <dd class="font-medium text-primary-800">{{ p.compte.derniere_connexion ? (p.compte.derniere_connexion.le | date:'dd/MM/yyyy HH:mm') : '—' }}</dd>
+      </dl>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+      <!-- ══════════ Mes informations ══════════ -->
+      <div class="card">
+        <h3 class="section-title flex items-center mb-4">Mes informations
+          <button type="button" class="info-tip ml-1" aria-label="À propos de mes informations"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Le nom, le matricule et la direction sont gérés par l'administrateur. L'adresse e-mail sert aussi d'identifiant de connexion : votre mot de passe est demandé pour la modifier.</span></button>
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <label class="label" for="username">Nom d'utilisateur</label>
+            <input id="username" type="text" [value]="p.compte.username" disabled class="input-field bg-gray-50 text-gray-500"/>
+          </div>
+          <div>
+            <label class="label" for="email">Adresse e-mail</label>
+            <input id="email" type="email" maxlength="150" [(ngModel)]="infos.email" autocomplete="email" class="input-field"/>
+          </div>
+          <div *ngIf="emailModifie">
+            <label class="label" for="mdpActuelEmail">Mot de passe actuel <span class="font-normal text-gray-500">(requis pour changer l'e-mail)</span></label>
+            <input id="mdpActuelEmail" type="password" maxlength="128" [(ngModel)]="infos.mot_de_passe_actuel" autocomplete="current-password" class="input-field"/>
+          </div>
+          <div>
+            <label class="label" for="tel">Téléphone</label>
+            <input id="tel" type="tel" maxlength="20" [(ngModel)]="infos.tel" autocomplete="tel" placeholder="+226 ..." class="input-field"/>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" class="btn-primary" (click)="enregistrerInfos()" [disabled]="savingInfos || !infosModifiees">
+              {{ savingInfos ? 'Enregistrement...' : 'Enregistrer' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ Mot de passe ══════════ -->
+      <div class="card" id="mot-de-passe">
+        <h3 class="section-title mb-1">Mot de passe</h3>
+        <p class="text-xs text-gray-500 mb-4">
+          Modifié le {{ p.mot_de_passe.change_le ? (p.mot_de_passe.change_le | date:'dd/MM/yyyy') : '—' }}
+          <ng-container *ngIf="p.mot_de_passe.expire_le">
+            · expire le {{ p.mot_de_passe.expire_le | date:'dd/MM/yyyy' }}
+            <span [ngClass]="p.mot_de_passe.rappel ? 'badge-warning' : 'badge-success'" class="ml-1">
+              {{ p.mot_de_passe.jours_restants }} jour{{ p.mot_de_passe.jours_restants > 1 ? 's' : '' }} restant{{ p.mot_de_passe.jours_restants > 1 ? 's' : '' }}
+            </span>
+          </ng-container>
+        </p>
+        <div class="space-y-4">
+          <div>
+            <label class="label" for="ancien">Mot de passe actuel</label>
+            <input id="ancien" [type]="voirMdp ? 'text' : 'password'" maxlength="128" [(ngModel)]="mdp.ancien" autocomplete="current-password" class="input-field"/>
+          </div>
+          <div>
+            <label class="label" for="nouveau">Nouveau mot de passe</label>
+            <input id="nouveau" [type]="voirMdp ? 'text' : 'password'" maxlength="128" [(ngModel)]="mdp.nouveau" autocomplete="new-password" class="input-field"/>
+            <!-- Indicateur de robustesse -->
+            <div *ngIf="mdp.nouveau" class="mt-2 flex items-center gap-2">
+              <div class="flex flex-1 gap-1" aria-hidden="true">
+                <span *ngFor="let i of [1, 2, 3]" class="h-1.5 flex-1 rounded-full"
+                  [ngClass]="i <= robustesse.niveau ? robustesse.classe : 'bg-gray-200'"></span>
+              </div>
+              <span class="text-xs font-medium text-gray-600">{{ robustesse.libelle }}</span>
+            </div>
+            <ul class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
+              <li *ngFor="let r of regles" class="flex items-center gap-1.5" [ngClass]="r.ok ? 'text-primary-600' : 'text-gray-400'">
+                <span aria-hidden="true">{{ r.ok ? '✓' : '○' }}</span> {{ r.libelle }}
+              </li>
+            </ul>
+          </div>
+          <div>
+            <label class="label" for="confirmation">Confirmer le nouveau mot de passe</label>
+            <input id="confirmation" [type]="voirMdp ? 'text' : 'password'" maxlength="128" [(ngModel)]="mdp.confirmation" autocomplete="new-password" class="input-field"
+              [class.border-red-300]="mdp.confirmation && mdp.confirmation !== mdp.nouveau"/>
+            <p *ngIf="mdp.confirmation && mdp.confirmation !== mdp.nouveau" class="mt-1 text-xs text-red-600">Les deux mots de passe ne correspondent pas.</p>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input type="checkbox" [(ngModel)]="voirMdp" class="w-4 h-4 accent-primary-600"/> Afficher les mots de passe
+            </label>
+            <button type="button" class="btn-primary" (click)="changerMotDePasse()" [disabled]="savingMdp || !mdpValide">
+              {{ savingMdp ? 'Modification...' : 'Changer le mot de passe' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+      <!-- ══════════ Mes droits ══════════ -->
+      <div class="card">
+        <h3 class="section-title flex items-center mb-4">Mes droits
+          <button type="button" class="info-tip ml-1" aria-label="À propos de mes droits"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Droits attribués par l'administrateur. Pour un accès supplémentaire, adressez-vous à lui.</span></button>
+        </h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg">Module</th>
+                <th class="table-header">Accès</th>
+                <th class="table-header rounded-tr-lg">Dépôt</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let d of p.droits" class="table-row-hover">
+                <td class="table-cell text-primary-700">{{ d.module }}</td>
+                <td class="table-cell whitespace-nowrap">
+                  <span [ngClass]="d.action === 'Lecture' ? 'badge-neutral' : 'badge-success'">{{ d.action }}</span>
+                </td>
+                <td class="table-cell text-gray-500">{{ d.depot || 'Tous' }}</td>
+              </tr>
+              <tr *ngIf="!p.droits.length">
+                <td colspan="3" class="table-cell text-center text-gray-400">Aucun droit attribué.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════ Historique des connexions ══════════ -->
+      <div class="card">
+        <h3 class="section-title flex items-center mb-4">Mes dernières connexions
+          <button type="button" class="info-tip ml-1" aria-label="À propos de l'historique"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Les 20 dernières tentatives de connexion à votre compte. Si une connexion ne vient pas de vous, changez votre mot de passe et prévenez l'administrateur.</span></button>
+        </h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg">Date</th>
+                <th class="table-header">Résultat</th>
+                <th class="table-header">Adresse IP</th>
+                <th class="table-header rounded-tr-lg">Navigateur</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let c of p.connexions" class="table-row-hover">
+                <td class="table-cell whitespace-nowrap">{{ c.le | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="table-cell">
+                  <span *ngIf="c.succes" class="badge-success">Réussie</span>
+                  <span *ngIf="!c.succes" class="badge-danger" [attr.title]="c.motif">Échouée</span>
+                  <span *ngIf="!c.succes && c.motif" class="block text-xs text-gray-400 mt-0.5">{{ c.motif }}</span>
+                </td>
+                <td class="table-cell text-gray-600 whitespace-nowrap">{{ c.ip || '—' }}</td>
+                <td class="table-cell text-gray-600 whitespace-nowrap">{{ c.navigateur }}</td>
+              </tr>
+              <tr *ngIf="!p.connexions.length">
+                <td colspan="4" class="table-cell text-center text-gray-400">Aucune connexion enregistrée pour le moment.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

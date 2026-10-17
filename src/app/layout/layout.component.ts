@@ -26,7 +26,15 @@ export class LayoutComponent implements OnInit {
     this.checkMobile();
   }
 
+  // Rappel d'expiration du mot de passe : masquable pour la session en cours
+  rappelMasque = false;
+  get rappelMotDePasse(): number | null {
+    const m = this.authService.currentUser?.mot_de_passe;
+    return m?.rappel && !this.rappelMasque ? m.jours_restants : null;
+  }
+
   ngOnInit(): void {
+    this.authService.rafraichir();
     // Fermer le drawer après navigation sur mobile
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))

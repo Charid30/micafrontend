@@ -39,6 +39,8 @@ export class ForceChangePasswordComponent {
   error = '';
   showPwd = false;
   showConfirm = false;
+  // Motif : mot de passe expire (sinon premiere connexion)
+  get expire(): boolean { return !!this.authService.currentUser?.mot_de_passe_expire; }
 
   constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
     if (!this.authService.mustChangePassword()) {
