@@ -114,6 +114,11 @@ fieldset {
   .input-field {
     @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-shadow;
   }
+  /* Listes déroulantes : réserve la place de la flèche (prioritaire sur px-*) */
+  select.input-field {
+    padding-right: 2.25rem;
+    text-overflow: ellipsis;
+  }
   .label {
     @apply block text-sm font-medium text-primary-700 mb-1;
   }
