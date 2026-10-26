@@ -84,7 +84,7 @@
     <fieldset class="border-0 p-0 m-0" [disabled]="!canWrite" [class.opacity-60]="!canWrite">
     <div class="card">
       <p class="text-xs text-gray-400 mb-4 italic">
-        Cellules bleues = valeurs à saisir. La variation et la tendance sont calculées automatiquement.
+        Cellules bleues = valeurs à saisir (semaine N = la plus récente, puis semaine N-1). Variation = (N − N-1) / N-1 ; la tendance est calculée automatiquement.
       </p>
 
       <div class="overflow-x-auto rounded-lg border border-primary-200">
@@ -92,8 +92,8 @@
           <thead>
             <tr>
               <th class="table-header rounded-tl-lg whitespace-nowrap sticky-col">Indicateur</th>
-              <th class="table-header whitespace-nowrap">Semaine N-1</th>
-              <th class="table-header whitespace-nowrap">Semaine N</th>
+              <th class="table-header whitespace-nowrap">Semaine N<span class="block normal-case font-normal text-primary-200">la plus récente</span></th>
+              <th class="table-header whitespace-nowrap">Semaine N-1<span class="block normal-case font-normal text-primary-200">semaine précédente</span></th>
               <th class="table-header whitespace-nowrap">Variation</th>
               <th class="table-header whitespace-nowrap">Tendance</th>
               <th class="table-header whitespace-nowrap">Source</th>
@@ -108,20 +108,22 @@
                 <div class="text-xs text-gray-400">{{ ind.unite }}</div>
               </td>
 
-              <!-- Semaine N-1 -->
-              <td class="table-cell">
-                <input type="number" min="0" step="0.0001"
-                  [(ngModel)]="ind.prix_semaine_n1"
-                  [disabled]="rapport?.statut === 'PUBLIE'"
-                  class="input-field w-full text-right text-sm py-1 table-input"
-                  placeholder="0"/>
-              </td>
-
-              <!-- Semaine N -->
+              <!-- Semaine N (la plus recente) : meme ordre que le fichier Excel -->
               <td class="table-cell">
                 <input type="number" min="0" step="0.0001"
                   [(ngModel)]="ind.prix_semaine_n"
                   [disabled]="rapport?.statut === 'PUBLIE'"
+                  [attr.aria-label]="ind.libelle + ' – semaine N'"
+                  class="input-field w-full text-right text-sm py-1 table-input"
+                  placeholder="0"/>
+              </td>
+
+              <!-- Semaine N-1 (semaine precedente) -->
+              <td class="table-cell">
+                <input type="number" min="0" step="0.0001"
+                  [(ngModel)]="ind.prix_semaine_n1"
+                  [disabled]="rapport?.statut === 'PUBLIE'"
+                  [attr.aria-label]="ind.libelle + ' – semaine N-1'"
                   class="input-field w-full text-right text-sm py-1 table-input"
                   placeholder="0"/>
               </td>
