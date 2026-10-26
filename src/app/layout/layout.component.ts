@@ -11,6 +11,8 @@ import { Component, HostListener, OnInit } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/services/auth.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-layout',
@@ -22,7 +24,10 @@ export class LayoutComponent implements OnInit {
   isMobile = false;
   today = new Date();
 
-  constructor(public authService: AuthService, private router: Router) {
+  // Administrateurs : sauvegarde de la base manquee ou en echec
+  alerteSauvegarde: string | null = null;
+
+  constructor(public authService: AuthService, private router: Router, private http: HttpClient) {
     this.checkMobile();
   }
 
@@ -35,6 +40,12 @@ export class LayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.rafraichir();
+    if (this.authService.isAdmin()) {
+      this.http.get<any>(`${environment.apiUrl}/administration/sauvegardes/etat`).subscribe({
+        next: (e) => { this.alerteSauvegarde = e.alerte; },
+        error: () => { /* information secondaire */ },
+      });
+    }
     // Fermer le drawer après navigation sur mobile
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))

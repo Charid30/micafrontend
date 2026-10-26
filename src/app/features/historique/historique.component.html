@@ -13,7 +13,7 @@
   <div class="page-header">
     <div>
       <h2 class="page-title">Historique &amp; Tendances</h2>
-      <p class="text-sm text-gray-500 mt-1">Évolution des indicateurs semaine par semaine</p>
+      <p class="text-sm text-gray-500 mt-1">{{ vueJournaliere ? "Évolution jour par jour d'une semaine (vendredi → jeudi), par dépôt et par produit" : "Évolution des indicateurs semaine par semaine" }}</p>
     </div>
   </div>
 
@@ -30,8 +30,32 @@
         </select>
       </div>
 
+      <!-- Vue jour par jour : semaine, dépôt, produit -->
+      <ng-container *ngIf="vueJournaliere">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-primary-500" for="hSemaine">Semaine</label>
+          <select id="hSemaine" [(ngModel)]="semaineId" (ngModelChange)="loadData()" class="input-field text-sm py-1.5 px-3">
+            <option *ngFor="let s of journalier?.semaines" [ngValue]="s.id">{{ s.libelle }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-primary-500" for="hDepot">Dépôt</label>
+          <select id="hDepot" [(ngModel)]="depotId" (ngModelChange)="loadData()" class="input-field text-sm py-1.5 px-3">
+            <option [ngValue]="null">Tous les dépôts</option>
+            <option *ngFor="let d of depots" [ngValue]="d.id">{{ d.type === 'EXTERIEUR' ? (d.pays || d.libelle) : d.libelle }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold text-primary-500" for="hProduit">Produit</label>
+          <select id="hProduit" [(ngModel)]="produitId" (ngModelChange)="loadData()" class="input-field text-sm py-1.5 px-3">
+            <option [ngValue]="null">Tous les produits</option>
+            <option *ngFor="let p of produits" [ngValue]="p.id">{{ p.libelle }}</option>
+          </select>
+        </div>
+      </ng-container>
+
       <!-- Période -->
-      <div class="flex flex-col gap-1">
+      <div *ngIf="!vueJournaliere" class="flex flex-col gap-1">
         <label class="text-xs font-semibold text-primary-500">Période</label>
         <div class="flex gap-1 flex-wrap">
           <button *ngFor="let p of periodes"
@@ -70,7 +94,7 @@
   <ng-container *ngIf="!loading && !error">
 
     <!-- Pas de données -->
-    <div *ngIf="!chartData.datasets?.length || !chartData.labels?.length"
+    <div *ngIf="!vueJournaliere && (!chartData.datasets?.length || !chartData.labels?.length)"
       class="card flex flex-col items-center justify-center py-16 gap-3 text-center">
       <svg class="w-12 h-12 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -85,7 +109,7 @@
       <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 class="text-sm font-semibold text-primary-700">{{ moduleLabel }}</h3>
         <span class="text-xs px-2 py-1 rounded-full font-medium bg-primary-50 text-primary-500">
-          {{ semaines }} semaines
+          {{ vueJournaliere ? 'Volumes en m³ – semaine ' + (journalier?.semaine?.semaine_iso || '') : semaines + ' semaines' }}
         </span>
       </div>
       <!-- Hauteur adaptee a l'ecran (400 px sur grand ecran comme avant) -->
@@ -95,6 +119,55 @@
           [options]="chartOptions"
           type="line">
         </canvas>
+      </div>
+      <p *ngIf="vueJournaliere && journalier?.lignes?.length > 12" class="mt-2 text-xs text-gray-500">
+        Graphe : totaux par produit (trop de lignes). Choisissez un dépôt ou un produit pour le détail ; le tableau ci-dessous affiche tout.
+      </p>
+    </div>
+
+    <!-- Tableau jour par jour : volume (m³) et autonomie (jours) -->
+    <div *ngIf="vueJournaliere && journalier" class="card">
+      <h3 class="text-sm font-semibold text-primary-700 mb-3">
+        Détail jour par jour – semaine {{ journalier.semaine?.semaine_iso }}
+        <span class="font-normal text-gray-500">(volume en m³ · autonomie en jours ; « — » : pas de saisie ce jour)</span>
+      </h3>
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-xs">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg sticky-col">Dépôt</th>
+              <th class="table-header">Produit</th>
+              <th *ngFor="let j of journalier.jours; let last = last" class="table-header text-right whitespace-nowrap" [class.rounded-tr-lg]="last">{{ j.libelle }}</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let l of journalier.lignes" class="table-row-hover">
+              <td class="table-cell sticky-col whitespace-nowrap font-medium text-primary-700">{{ l.depot }}</td>
+              <td class="table-cell whitespace-nowrap">{{ l.produit }}</td>
+              <td *ngFor="let v of l.valeurs; let i = index" class="table-cell text-right whitespace-nowrap" [class.bg-gray-50]="journalier.jours[i].futur">
+                <ng-container *ngIf="v; else vide">
+                  <span class="block font-medium">{{ v.volume | number:'1.0-0' }}</span>
+                  <span [class]="classeAutonomie(v.couleur)" class="mt-0.5">{{ v.autonomie === null ? '—' : (v.autonomie | number:'1.1-1') + ' j' }}</span>
+                </ng-container>
+                <ng-template #vide><span class="text-gray-300">—</span></ng-template>
+              </td>
+            </tr>
+            <tr *ngFor="let l of journalier.syntheses" class="bg-primary-50 font-semibold">
+              <td class="table-cell sticky-col bg-primary-50 whitespace-nowrap text-primary-800">{{ l.type === 'INTERIEUR' ? 'Total intérieur' : 'Total extérieur' }}</td>
+              <td class="table-cell whitespace-nowrap text-primary-800">{{ l.produit }}</td>
+              <td *ngFor="let v of l.valeurs" class="table-cell text-right whitespace-nowrap">
+                <ng-container *ngIf="v; else videT">
+                  <span class="block">{{ v.volume | number:'1.0-0' }}</span>
+                  <span [class]="classeAutonomie(v.couleur)" class="mt-0.5">{{ v.autonomie === null ? '—' : (v.autonomie | number:'1.1-1') + ' j' }}</span>
+                </ng-container>
+                <ng-template #videT><span class="text-gray-300">—</span></ng-template>
+              </td>
+            </tr>
+            <tr *ngIf="!journalier.lignes.length && !journalier.syntheses.length">
+              <td [attr.colspan]="2 + journalier.jours.length" class="table-cell text-center text-gray-400">Aucune saisie de stock pour cette sélection.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 

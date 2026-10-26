@@ -33,6 +33,10 @@ export class AuthInterceptor implements HttpInterceptor {
         if (err.status === 403 && err.error?.code === 'MOT_DE_PASSE_A_CHANGER') {
           this.authService.exigerChangementMotDePasse();
         }
+        // Administrateur : double authentification a configurer avant tout acces
+        if (err.status === 403 && err.error?.code === 'DOUBLE_AUTH_A_CONFIGURER') {
+          this.authService.exigerDoubleAuth();
+        }
         return throwError(() => err);
       })
     );

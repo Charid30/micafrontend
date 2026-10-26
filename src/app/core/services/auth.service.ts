@@ -30,11 +30,38 @@ export class AuthService {
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login`, credentials).pipe(
-      tap((res) => {
-        localStorage.setItem(this.USER_KEY, JSON.stringify(res.utilisateur));
-        this.userSubject.next(res.utilisateur);
-      })
+      tap((res) => this.ouvrirSession(res))
     );
+  }
+
+  /** Etape 2 de la connexion : code de l'application d'authentification ou code de secours */
+  loginDoubleAuth(code: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login/2fa`, { code }).pipe(
+      tap((res) => this.ouvrirSession(res))
+    );
+  }
+
+  private ouvrirSession(res: AuthResponse): void {
+    if (!res.utilisateur) return;      // double authentification : la session n'est pas encore ouverte
+    localStorage.setItem(this.USER_KEY, JSON.stringify(res.utilisateur));
+    this.userSubject.next(res.utilisateur);
+  }
+
+  /** Page a ouvrir apres la connexion selon les obligations du compte */
+  pageApresConnexion(): string {
+    if (this.mustChangePassword()) return '/auth/force-change-password';
+    if (this.doubleAuthRequise()) return '/auth/double-authentification';
+    return '/dashboard';
+  }
+
+  doubleAuthRequise(): boolean {
+    return !!this.userSubject.value?.double_auth_requise;
+  }
+
+  /** Le serveur exige la configuration de la double authentification (administrateur) */
+  exigerDoubleAuth(): void {
+    this.mettreAJour({ double_auth_requise: true });
+    this.router.navigate(['/auth/double-authentification']);
   }
 
   /** Déconnexion volontaire : efface aussi le cookie côté serveur */
@@ -79,7 +106,7 @@ export class AuthService {
   /** Relit le profil de session (rappel d'expiration du mot de passe, droits a jour) */
   rafraichir(): void {
     this.http.get<AuthResponse>(`${environment.apiUrl}/auth/me`).subscribe({
-      next: (res) => this.mettreAJour(res.utilisateur),
+      next: (res) => { if (res.utilisateur) this.mettreAJour(res.utilisateur); },
       error: () => { /* 401 : l'intercepteur ferme la session */ },
     });
   }

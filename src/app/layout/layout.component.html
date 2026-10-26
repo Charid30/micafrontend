@@ -214,6 +214,23 @@
           <span *ngIf="sidebarOpen || isMobile" class="text-sm">Structures</span>
         </a>
 
+        <a routerLink="/administration/securite/journal" routerLinkActive="sidebar-link-active" class="sidebar-link">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+          <span *ngIf="sidebarOpen || isMobile" class="text-sm">Journal d'audit</span>
+        </a>
+
+        <a routerLink="/administration/securite/sauvegardes" routerLinkActive="sidebar-link-active" class="sidebar-link">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+          </svg>
+          <span *ngIf="sidebarOpen || isMobile" class="text-sm flex-1">Sauvegardes</span>
+          <span *ngIf="alerteSauvegarde && (sidebarOpen || isMobile)" class="h-2 w-2 rounded-full bg-red-400" aria-label="Alerte sauvegarde"></span>
+        </a>
+
         <a routerLink="/parametres" routerLinkActive="sidebar-link-active" class="sidebar-link">
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -276,6 +293,28 @@
     </header>
 
     <!-- Page content -->
+    <!-- Administrateurs : sauvegarde de la base manquee ou en echec -->
+    <div *ngIf="alerteSauvegarde" class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      </svg>
+      <span class="flex-1 min-w-0"><strong>Sauvegarde de la base :</strong> {{ alerteSauvegarde }}</span>
+      <a routerLink="/administration/securite/sauvegardes" class="font-semibold underline hover:no-underline">Voir les sauvegardes</a>
+    </div>
+
+    <!-- Double authentification bientot obligatoire (delai de grace en cours) -->
+    <div *ngIf="authService.currentUser?.double_auth_echeance && !authService.currentUser?.double_auth_active"
+      class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-primary-200 bg-primary-50 px-4 py-2 text-sm text-primary-800">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+      </svg>
+      <span class="flex-1 min-w-0">
+        La double authentification sera <strong>obligatoire à partir du {{ authService.currentUser?.double_auth_echeance | date:'dd/MM/yyyy' }}</strong>
+        pour les administrateurs. Configurez-la dès maintenant (application Google ou Microsoft Authenticator sur votre téléphone).
+      </span>
+      <a routerLink="/profil" fragment="double-authentification" class="font-semibold underline hover:no-underline">Configurer</a>
+    </div>
+
     <!-- Rappel : expiration prochaine du mot de passe -->
     <div *ngIf="rappelMotDePasse !== null" class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-yellow-200 bg-yellow-50 px-4 py-2 text-sm text-yellow-800">
       <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

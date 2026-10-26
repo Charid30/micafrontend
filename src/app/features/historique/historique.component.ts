@@ -16,6 +16,7 @@ interface Serie { label: string; data: (number | null)[]; color: string; }
 interface HistoData { labels: string[]; datasets: Serie[]; }
 
 const MODULES = [
+  { key: 'journalier', label: 'Stocks jour par jour (semaine)', unite: 'm³' },
   { key: 'stocks',     label: 'Stocks disponibles',     unite: 'TM' },
   { key: 'corridors',  label: 'Camions chargés / corridor', unite: 'camions' },
   { key: 'tresorerie', label: 'Trésorerie simulée',      unite: 'FCFA' },
@@ -40,6 +41,15 @@ export class HistoriqueComponent implements OnInit {
   periodes = PERIODES;
 
   moduleKey = 'stocks';
+
+  // ── Vue « jour par jour » : une semaine, par depot et par produit
+  journalier: any = null;
+  semaineId: number | null = null;
+  depotId: number | null = null;
+  produitId: number | null = null;
+  depots: any[] = [];
+  produits: any[] = [];
+  readonly couleurs = ['#235347', '#C2410C', '#1D4ED8', '#7C3AED', '#B91C1C', '#0E7490', '#A16207', '#4D7C0F', '#BE185D', '#475569', '#15803D', '#9333EA'];
   semaines  = 12;
 
   loading = false;
@@ -71,7 +81,13 @@ export class HistoriqueComponent implements OnInit {
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit(): void { this.loadData(); }
+  ngOnInit(): void {
+    this.http.get<any[]>(`${environment.apiUrl}/depots`).subscribe({ next: d => { this.depots = d.filter((x: any) => !x.del); this.cdr.detectChanges(); } });
+    this.http.get<any[]>(`${environment.apiUrl}/produits`).subscribe({ next: p => { this.produits = p.filter((x: any) => !x.del); this.cdr.detectChanges(); } });
+    this.loadData();
+  }
+
+  get vueJournaliere(): boolean { return this.moduleKey === 'journalier'; }
 
   get moduleLabel(): string { return MODULES.find(m => m.key === this.moduleKey)?.label ?? ''; }
   get unite(): string       { return MODULES.find(m => m.key === this.moduleKey)?.unite ?? ''; }
@@ -79,6 +95,7 @@ export class HistoriqueComponent implements OnInit {
   loadData(): void {
     this.loading = true;
     this.error   = null;
+    if (this.vueJournaliere) { this.loadJournalier(); return; }
     this.http.get<HistoData>(`${environment.apiUrl}/historique/${this.moduleKey}?semaines=${this.semaines}`)
       .subscribe({
         next: (data) => {
@@ -106,6 +123,44 @@ export class HistoriqueComponent implements OnInit {
   }
 
   onModuleChange(): void { this.loadData(); }
+
+  loadJournalier(): void {
+    const q = new URLSearchParams();
+    if (this.semaineId) q.set('rapport_id', String(this.semaineId));
+    if (this.depotId) q.set('depot_id', String(this.depotId));
+    if (this.produitId) q.set('produit_id', String(this.produitId));
+    this.http.get<any>(`${environment.apiUrl}/historique/journalier?${q.toString()}`).subscribe({
+      next: (r) => {
+        this.journalier = r;
+        if (r.semaine) this.semaineId = r.semaine.id;
+        // Graphe : lignes depot x produit (12 au plus) ; sinon totaux par produit
+        const series = (r.lignes.length && r.lignes.length <= 12) ? r.lignes : r.syntheses.slice(0, 12);
+        this.chartData = {
+          labels: r.jours.map((j: any) => j.libelle),
+          datasets: series.map((l: any, i: number) => {
+            const c = this.couleurs[i % this.couleurs.length];
+            return {
+              label: l.depot ? `${l.depot} – ${l.produit}` : `${l.type === 'INTERIEUR' ? 'Total intérieur' : 'Total extérieur'} – ${l.produit}`,
+              data: l.valeurs.map((v: any) => (v ? v.volume : null)),
+              borderColor: c, backgroundColor: c + '22', pointBackgroundColor: c, fill: false,
+              // Jours sans saisie : les points sont relies en pointilles (aucune valeur inventee)
+              spanGaps: true,
+              segment: { borderDash: (ctx: any) => (ctx.p0.skip || ctx.p1.skip ? [6, 6] : undefined) },
+            };
+          }),
+        };
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.error = err.error?.message || 'Erreur lors du chargement (' + (err.status || 'réseau') + ').';
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  classeAutonomie(c: string | null): string { return c ? `auto-${c}` : 'auto-aucune'; }
   onPeriodeChange(): void { this.loadData(); }
 
   private _fmt(v: number | null): string {

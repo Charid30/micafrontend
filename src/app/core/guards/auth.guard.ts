@@ -24,6 +24,10 @@ export class AuthGuard implements CanActivate {
       this.router.navigate(['/auth/force-change-password']);
       return false;
     }
+    if (this.authService.doubleAuthRequise()) {
+      this.router.navigate(['/auth/double-authentification']);
+      return false;
+    }
     return true;
   }
 }

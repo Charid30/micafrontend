@@ -7,7 +7,7 @@
  *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
  *  Projet : MICA – SONABHY
  * ================================================================== */
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -42,7 +42,7 @@ export class ForceChangePasswordComponent {
   // Motif : mot de passe expire (sinon premiere connexion)
   get expire(): boolean { return !!this.authService.currentUser?.mot_de_passe_expire; }
 
-  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router, private cdr: ChangeDetectorRef) {
     if (!this.authService.mustChangePassword()) {
       this.router.navigate(['/dashboard']);
     }
@@ -67,10 +67,11 @@ export class ForceChangePasswordComponent {
     this.loading = true;
     this.error = '';
     this.authService.forcedChangePassword(this.form.value.nouveauMotDePasse).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
+      next: () => this.router.navigateByUrl(this.authService.pageApresConnexion()),
       error: (err) => {
         this.error = err.error?.message || 'Erreur lors du changement de mot de passe.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }

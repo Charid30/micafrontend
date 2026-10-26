@@ -54,8 +54,9 @@ export class ProfilComponent implements OnInit {
         this.error = null;
         this.cdr.detectChanges();
         // Lien « Changer mon mot de passe » du rappel : aller directement a la section
-        if (this.route.snapshot.fragment === 'mot-de-passe') {
-          setTimeout(() => document.getElementById('mot-de-passe')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        const ancre = this.route.snapshot.fragment;
+        if (ancre === 'mot-de-passe' || ancre === 'double-authentification') {
+          setTimeout(() => document.getElementById(ancre)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
         }
       },
       error: (err) => {

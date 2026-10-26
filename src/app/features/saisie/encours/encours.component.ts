@@ -58,11 +58,12 @@ export class EncoursComponent implements OnInit {
   }
 
   // ── Calculs par ligne
+  // Camions en instance = camions en attente (deja nets des camions depotes : restants apres depotage)
+  // + camions recus. Les camions depotes ne sont pas retranches une seconde fois.
   camionsEnInstance(ligne: any): number {
     const att = parseInt(ligne.camions_en_attente) || 0;
     const rec = parseInt(ligne.camions_recus)      || 0;
-    const dep = parseInt(ligne.camions_depotes)    || 0;
-    return Math.max(0, att + rec - dep);
+    return att + rec;
   }
 
   tauxDepotage(ligne: any): number {

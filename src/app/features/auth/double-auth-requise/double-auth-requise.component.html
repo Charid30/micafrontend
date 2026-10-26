@@ -1,0 +1,33 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     ================================================================== -->
+<div class="min-h-screen bg-primary-50 flex items-center justify-center p-4">
+  <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-sm border border-primary-100 sm:p-8">
+    <div class="mb-6 flex items-start gap-3">
+      <span class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600" aria-hidden="true">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+      </span>
+      <div>
+        <h2 class="text-xl font-bold text-primary-800">Double authentification requise</h2>
+        <p class="mt-1 text-sm text-gray-500">
+          Votre compte administrateur donne accès à toutes les données de la plateforme.
+          Pour le protéger, un code temporaire affiché sur votre téléphone sera demandé à chaque connexion.
+        </p>
+      </div>
+    </div>
+
+    <app-double-auth-config mode="obligatoire" (activee)="terminee()"></app-double-auth-config>
+
+    <div class="mt-6 border-t border-primary-100 pt-4 text-right">
+      <button type="button" class="text-sm text-gray-500 hover:text-primary-700 underline" (click)="authService.logout()">Se déconnecter</button>
+    </div>
+  </div>
+</div>

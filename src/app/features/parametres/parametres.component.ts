@@ -12,6 +12,7 @@ import { DialogService } from '../../core/services/dialog.service';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiUrl;
@@ -36,6 +37,13 @@ export class ParametresComponent implements OnInit {
     { key: 'alertes',     label: 'Alertes seuils' },
   ];
 
+  // ── Onglet Securite (administrateurs) : double authentification et validite des mots de passe
+  private readonly auth = inject(AuthService);
+  securite: any = null;
+  reglages = { double_auth_obligatoire: false, double_auth_delai_jours: 7, mot_de_passe_duree_jours: 90, mot_de_passe_rappel_jours: 7 };
+  savingSecurite = false;
+  get estAdmin(): boolean { return this.auth.isAdmin(); }
+
   produits:     any[] = [];
   depots:       any[] = [];
   corridors:    any[] = [];
@@ -56,6 +64,10 @@ export class ParametresComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    if (this.auth.isAdmin()) {
+      this.tabs.push({ key: 'securite', label: 'Sécurité' });
+      this.chargerSecurite();
+    }
     this.loadAll();
   }
 
@@ -70,6 +82,40 @@ export class ParametresComponent implements OnInit {
     this.http.get<any[]>(`${API}/fournisseurs`).subscribe({ next: d => { this.fournisseurs = d; tick(); }, error: () => tick() });
     this.http.get<any[]>(`${API}/marketeurs`).subscribe({ next: d => { this.marketeurs = d; tick(); }, error: () => tick() });
     this.http.get<any[]>(`${API}/parametres/alertes`).subscribe({ next: d => { this.alertes = d; tick(); }, error: () => tick() });
+  }
+
+  chargerSecurite(): void {
+    this.http.get<any>(`${API}/administration/securite`).subscribe({
+      next: (r) => { this.appliquerSecurite(r); this.cdr.detectChanges(); },
+      error: () => { /* onglet indisponible */ },
+    });
+  }
+  private appliquerSecurite(r: any): void {
+    this.securite = r;
+    this.reglages = {
+      double_auth_obligatoire: r.double_auth.obligatoire, double_auth_delai_jours: r.double_auth.delai_jours,
+      mot_de_passe_duree_jours: r.mot_de_passe.duree_jours, mot_de_passe_rappel_jours: r.mot_de_passe.rappel_jours,
+    };
+  }
+  get adminsSans2fa(): string[] {
+    return (this.securite?.double_auth.administrateurs || []).filter((a: any) => !a.configuree).map((a: any) => a.username);
+  }
+
+  async enregistrerSecurite(): Promise<void> {
+    const activation = this.reglages.double_auth_obligatoire && !this.securite?.double_auth.obligatoire;
+    const ok = await this.dialog.confirmer(activation ? {
+      titre: 'Rendre la double authentification obligatoire pour les administrateurs ?',
+      message: `Les administrateurs qui ne l'ont pas encore configurée verront un bandeau pendant ${this.reglages.double_auth_delai_jours} jour(s), `
+        + 'puis devront la configurer à leur prochaine connexion (application Google ou Microsoft Authenticator sur leur téléphone).'
+        + (this.adminsSans2fa.length ? `\n\nPas encore configurée : ${this.adminsSans2fa.join(', ')}.` : ''),
+      confirmer: 'Rendre obligatoire',
+    } : { titre: 'Enregistrer les réglages de sécurité ?', message: 'Les nouveaux réglages s\'appliquent immédiatement à tous les comptes.', confirmer: 'Enregistrer' });
+    if (!ok) return;
+    this.savingSecurite = true;
+    this.http.put<any>(`${API}/administration/securite`, this.reglages).subscribe({
+      next: (r) => { this.savingSecurite = false; this.appliquerSecurite(r); this.toast.success(r.message); this.cdr.detectChanges(); },
+      error: (e) => { this.savingSecurite = false; this.toast.error(e.error?.message || 'Erreur.'); this.cdr.detectChanges(); },
+    });
   }
 
   getCount(key: string): number {

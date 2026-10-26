@@ -40,6 +40,7 @@ const routes: Routes = [
       { path: 'rapports', loadChildren: () => import('../features/rapports/rapports.module').then(m => m.RapportsModule) },
       { path: 'administration/utilisateurs', loadChildren: () => import('../features/administration/utilisateurs/utilisateurs.module').then(m => m.UtilisateursModule) },
       { path: 'administration/structures', loadChildren: () => import('../features/administration/structures/structures.module').then(m => m.StructuresModule) },
+      { path: 'administration/securite', loadChildren: () => import('../features/administration/exploitation/exploitation.module').then(m => m.ExploitationModule) },
       { path: 'profil', loadChildren: () => import('../features/profil/profil.module').then(m => m.ProfilModule) },
       { path: 'parametres', loadChildren: () => import('../features/parametres/parametres.module').then(m => m.ParametresModule) },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },

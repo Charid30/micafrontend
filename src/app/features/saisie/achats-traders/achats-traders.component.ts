@@ -24,14 +24,18 @@ const API = `${environment.apiUrl}/achats-traders`;
 })
 export class AchatsTradersComponent implements OnInit {
   private readonly dialog = inject(DialogService);
-  rapport: any = null;
   produits: any[] = [];
   fournisseurs: any[] = [];
   achats: any[] = [];
+  // Lignes enregistrees retirees du registre (envoyees a l'enregistrement)
+  supprimes: number[] = [];
+  // Filtres d'affichage (le registre complet est enregistre)
+  filtreAnnee = '';
+  filtreStatut: 'tous' | 'a-livrer' | 'livres' = 'tous';
+  private readonly aujourdhui = new Date().toISOString().split('T')[0];
 
   loading = true;
   saving = false;
-  archiving = false;
   error = '';
 
   constructor(
@@ -44,12 +48,12 @@ export class AchatsTradersComponent implements OnInit {
   get canWrite(): boolean { return this.authService.hasPermission('achats-traders', 'WRITE'); }
 
   ngOnInit(): void {
-    this.http.get<any>(`${API}/semaine-courante`).subscribe({
+    this.http.get<any>(`${API}/registre`).subscribe({
       next: (res) => {
-        this.rapport = res.rapport;
         this.produits = res.produits || [];
         this.fournisseurs = res.fournisseurs || [];
         this.achats = (res.achats || []).map((a: any) => ({ ...a }));
+        this.supprimes = [];
         this.loading = false;
         this.error = '';
         this.cdr.detectChanges();
@@ -62,8 +66,24 @@ export class AchatsTradersComponent implements OnInit {
     });
   }
 
+  // ── Filtres
+  get annees(): string[] {
+    return [...new Set(this.achats.map(a => String(a.date_livraison || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  }
+  get lignes(): any[] {
+    return this.achats.filter(a => {
+      if (!a.id) return true;                                     // ligne en cours de saisie : toujours visible
+      const d = String(a.date_livraison || '');
+      if (this.filtreAnnee && !d.startsWith(this.filtreAnnee)) return false;
+      if (this.filtreStatut === 'a-livrer' && d < this.aujourdhui) return false;
+      if (this.filtreStatut === 'livres' && d >= this.aujourdhui) return false;
+      return true;
+    });
+  }
+  estLivre(row: any): boolean { return !!row.date_livraison && row.date_livraison < this.aujourdhui; }
+
   ajouterLigne(): void {
-    this.achats.push({
+    this.achats.unshift({
       produit_id: '',
       fournisseur_id: '',
       type_operation: '',
@@ -80,8 +100,13 @@ export class AchatsTradersComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  supprimerLigne(index: number): void {
-    this.achats.splice(index, 1);
+  async supprimerLigne(row: any): Promise<void> {
+    if (row.id && !(await this.dialog.confirmer({
+      titre: 'Retirer cet achat du registre ?',
+      message: "La suppression sera effective à l'enregistrement.", confirmer: 'Retirer', danger: true,
+    }))) return;
+    this.achats = this.achats.filter(a => a !== row);
+    if (row.id) this.supprimes.push(row.id);
     this.cdr.detectChanges();
   }
 
@@ -110,27 +135,27 @@ export class AchatsTradersComponent implements OnInit {
   // ── Totaux ─────────────────────────────────────────────────
 
   totalQtm(): number {
-    return this.achats.reduce((s, r) => s + (parseFloat(r.quantite_tm) || 0), 0);
+    return this.lignes.reduce((s, r) => s + (parseFloat(r.quantite_tm) || 0), 0);
   }
 
   totalM315(): number {
-    return this.achats.reduce((s, r) => s + (parseFloat(r.quantite_m3_15) || 0), 0);
+    return this.lignes.reduce((s, r) => s + (parseFloat(r.quantite_m3_15) || 0), 0);
   }
 
   totalM3Ambiant(): number {
-    return this.achats.reduce((s, r) => s + (parseFloat(r.quantite_m3_ambiant) || 0), 0);
+    return this.lignes.reduce((s, r) => s + (parseFloat(r.quantite_m3_ambiant) || 0), 0);
   }
 
   totalValeurCafUsd(): number {
-    return this.achats.reduce((s, r) => s + this.valeurCafUsd(r), 0);
+    return this.lignes.reduce((s, r) => s + this.valeurCafUsd(r), 0);
   }
 
   totalMontantCfa(): number {
-    return this.achats.reduce((s, r) => s + this.montantCfa(r), 0);
+    return this.lignes.reduce((s, r) => s + this.montantCfa(r), 0);
   }
 
   totalFraisLcCfa(): number {
-    return this.achats.reduce((s, r) => s + (parseFloat(r.frais_lc_cfa) || 0), 0);
+    return this.lignes.reduce((s, r) => s + (parseFloat(r.frais_lc_cfa) || 0), 0);
   }
 
   totalFraisLcPct(): number {
@@ -138,30 +163,23 @@ export class AchatsTradersComponent implements OnInit {
     return total > 0 ? (this.totalFraisLcCfa() / total) * 100 : 0;
   }
 
-  async onArchive(): Promise<void> {
-    if (!this.rapport || !(await this.dialog.confirmer({
-      titre: `Archiver le rapport de la semaine ${this.rapport.semaine_iso} / ${this.rapport.annee} ?`,
-      message: 'Le rapport sera publié et ne pourra plus être modifié. La saisie passera à la semaine suivante.',
-      confirmer: 'Archiver',
-    }))) return;
-    this.archiving = true;
-    this.http.post(`${environment.apiUrl}/rapports/${this.rapport.id}/archiver`, {}).subscribe({
-      next: () => { this.archiving = false; this.toast.success('Rapport archivé. Saisie ouverte pour la semaine suivante.'); this.ngOnInit(); this.cdr.detectChanges(); },
-      error: (err) => { this.archiving = false; this.toast.error(err.error?.message || 'Erreur lors de l\'archivage.'); this.cdr.detectChanges(); },
-    });
-  }
-
   // ── Sauvegarde ─────────────────────────────────────────────
 
   async onSave(): Promise<void> {
-    if (!this.rapport) return;
-    if (!(await this.dialog.confirmerEnregistrement('les achats traders'))) return;
+    const incomplete = this.achats.findIndex(r => !r.produit_id || !r.fournisseur_id || !r.date_livraison);
+    if (incomplete !== -1) {
+      this.toast.error('Chaque ligne doit avoir un produit, un fournisseur et une date de livraison.');
+      return;
+    }
+    if (!(await this.dialog.confirmerEnregistrement('le registre des achats traders',
+      this.supprimes.length ? `${this.supprimes.length} achat(s) seront retirés du registre.` : undefined))) return;
     this.saving = true;
     this.cdr.detectChanges();
 
     const payload = {
-      rapport_id: this.rapport.id,
+      supprimes: this.supprimes,
       achats: this.achats.map((r) => ({
+        id: r.id || null,
         produit_id: r.produit_id || null,
         fournisseur_id: r.fournisseur_id || null,
         type_operation: r.type_operation || '',
@@ -182,7 +200,7 @@ export class AchatsTradersComponent implements OnInit {
       next: (res) => {
         this.saving = false;
         this.toast.show(res.message || 'Achats enregistrés.', 'success');
-        this.cdr.detectChanges();
+        this.ngOnInit();
       },
       error: (err) => {
         this.saving = false;

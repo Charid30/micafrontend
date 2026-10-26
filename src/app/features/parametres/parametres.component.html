@@ -25,7 +25,7 @@
           ? 'border-b-2 border-[#235347] text-[#235347] font-semibold px-4 py-2 text-sm'
           : 'text-gray-500 hover:text-gray-700 px-4 py-2 text-sm'">
         {{ t.label }}
-        <span class="ml-1 text-xs rounded-full px-1.5 py-0.5 bg-gray-100 text-gray-600">{{ getCount(t.key) }}</span>
+        <span *ngIf="t.key !== 'securite'" class="ml-1 text-xs rounded-full px-1.5 py-0.5 bg-gray-100 text-gray-600">{{ getCount(t.key) }}</span>
       </button>
     </nav>
   </div>
@@ -280,6 +280,66 @@
             <tr *ngIf="marketeurs.length === 0"><td colspan="3" class="table-cell text-center text-gray-400 py-6">Aucun marketeur</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ══ SÉCURITÉ (administrateurs) ══ -->
+    <div *ngIf="activeTab === 'securite' && estAdmin" class="space-y-6">
+      <div class="card">
+        <h3 class="section-title mb-1">Double authentification des administrateurs</h3>
+        <p class="text-sm text-gray-500 mb-4">
+          Facultative par défaut : chaque utilisateur peut l'activer depuis « Mon profil ». Rendue obligatoire, elle est exigée des
+          administrateurs après un délai pendant lequel un bandeau les prévient.
+        </p>
+        <div *ngIf="securite" class="space-y-4">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <button type="button" role="switch" [attr.aria-checked]="reglages.double_auth_obligatoire"
+              (click)="reglages.double_auth_obligatoire = !reglages.double_auth_obligatoire"
+              [ngClass]="reglages.double_auth_obligatoire ? 'bg-primary-600' : 'bg-gray-300'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors">
+              <span [ngClass]="reglages.double_auth_obligatoire ? 'translate-x-5' : 'translate-x-0.5'"
+                class="mt-0.5 inline-block h-5 w-5 rounded-full bg-white shadow transition-transform"></span>
+            </button>
+            <span class="text-sm font-medium text-primary-800">Obligatoire pour les administrateurs</span>
+          </label>
+          <div class="max-w-xs">
+            <label class="label" for="delai2fa">Délai pour la configurer (jours)</label>
+            <input id="delai2fa" type="number" min="0" max="90" [(ngModel)]="reglages.double_auth_delai_jours" class="input-field"/>
+          </div>
+          <p *ngIf="securite.double_auth.obligatoire && securite.double_auth.echeance" class="text-sm text-primary-700 bg-primary-50 border border-primary-200 rounded-lg px-3 py-2">
+            Obligatoire depuis le {{ securite.double_auth.depuis | date:'dd/MM/yyyy' }} ; exigée à la connexion à partir du
+            <strong>{{ securite.double_auth.echeance | date:'dd/MM/yyyy HH:mm' }}</strong>.
+          </p>
+          <div>
+            <p class="label">Administrateurs</p>
+            <ul class="flex flex-wrap gap-2">
+              <li *ngFor="let a of securite.double_auth.administrateurs" [ngClass]="a.configuree ? 'badge-success' : 'badge-warning'">
+                {{ a.username }} : {{ a.configuree ? 'configurée' : 'non configurée' }}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title mb-1">Mots de passe</h3>
+        <p class="text-sm text-gray-500 mb-4">Durée de validité des mots de passe ; un rappel s'affiche avant l'expiration.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+          <div>
+            <label class="label" for="dureeMdp">Validité (jours, 0 = sans expiration)</label>
+            <input id="dureeMdp" type="number" min="0" max="730" [(ngModel)]="reglages.mot_de_passe_duree_jours" class="input-field"/>
+          </div>
+          <div>
+            <label class="label" for="rappelMdp">Rappel avant expiration (jours)</label>
+            <input id="rappelMdp" type="number" min="0" max="60" [(ngModel)]="reglages.mot_de_passe_rappel_jours" class="input-field"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="button" class="btn-primary" (click)="enregistrerSecurite()" [disabled]="savingSecurite || !securite">
+          {{ savingSecurite ? 'Enregistrement...' : 'Enregistrer les réglages de sécurité' }}
+        </button>
       </div>
     </div>
 

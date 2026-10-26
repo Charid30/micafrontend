@@ -12,9 +12,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ProfilComponent } from './profil.component';
+import { DoubleAuthModule } from '../../shared/double-auth/double-auth.module';
 
 @NgModule({
   declarations: [ProfilComponent],
-  imports: [CommonModule, FormsModule, RouterModule.forChild([{ path: '', component: ProfilComponent }])],
+  imports: [CommonModule, FormsModule, DoubleAuthModule, RouterModule.forChild([{ path: '', component: ProfilComponent }])],
 })
 export class ProfilModule {}

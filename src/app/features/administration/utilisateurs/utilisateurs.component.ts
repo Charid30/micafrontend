@@ -209,6 +209,19 @@ export class UtilisateursComponent implements OnInit {
     });
   }
 
+  // Telephone et codes de secours perdus : l'utilisateur reconfigurera la double authentification
+  async reinitialiserDoubleAuth(user: any): Promise<void> {
+    if (!(await this.dialog.confirmer({
+      titre: `Réinitialiser la double authentification de « ${user.username} » ?`,
+      message: "À utiliser si l'utilisateur a perdu son téléphone et ses codes de secours. Il devra la reconfigurer (administrateur) ou pourra la réactiver depuis son profil.",
+      confirmer: 'Réinitialiser', danger: true,
+    }))) return;
+    this.http.post<any>(`${API}/administration/utilisateurs/${user.id}/reinitialiser-2fa`, {}).subscribe({
+      next: (r) => { this.toast.success(r.message); this.loadAll(); },
+      error: (e) => this.toast.error(e.error?.message || 'Erreur.'),
+    });
+  }
+
   async deleteUser(user: any): Promise<void> {
     if (!(await this.dialog.confirmer({ titre: `Supprimer le compte « ${user.username} » ?`, message: "L'utilisateur ne pourra plus se connecter.", confirmer: 'Supprimer', danger: true }))) return;
     this.http.delete(`${API}/utilisateurs/${user.id}`).subscribe({

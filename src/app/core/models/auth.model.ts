@@ -49,10 +49,15 @@ export interface Utilisateur {
   must_change_password?: boolean;
   mot_de_passe_expire?: boolean;                 // changement exige parce que le mot de passe a expire
   mot_de_passe?: { expire_le: string | null; jours_restants: number | null; rappel: boolean };
+  double_auth_requise?: boolean;                 // administrateur : configuration obligatoire
+  double_auth_active?: boolean;
+  double_auth_echeance?: string | null;         // obligation annoncee : date limite de configuration
+  codes_secours_restants?: number;               // connexion avec un code de secours
   agent: Agent;
   permissions: Permission[];
 }
 
 export interface AuthResponse {
-  utilisateur: Utilisateur;
+  utilisateur?: Utilisateur;
+  double_auth?: boolean;          // mot de passe correct : code de double authentification demande
 }

@@ -1,0 +1,125 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     ================================================================== -->
+<div class="space-y-4">
+
+  <div *ngIf="erreur" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ erreur }}</div>
+
+  <!-- ── État (profil) ── -->
+  <ng-container *ngIf="etape === 'etat' && etat">
+    <div class="flex flex-wrap items-center gap-3">
+      <span [ngClass]="etat.active ? 'badge-success' : 'badge-warning'">{{ etat.active ? 'Activée' : 'Non activée' }}</span>
+      <span *ngIf="etat.active && etat.active_le" class="text-sm text-gray-500">depuis le {{ etat.active_le | date:'dd/MM/yyyy' }}</span>
+      <span *ngIf="etat.obligatoire" class="badge-info">
+        Obligatoire pour les administrateurs<ng-container *ngIf="!etat.active && !etat.requise && etat.echeance"> à partir du {{ etat.echeance | date:'dd/MM/yyyy' }}</ng-container>
+      </span>
+    </div>
+    <p class="text-sm text-gray-600">
+      À chaque connexion, après le mot de passe, un code à 6 chiffres affiché par une application sur votre téléphone
+      est demandé (Google Authenticator, Microsoft Authenticator…). Même si votre mot de passe est découvert,
+      personne ne peut se connecter sans votre téléphone.
+    </p>
+    <p *ngIf="etat.active" class="text-sm" [ngClass]="etat.codes_secours_restants <= 2 ? 'text-red-700 font-medium' : 'text-gray-500'">
+      Codes de secours restants : {{ etat.codes_secours_restants }} / 8
+      <ng-container *ngIf="etat.codes_secours_restants <= 2"> — générez-en de nouveaux.</ng-container>
+    </p>
+    <div class="flex flex-wrap gap-2">
+      <button *ngIf="!etat.active" type="button" class="btn-primary" (click)="commencer()">Activer la double authentification</button>
+      <button *ngIf="etat.active" type="button" class="btn-secondary" (click)="gerer('regenerer')">Nouveaux codes de secours</button>
+      <button *ngIf="etat.active && !etat.obligatoire" type="button" class="btn-danger-outline" (click)="gerer('desactiver')">Désactiver</button>
+    </div>
+  </ng-container>
+
+  <!-- ── Étape 1 : mot de passe ── -->
+  <ng-container *ngIf="etape === 'mot-de-passe'">
+    <p class="text-sm text-gray-600">
+      <strong>Étape 1 sur 3.</strong> Installez sur votre téléphone une application d'authentification
+      (<em>Google Authenticator</em> ou <em>Microsoft Authenticator</em>, gratuites), puis confirmez votre mot de passe.
+    </p>
+    <div>
+      <label class="label" for="da-mdp">Mot de passe</label>
+      <input id="da-mdp" type="password" maxlength="128" [(ngModel)]="motDePasse" autocomplete="current-password" class="input-field" (keydown.enter)="motDePasse && initier()"/>
+    </div>
+    <div class="flex flex-wrap justify-end gap-2">
+      <button *ngIf="mode === 'profil'" type="button" class="btn-secondary" (click)="annuler()">Annuler</button>
+      <button type="button" class="btn-primary" (click)="initier()" [disabled]="!motDePasse || enCours">{{ enCours ? '...' : 'Continuer' }}</button>
+    </div>
+  </ng-container>
+
+  <!-- ── Étape 2 : QR code et premier code ── -->
+  <ng-container *ngIf="etape === 'scanner'">
+    <p class="text-sm text-gray-600">
+      <strong>Étape 2 sur 3.</strong> Dans l'application, choisissez « Ajouter un compte » puis scannez ce QR code.
+    </p>
+    <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+      <img [src]="qr" alt="QR code de configuration de la double authentification" class="h-44 w-44 rounded-lg border border-primary-200 bg-white p-1"/>
+      <div class="text-sm text-gray-600 space-y-2">
+        <p>Impossible de scanner ? Saisissez cette clé dans l'application (type « basé sur le temps ») :</p>
+        <p class="font-mono text-base tracking-wider text-primary-800 bg-primary-50 rounded px-2 py-1 break-all select-all">{{ secret }}</p>
+      </div>
+    </div>
+    <div>
+      <label class="label" for="da-code">Code à 6 chiffres affiché par l'application</label>
+      <input id="da-code" type="text" inputmode="numeric" maxlength="6" [(ngModel)]="code" autocomplete="one-time-code"
+        class="input-field w-40 text-center font-mono text-lg tracking-[0.3em]" (keydown.enter)="code.length === 6 && activer()"/>
+    </div>
+    <div class="flex flex-wrap justify-end gap-2">
+      <button *ngIf="mode === 'profil'" type="button" class="btn-secondary" (click)="annuler()">Annuler</button>
+      <button type="button" class="btn-primary" (click)="activer()" [disabled]="code.length !== 6 || enCours">{{ enCours ? '...' : 'Vérifier et activer' }}</button>
+    </div>
+  </ng-container>
+
+  <!-- ── Étape 3 : codes de secours ── -->
+  <ng-container *ngIf="etape === 'codes'">
+    <p class="text-sm text-gray-600">
+      <strong>Conservez ces codes de secours.</strong> Ils permettent de vous connecter si vous perdez votre téléphone.
+      Chaque code ne sert qu'une fois. Ils ne seront <strong>plus jamais affichés</strong>.
+    </p>
+    <div class="grid grid-cols-2 gap-2 rounded-lg border border-primary-200 bg-primary-50 p-3 font-mono text-sm text-primary-800 sm:grid-cols-4">
+      <span *ngFor="let c of codesSecours" class="rounded bg-white px-2 py-1 text-center">{{ c }}</span>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn-secondary" (click)="copier()">{{ copie ? 'Copiés ✓' : 'Copier' }}</button>
+      <button type="button" class="btn-secondary" (click)="telecharger()">Télécharger (.txt)</button>
+    </div>
+    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+      <input type="checkbox" [(ngModel)]="codesConserves" class="w-4 h-4 accent-primary-600"/> J'ai conservé mes codes de secours en lieu sûr
+    </label>
+    <div class="flex justify-end">
+      <button type="button" class="btn-primary" (click)="terminer()" [disabled]="!codesConserves">Terminer</button>
+    </div>
+  </ng-container>
+
+  <!-- ── Gestion : nouveaux codes ou désactivation ── -->
+  <ng-container *ngIf="etape === 'gerer'">
+    <p class="text-sm text-gray-600">
+      {{ action === 'regenerer'
+        ? 'De nouveaux codes de secours vont être générés : les anciens ne fonctionneront plus.'
+        : 'La double authentification va être désactivée : votre compte sera protégé par le mot de passe seul.' }}
+      Confirmez avec votre mot de passe et le code de l'application.
+    </p>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
+        <label class="label" for="da-mdp2">Mot de passe</label>
+        <input id="da-mdp2" type="password" maxlength="128" [(ngModel)]="motDePasse" autocomplete="current-password" class="input-field"/>
+      </div>
+      <div>
+        <label class="label" for="da-code2">Code de l'application</label>
+        <input id="da-code2" type="text" inputmode="numeric" maxlength="6" [(ngModel)]="code" autocomplete="one-time-code" class="input-field font-mono tracking-widest"/>
+      </div>
+    </div>
+    <div class="flex flex-wrap justify-end gap-2">
+      <button type="button" class="btn-secondary" (click)="annuler()">Annuler</button>
+      <button type="button" [ngClass]="action === 'desactiver' ? 'btn-danger' : 'btn-primary'" (click)="confirmerGestion()"
+        [disabled]="!motDePasse || code.length !== 6 || enCours">
+        {{ enCours ? '...' : (action === 'desactiver' ? 'Désactiver' : 'Générer de nouveaux codes') }}
+      </button>
+    </div>
+  </ng-container>
+</div>

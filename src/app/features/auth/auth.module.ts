@@ -13,15 +13,18 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { ForceChangePasswordComponent } from './force-change-password/force-change-password.component';
+import { DoubleAuthRequiseComponent } from './double-auth-requise/double-auth-requise.component';
+import { DoubleAuthModule } from '../../shared/double-auth/double-auth.module';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'force-change-password', component: ForceChangePasswordComponent },
+  { path: 'double-authentification', component: DoubleAuthRequiseComponent },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
 ];
 
 @NgModule({
-  declarations: [LoginComponent, ForceChangePasswordComponent],
-  imports: [CommonModule, ReactiveFormsModule, RouterModule.forChild(routes)],
+  declarations: [LoginComponent, ForceChangePasswordComponent, DoubleAuthRequiseComponent],
+  imports: [CommonModule, ReactiveFormsModule, DoubleAuthModule, RouterModule.forChild(routes)],
 })
 export class AuthModule {}
