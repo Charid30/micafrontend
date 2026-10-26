@@ -60,10 +60,20 @@ export class VeilleMarcheComponent implements OnInit {
     });
   }
 
-  variation(ind: any): number {
-    const n  = parseFloat(ind.prix_semaine_n)  || 0;
-    const n1 = parseFloat(ind.prix_semaine_n1) || 0;
-    return Math.round((n - n1) * 10000) / 10000;
+  // Variation en % (comme le fichier Excel) : (Semaine N - Semaine N-1) / Semaine N-1
+  variation(ind: any): number | null {
+    const n  = parseFloat(ind.prix_semaine_n);
+    const n1 = parseFloat(ind.prix_semaine_n1);
+    if (!Number.isFinite(n) || !Number.isFinite(n1) || n1 === 0) return null;
+    return (n - n1) / n1 * 100;
+  }
+
+  tendance(ind: any): 'hausse' | 'baisse' | 'stable' | null {
+    const v = this.variation(ind);
+    if (v === null) return null;
+    // Arrondi a l'affichage (2 decimales) : 0,00 % = stable
+    const r = Math.round(v * 100) / 100;
+    return r > 0 ? 'hausse' : r < 0 ? 'baisse' : 'stable';
   }
 
   async onArchive(): Promise<void> {

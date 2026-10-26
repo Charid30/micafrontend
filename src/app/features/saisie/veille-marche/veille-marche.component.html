@@ -128,22 +128,21 @@
 
               <!-- Variation calculée -->
               <td class="table-cell text-right font-semibold">
-                <ng-container *ngIf="ind.prix_semaine_n && ind.prix_semaine_n1">
-                  <span [style.color]="variation(ind) > 0 ? '#b91c1c' : variation(ind) < 0 ? '#166534' : '#6b7280'">
-                    {{ variation(ind) > 0 ? '+' : '' }}{{ variation(ind) | number:'1.2-4' }}
-                  </span>
-                </ng-container>
-                <span *ngIf="!ind.prix_semaine_n || !ind.prix_semaine_n1" class="text-gray-300 text-xs">—</span>
+                <span *ngIf="variation(ind) !== null; else sansVariation"
+                  [ngClass]="{ 'text-red-700': tendance(ind) === 'hausse', 'text-green-800': tendance(ind) === 'baisse', 'text-gray-500': tendance(ind) === 'stable' }">
+                  {{ variation(ind)! > 0 ? '+' : '' }}{{ variation(ind) | number:'1.2-2' }} %
+                </span>
+                <ng-template #sansVariation><span class="text-gray-300 text-xs">—</span></ng-template>
               </td>
 
               <!-- Tendance calculée -->
-              <td class="table-cell text-center text-lg">
-                <ng-container *ngIf="ind.prix_semaine_n && ind.prix_semaine_n1">
-                  <span *ngIf="variation(ind) > 0" class="text-red-600" title="Hausse">↑</span>
-                  <span *ngIf="variation(ind) < 0" class="text-green-700" title="Baisse">↓</span>
-                  <span *ngIf="variation(ind) === 0" class="text-gray-400" title="Stable">→</span>
+              <td class="table-cell text-center whitespace-nowrap font-semibold">
+                <ng-container [ngSwitch]="tendance(ind)">
+                  <span *ngSwitchCase="'hausse'" class="text-red-700">▲ Hausse</span>
+                  <span *ngSwitchCase="'baisse'" class="text-green-800">▼ Baisse</span>
+                  <span *ngSwitchCase="'stable'" class="text-gray-500">= Stable</span>
+                  <span *ngSwitchDefault class="text-gray-300 text-xs">—</span>
                 </ng-container>
-                <span *ngIf="!ind.prix_semaine_n || !ind.prix_semaine_n1" class="text-gray-300 text-xs">—</span>
               </td>
 
               <!-- Source -->
