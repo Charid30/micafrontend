@@ -6,6 +6,7 @@
  *           Whatsapp: +226 51 57 82 89
  *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
  *  Projet : MICA – SONABHY
+ *  Merci
  * ================================================================== */
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';

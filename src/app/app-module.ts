@@ -6,6 +6,7 @@
  *           Whatsapp: +226 51 57 82 89
  *           Mail: bkevin@sonabhy.bf // bationor10@gmail.com
  *  Projet : MICA – SONABHY
+ *  Merci
  * ================================================================== */
 import { NgModule, LOCALE_ID, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
