@@ -29,6 +29,7 @@ export class CorridorsComponent implements OnInit {
   error: string | null = null;
 
   rapport: any   = null;
+  frequence: string | null = null;
   corridors: any[] = [];
   dateSaisie: string | null = null;
 
@@ -45,6 +46,7 @@ export class CorridorsComponent implements OnInit {
     this.http.get(`${environment.apiUrl}/chargements/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport    = data.rapport;
+        this.frequence = data.frequence || null;
         this.corridors  = data.corridors;
         this.dateSaisie = data.date_saisie || null;
         this.loading   = false;

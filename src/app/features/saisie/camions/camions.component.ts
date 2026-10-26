@@ -29,6 +29,8 @@ export class CamionsComponent implements OnInit {
   error: string | null = null;
 
   rapport: any       = null;
+  frequence: string | null = null;
+  dateSaisie: string | null = null;
   sections: any[]    = [];
   analyse: any       = null;
   loadingAnalyse     = true;
@@ -48,6 +50,8 @@ export class CamionsComponent implements OnInit {
     this.http.get(`${environment.apiUrl}/camions/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport  = data.rapport;
+        this.frequence = data.frequence || null;
+        this.dateSaisie = data.date_saisie || null;
         this.sections = data.sections;
         this.loading  = false;
         this.cdr.detectChanges();

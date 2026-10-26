@@ -18,9 +18,7 @@
         Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
         ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
-      <p class="text-xs mt-1 font-medium text-primary-500" *ngIf="dateSaisie">
-        Saisie du {{ dateSaisie | date:'EEEE dd MMMM yyyy':'':'fr' }}
-      </p>
+      <app-frequence-saisie [frequence]="frequence" [date]="dateSaisie"></app-frequence-saisie>
     </div>
     <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
     <div class="save-bar">

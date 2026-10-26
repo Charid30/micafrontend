@@ -28,6 +28,8 @@ export class FinancesComponent implements OnInit {
   saving  = false;
   error: string | null = null;
   rapport: any = null;
+  frequence: string | null = null;
+  dateSaisie: string | null = null;
   rapportPrecedent: any = null;
   droits = { saisie: false, lignes: false };
   lignes: any[] = [];
@@ -53,6 +55,8 @@ export class FinancesComponent implements OnInit {
     this.http.get(`${this.api}/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport = data.rapport;
+        this.frequence = data.frequence || null;
+        this.dateSaisie = data.date_saisie || null;
         this.rapportPrecedent = data.rapport_precedent;
         this.droits = data.droits || this.droits;
         // Valeur saisie directement pour un sous-total (anciens rapports) : conservee si aucun detail n'est renseigne

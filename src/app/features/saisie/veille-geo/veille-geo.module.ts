@@ -13,9 +13,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { VeilleGeoComponent } from './veille-geo.component';
+import { FrequenceModule } from '../../../shared/frequence/frequence.module';
 
 @NgModule({
   declarations: [VeilleGeoComponent],
-  imports: [CommonModule, FormsModule, RouterModule.forChild([{ path: '', component: VeilleGeoComponent }])],
+  imports: [CommonModule, FormsModule, FrequenceModule, RouterModule.forChild([{ path: '', component: VeilleGeoComponent }])],
 })
 export class VeilleGeoModule {}

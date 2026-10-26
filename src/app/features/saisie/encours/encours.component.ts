@@ -29,6 +29,7 @@ export class EncoursComponent implements OnInit {
   error: string | null = null;
 
   rapport: any  = null;
+  frequence: string | null = null;
   depots: any[] = [];
   dateSaisie: string | null = null;
 
@@ -45,6 +46,7 @@ export class EncoursComponent implements OnInit {
     this.http.get(`${environment.apiUrl}/encours/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport    = data.rapport;
+        this.frequence = data.frequence || null;
         this.depots     = data.depots;
         this.dateSaisie = data.date_saisie || null;
         this.loading = false;

@@ -13,9 +13,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { VeilleMarcheComponent } from './veille-marche.component';
+import { FrequenceModule } from '../../../shared/frequence/frequence.module';
 
 @NgModule({
   declarations: [VeilleMarcheComponent],
-  imports: [CommonModule, FormsModule, RouterModule.forChild([{ path: '', component: VeilleMarcheComponent }])],
+  imports: [CommonModule, FormsModule, FrequenceModule, RouterModule.forChild([{ path: '', component: VeilleMarcheComponent }])],
 })
 export class VeilleMarcheModule {}

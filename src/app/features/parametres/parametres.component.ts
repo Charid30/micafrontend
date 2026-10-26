@@ -36,7 +36,19 @@ export class ParametresComponent implements OnInit {
     { key: 'fournisseurs',label: 'Fournisseurs' },
     { key: 'marketeurs',  label: 'Marketeurs' },
     { key: 'alertes',     label: 'Alertes seuils' },
+    { key: 'frequences',  label: 'Fréquences de saisie' },
   ];
+
+  // ── Onglet Frequences de saisie : quotidienne, hebdomadaire ou permanente pour chaque menu
+  frequences: { code: string; libelle: string }[] = [];
+  modulesFrequence: any[] = [];
+  choixFrequence: Record<string, string> = {};
+  savingFrequences = false;
+  readonly aideFrequence: Record<string, string> = {
+    QUOTIDIEN: 'Une saisie par jour. L\'écran repart vide chaque jour ; les jours précédents sont conservés.',
+    HEBDOMADAIRE: 'Une seule saisie pour la semaine, mise à jour à chaque enregistrement.',
+    PERMANENT: 'Comme l\'hebdomadaire, mais les valeurs sont reprises automatiquement la semaine suivante tant qu\'elles ne sont pas modifiées.',
+  };
 
   // ── Onglet Securite (administrateurs) : double authentification et validite des mots de passe
   private readonly auth = inject(AuthService);
@@ -44,6 +56,7 @@ export class ParametresComponent implements OnInit {
   reglages = { double_auth_obligatoire: false, double_auth_delai_jours: 7, mot_de_passe_duree_jours: 90, mot_de_passe_rappel_jours: 7 };
   savingSecurite = false;
   get estAdmin(): boolean { return this.auth.isAdmin(); }
+  get peutModifierParametres(): boolean { return this.auth.isAdmin() || this.auth.hasPermission('parametres', 'WRITE'); }
 
   produits:     any[] = [];
   depots:       any[] = [];
@@ -70,6 +83,44 @@ export class ParametresComponent implements OnInit {
       this.chargerSecurite();
     }
     this.loadAll();
+    this.chargerFrequences();
+  }
+
+  chargerFrequences(): void {
+    this.http.get<any>(`${API}/frequences`).subscribe({
+      next: (r) => { this.appliquerFrequences(r); this.cdr.detectChanges(); },
+      error: () => { /* onglet indisponible */ },
+    });
+  }
+  private appliquerFrequences(r: any): void {
+    this.frequences = r.frequences;
+    this.modulesFrequence = r.modules;
+    this.choixFrequence = Object.fromEntries(r.modules.map((m: any) => [m.code, m.frequence]));
+  }
+  libelleFrequence(code: string): string { return this.frequences.find(f => f.code === code)?.libelle || code; }
+  get frequencesModifiees(): any[] {
+    return this.modulesFrequence.filter(m => !m.verrouille && this.choixFrequence[m.code] !== m.frequence);
+  }
+
+  async enregistrerFrequences(): Promise<void> {
+    const changes = this.frequencesModifiees;
+    if (!changes.length) return;
+    const liste = changes
+      .map(m => `• ${m.libelle} : ${this.libelleFrequence(m.frequence)} → ${this.libelleFrequence(this.choixFrequence[m.code])}`)
+      .join('\n');
+    const ok = await this.dialog.confirmer({
+      titre: 'Changer la fréquence de saisie ?',
+      message: `${liste}\n\nLe changement s'applique dès la prochaine ouverture des écrans de saisie. `
+        + 'Les données déjà saisies sont conservées ; le rapport retient toujours la dernière valeur saisie de la semaine.',
+      confirmer: 'Enregistrer',
+    });
+    if (!ok) return;
+    this.savingFrequences = true;
+    const frequences = Object.fromEntries(changes.map(m => [m.code, this.choixFrequence[m.code]]));
+    this.http.put<any>(`${API}/frequences`, { frequences }).subscribe({
+      next: (r) => { this.savingFrequences = false; this.appliquerFrequences(r); this.toast.success(r.message); this.cdr.detectChanges(); },
+      error: (e) => { this.savingFrequences = false; this.toast.error(e.error?.message || 'Erreur.'); this.cdr.detectChanges(); },
+    });
   }
 
   loadAll(): void {

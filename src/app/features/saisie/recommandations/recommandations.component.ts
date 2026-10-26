@@ -27,6 +27,8 @@ export class RecommandationsComponent implements OnInit {
   saving  = false;
   error: string | null = null;
   rapport: any = null;
+  frequence: string | null = null;
+  dateSaisie: string | null = null;
 
   // Informations utiles du rapport : reprises de la derniere semaine renseignee tant qu'elles ne sont pas modifiees
   informations_utiles = '';
@@ -49,6 +51,8 @@ export class RecommandationsComponent implements OnInit {
     this.http.get<any>(`${environment.apiUrl}/recommandations/semaine-courante`).subscribe({
       next: (data) => {
         this.rapport           = data.rapport;
+        this.frequence = data.frequence || null;
+        this.dateSaisie = data.date_saisie || null;
         // Le serveur renvoie les champs a plat (auparavant lus sous data.recommandation : les textes
         // enregistres ne se reaffichaient pas et etaient effaces au prochain enregistrement)
         this.informations_utiles   = data.informations_utiles || '';

@@ -26,6 +26,8 @@ const API = `${environment.apiUrl}/ventes`;
 export class VentesComponent implements OnInit {
   private readonly dialog = inject(DialogService);
   rapport: any = null;
+  frequence: string | null = null;
+  dateSaisie: string | null = null;
   marketeurs: any[] = [];
   produits: any[] = [];
   matrix: Record<number, Record<number, number>> = {};
@@ -48,6 +50,8 @@ export class VentesComponent implements OnInit {
     this.http.get<any>(`${API}/semaine-courante`).subscribe({
       next: (res) => {
         this.rapport = res.rapport;
+        this.frequence = res.frequence || null;
+        this.dateSaisie = res.date_saisie || null;
         this.marketeurs = res.marketeurs || [];
         this.produits = res.produits || [];
         this.matrix = res.matrix || {};

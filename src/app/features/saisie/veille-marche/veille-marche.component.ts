@@ -29,6 +29,8 @@ export class VeilleMarcheComponent implements OnInit {
   error: string | null = null;
 
   rapport:     any   = null;
+  frequence: string | null = null;
+  dateSaisie: string | null = null;
   indicateurs: any[] = [];
 
   constructor(
@@ -44,6 +46,8 @@ export class VeilleMarcheComponent implements OnInit {
     this.http.get(`${environment.apiUrl}/veille-marche/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport     = data.rapport;
+        this.frequence = data.frequence || null;
+        this.dateSaisie = data.date_saisie || null;
         this.indicateurs = data.indicateurs;
         this.loading     = false;
         this.cdr.detectChanges();

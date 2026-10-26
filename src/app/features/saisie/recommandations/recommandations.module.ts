@@ -13,12 +13,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { RecommandationsComponent } from './recommandations.component';
+import { FrequenceModule } from '../../../shared/frequence/frequence.module';
 
 @NgModule({
   declarations: [RecommandationsComponent],
   imports: [
     CommonModule,
     FormsModule,
+    FrequenceModule,
     RouterModule.forChild([{ path: '', component: RecommandationsComponent }]),
   ],
 })

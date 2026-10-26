@@ -34,6 +34,7 @@ export class StocksComponent implements OnInit {
   // Perimetre de la page (route) : INTERIEUR ou EXTERIEUR ; seules ses lignes sont affichees et enregistrees
   readonly perimetre: 'INTERIEUR' | 'EXTERIEUR';
   rapport: any = null;
+  frequence: string | null = null;
   dateSaisie: string | null = null;
   droits = { stocks: false, actions: false };
   parametres = { seuil_rouge_jours: 10, couverture_objectif_pct: 100, densite_gaz: 0.56 };
@@ -71,6 +72,7 @@ export class StocksComponent implements OnInit {
     this.http.get(`${environment.apiUrl}/stocks/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport          = data.rapport;
+        this.frequence = data.frequences?.[this.perimetre] || null;
         this.dateSaisie       = data.date_saisie || null;
         this.droits           = data.droits || { stocks: false, actions: false };
         this.parametres       = data.parametres || this.parametres;

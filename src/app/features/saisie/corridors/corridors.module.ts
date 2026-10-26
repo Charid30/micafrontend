@@ -13,9 +13,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CorridorsComponent } from './corridors.component';
+import { FrequenceModule } from '../../../shared/frequence/frequence.module';
 
 @NgModule({
   declarations: [CorridorsComponent],
-  imports: [CommonModule, FormsModule, RouterModule.forChild([{ path: '', component: CorridorsComponent }])],
+  imports: [CommonModule, FormsModule, FrequenceModule, RouterModule.forChild([{ path: '', component: CorridorsComponent }])],
 })
 export class CorridorsModule {}
