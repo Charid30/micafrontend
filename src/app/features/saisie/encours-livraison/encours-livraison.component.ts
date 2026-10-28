@@ -99,6 +99,42 @@ export class EncoursLivraisonComponent implements OnInit {
 
   lignesDe(produitId: number): LigneEncours[] { return this.lignes.filter(l => l.produit_id === produitId); }
 
+  // ── Fournisseur absent de la liste : saisi sur la ligne puis ajoute a la liste
+  readonly AUTRE = -1;
+  nouveauFournisseur = new Map<LigneEncours, string>();
+  ajoutFournisseurEnCours = false;
+
+  choisirFournisseur(l: LigneEncours, id: number | null): void {
+    if (id === this.AUTRE) { l.fournisseur_id = null; this.nouveauFournisseur.set(l, ''); }
+    else l.fournisseur_id = id;
+  }
+
+  annulerFournisseur(l: LigneEncours): void { this.nouveauFournisseur.delete(l); }
+
+  enregistrerFournisseur(l: LigneEncours): void {
+    const libelle = (this.nouveauFournisseur.get(l) || '').trim();
+    if (libelle.length < 2) { this.toast.error('Saisir le nom du fournisseur (2 caractères au moins).'); return; }
+    this.ajoutFournisseurEnCours = true;
+    this.http.post<any>(`${API}/fournisseurs`, { libelle }).subscribe({
+      next: (res) => {
+        const f = res.fournisseur;
+        if (!this.fournisseurs.some(x => x.id === f.id)) {
+          this.fournisseurs = [...this.fournisseurs, f].sort((a, b) => a.libelle.localeCompare(b.libelle));
+        }
+        l.fournisseur_id = f.id;
+        this.nouveauFournisseur.delete(l);
+        this.ajoutFournisseurEnCours = false;
+        this.toast.success(res.message);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.ajoutFournisseurEnCours = false;
+        this.toast.error(err?.error?.message || 'Erreur lors de l\'ajout du fournisseur.');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
   // Lignes regroupees par produit, dans l'ordre des produits (comme le fichier Excel)
   trier(): void {
     const ordre = new Map(this.produits.map((p, i) => [p.id, i]));

@@ -118,10 +118,29 @@
                   <ng-container *ngTemplateOutlet="celluleProduit; context: { p: p, n: lignesDe(p.id).length }"></ng-container>
                 </ng-container>
                 <td class="table-cell min-w-[130px]">
-                  <select [(ngModel)]="l.fournisseur_id" [attr.aria-label]="'Fournisseur, ' + p.libelle + ' livraison ' + (i + 1)" class="input-field text-xs py-1">
+                  <select *ngIf="!nouveauFournisseur.has(l); else saisieFournisseur"
+                    [ngModel]="l.fournisseur_id" (ngModelChange)="choisirFournisseur(l, $event)"
+                    [attr.aria-label]="'Fournisseur, ' + p.libelle + ' livraison ' + (i + 1)" class="input-field text-xs py-1">
                     <option [ngValue]="null" disabled>Fournisseur…</option>
                     <option *ngFor="let f of fournisseurs" [ngValue]="f.id">{{ f.libelle }}</option>
+                    <option [ngValue]="AUTRE">+ Autre fournisseur…</option>
                   </select>
+                  <!-- Fournisseur absent de la liste : nom saisi puis ajouté à la liste -->
+                  <ng-template #saisieFournisseur>
+                    <div class="flex items-center gap-1">
+                      <input type="text" maxlength="150" [ngModel]="nouveauFournisseur.get(l)" (ngModelChange)="nouveauFournisseur.set(l, $event)"
+                        (keydown.enter)="enregistrerFournisseur(l); $event.preventDefault()" (keydown.escape)="annulerFournisseur(l)"
+                        [attr.aria-label]="'Nom du nouveau fournisseur, ' + p.libelle + ' livraison ' + (i + 1)"
+                        class="input-field text-xs py-1 min-w-0 flex-1" placeholder="Nom du fournisseur"/>
+                      <button type="button" (click)="enregistrerFournisseur(l)" [disabled]="ajoutFournisseurEnCours"
+                        class="text-primary-700 hover:text-primary-900 disabled:opacity-50" title="Ajouter ce fournisseur à la liste" aria-label="Ajouter ce fournisseur à la liste">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                      </button>
+                      <button type="button" (click)="annulerFournisseur(l)" class="text-gray-500 hover:text-gray-700" title="Annuler" aria-label="Annuler">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </button>
+                    </div>
+                  </ng-template>
                 </td>
                 <td class="table-cell min-w-[140px]">
                   <select [(ngModel)]="l.corridor_id" [attr.aria-label]="'Corridor, ' + p.libelle + ' livraison ' + (i + 1)" class="input-field text-xs py-1">
@@ -164,7 +183,7 @@
         </table>
       </div>
       <p class="mt-2 text-xs text-gray-400">
-        Fournisseur ou corridor absent de la liste : l'ajouter dans Paramètres (onglets Fournisseurs, Corridors).
+        Fournisseur absent de la liste : choisir « + Autre fournisseur… » et saisir son nom. Corridor absent : l'ajouter dans Paramètres > Corridors.
       </p>
     </div>
 
