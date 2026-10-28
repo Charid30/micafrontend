@@ -31,6 +31,7 @@ const MODULE_LABELS: Record<string, string> = {
   'veille-marche': 'Veille marché',
   'veille-geo': 'Veille géopolitique',
   'achats-traders': 'Achats traders',
+  'encours-livraison': 'Encours fournisseurs',
   'ventes': 'Ventes',
   'tresorerie': 'Trésorerie (saisie hebdomadaire)',
   'tresorerie-lignes': 'Trésorerie : gestion des lignes (chef Tréso)',

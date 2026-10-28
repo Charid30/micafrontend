@@ -199,24 +199,36 @@
             </p>
           </div>
 
-          <!-- Encours de livraison (achats dont la livraison est postérieure à la date du rapport) -->
+          <!-- Encours fournisseurs par produit (menu Encours) : cumul, besoin, taux de couverture -->
           <div>
-            <p class="text-sm font-semibold text-primary-700 mb-1">
-              Encours de livraison (promesses de livraison)
-              <ng-container *ngIf="rep.encours.du"> du {{ rep.encours.du | date:'dd/MM/yyyy' }} au {{ rep.encours.au | date:'dd/MM/yyyy' }}</ng-container>
-              <span *ngIf="rep.encours.ports.length" class="font-normal text-gray-500">&nbsp;(livraison {{ rep.encours.ports.join(', ') }})</span>
-            </p>
-            <ul *ngIf="aEncours; else sansEncours" class="list-disc pl-5 space-y-0.5 text-sm text-gray-700">
-              <li *ngFor="let l of rep.encours.lignes">
-                {{ l.produit }} :
-                <ng-container *ngIf="l.quantite; else zero">{{ l.quantite | number:'1.0-0' }} {{ l.unite }}<ng-container *ngIf="l.jours"> soit environ {{ jours(l.jours) }}</ng-container></ng-container>
-                <ng-template #zero>00</ng-template>
-              </li>
-            </ul>
-            <ng-template #sansEncours><p class="text-sm text-gray-400 italic">Aucune livraison attendue.</p></ng-template>
-            <p *ngIf="rep.encours.sans_densite.length" class="text-xs text-amber-700 mt-1">
-              Densité manquante dans le référentiel pour : {{ rep.encours.sans_densite.join(', ') }} (quantités non converties).
-            </p>
+            <p class="text-sm font-semibold text-primary-700 mb-2">Encours fournisseurs par produit (en TM)</p>
+            <div *ngIf="aEncours; else sansEncours" class="overflow-x-auto rounded-lg border border-primary-200">
+              <table class="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th class="table-header text-left">Produit</th>
+                    <th class="table-header text-right">Cumul en TM</th>
+                    <th class="table-header text-right">Besoin</th>
+                    <th class="table-header text-right">Taux de couverture</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y border-primary-50">
+                  <tr *ngFor="let e of rep.encours.produits">
+                    <td class="table-cell font-medium text-primary-700">{{ e.produit }}</td>
+                    <td class="table-cell text-right">{{ e.cumul | number:'1.0-0' }}</td>
+                    <td class="table-cell text-right">{{ e.besoin === null ? '—' : (e.besoin | number:'1.0-0') }}</td>
+                    <td class="table-cell text-right font-semibold">{{ e.taux === null ? '—' : (e.taux | percent:'1.0-0') }}</td>
+                  </tr>
+                  <tr class="bg-primary-50 font-semibold">
+                    <td class="table-cell text-primary-800">Total</td>
+                    <td class="table-cell text-right">{{ rep.encours.total.cumul | number:'1.0-0' }}</td>
+                    <td class="table-cell text-right">{{ rep.encours.total.besoin | number:'1.0-0' }}</td>
+                    <td class="table-cell text-right">{{ rep.encours.total.taux === null ? '—' : (rep.encours.total.taux | percent:'1.0-0') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #sansEncours><p class="text-sm text-gray-400 italic">Aucun encours saisi pour la semaine.</p></ng-template>
           </div>
         </div>
 

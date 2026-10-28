@@ -99,6 +99,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return v < 10 ? 'text-red-700' : v < 15 ? 'text-yellow-700' : 'text-primary-800';
   }
 
+  // Taux de couverture des encours : couvert (>= 100 %), partiel (>= 50 %), insuffisant
+  classeCouverture(taux: number): string {
+    return taux >= 1 ? 'badge-success' : taux >= 0.5 ? 'badge-warning' : 'badge-danger';
+  }
+
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
     clearTimeout(this.timer);

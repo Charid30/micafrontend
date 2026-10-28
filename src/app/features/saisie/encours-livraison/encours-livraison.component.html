@@ -1,0 +1,215 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     Merci
+     ================================================================== -->
+<div class="space-y-6 has-save-bar">
+
+  <!-- En-tête -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Suivi des encours fournisseurs</h2>
+      <p class="text-sm text-gray-500 mt-1" *ngIf="rapport">
+        Semaine {{ rapport.semaine_iso }} / {{ rapport.annee }}
+        ({{ rapport.date_debut | date:'dd/MM' }} au {{ rapport.date_fin | date:'dd/MM/yyyy' }})
+      </p>
+      <app-frequence-saisie [frequence]="frequence" [date]="dateSaisie"></app-frequence-saisie>
+    </div>
+    <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
+    <div class="save-bar">
+      <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
+        (click)="onArchive()" [disabled]="archiving || saving"
+        class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+        </svg>
+        {{ archiving ? 'Archivage...' : 'Archiver' }}
+      </button>
+      <button *ngIf="canWrite" (click)="onSave()" [disabled]="saving || loading || publie"
+        class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+        </svg>
+        <svg *ngIf="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+      <span *ngIf="!canWrite" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+        Lecture seule
+      </span>
+    </div>
+  </div>
+
+  <!-- Rapport archivé -->
+  <div *ngIf="publie" class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">
+    <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+    </svg>
+    <p class="text-sm text-primary-600">Rapport archivé — données consultables en lecture seule.</p>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="error" class="card border-red-200 bg-red-50 flex items-center gap-3">
+    <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm text-red-700">{{ error }}</p>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement des données...</p>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+    <fieldset class="border-0 p-0 m-0 space-y-6" [disabled]="!canWrite || publie" [class.opacity-60]="!canWrite">
+
+    <!-- ── Synthèse par produit et fournisseur ── -->
+    <div class="card">
+      <h3 class="section-title mb-1">Encours par produit et par fournisseur (TM)</h3>
+      <p class="text-xs text-gray-400 italic mb-3">
+        Quantités reprises du planning ci-dessous (livraisons comprises). Saisir le besoin de chaque produit ;
+        le taux de couverture = cumul ÷ besoin.
+      </p>
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-xs">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg whitespace-nowrap sticky-col">Produits</th>
+              <th *ngFor="let f of fournisseursUtilises" class="table-header text-right whitespace-nowrap">{{ f.libelle }}</th>
+              <th class="table-header text-right whitespace-nowrap">Cumul en TM</th>
+              <th class="table-header text-right whitespace-nowrap">Besoin</th>
+              <th class="table-header rounded-tr-lg text-right whitespace-nowrap">Taux de couverture</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let p of produits" class="table-row-hover">
+              <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ p.libelle }}</td>
+              <td *ngFor="let f of fournisseursUtilises" class="table-cell text-right">
+                {{ quantite(p.id, f.id) === null ? '' : (quantite(p.id, f.id) | number:'1.0-0') }}
+              </td>
+              <td class="table-cell text-right font-semibold">{{ cumul(p.id) | number:'1.0-0' }}</td>
+              <td class="table-cell w-36">
+                <input type="number" min="0" step="1" [(ngModel)]="besoins[p.id]" [attr.aria-label]="'Besoin ' + p.libelle"
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="—"/>
+              </td>
+              <td class="table-cell text-right font-semibold" [ngClass]="classeCouverture(taux(p.id))">
+                {{ taux(p.id) === null ? '—' : (taux(p.id) | percent:'1.0-0') }}
+              </td>
+            </tr>
+            <tr class="bg-primary-50 font-semibold">
+              <td class="table-cell sticky-col bg-primary-50 text-primary-800">Total</td>
+              <td *ngFor="let f of fournisseursUtilises" class="table-cell text-right">{{ totalFournisseur(f.id) | number:'1.0-0' }}</td>
+              <td class="table-cell text-right">{{ totalCumul | number:'1.0-0' }}</td>
+              <td class="table-cell text-right">{{ totalBesoin | number:'1.0-0' }}</td>
+              <td class="table-cell text-right" [ngClass]="classeCouverture(totalTaux)">{{ totalTaux === null ? '—' : (totalTaux | percent:'1.0-0') }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Planning de livraison ── -->
+    <div class="card">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 class="section-title">Planning de livraison par produit, corridor et fournisseur</h3>
+        <button type="button" *ngIf="canWrite && !publie" (click)="ajouterLigne()" class="btn-secondary flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Ajouter une ligne
+        </button>
+      </div>
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-xs">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg whitespace-nowrap">Produit</th>
+              <th class="table-header whitespace-nowrap">Fournisseur</th>
+              <th class="table-header whitespace-nowrap">Corridor de destination</th>
+              <th class="table-header text-right whitespace-nowrap">Quantité prévue (TM)</th>
+              <th class="table-header whitespace-nowrap">Date de livraison prévue</th>
+              <th class="table-header whitespace-nowrap">Statut</th>
+              <th class="table-header text-right whitespace-nowrap">Cumul produit</th>
+              <th class="table-header rounded-tr-lg w-10"><span class="sr-only">Supprimer</span></th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let l of lignes; let i = index" class="table-row-hover" [class.border-t-2]="debutGroupe(i) && i > 0" [class.border-primary-200]="debutGroupe(i) && i > 0">
+              <td class="table-cell min-w-[140px]">
+                <select [(ngModel)]="l.produit_id" [attr.aria-label]="'Produit, ligne ' + (i + 1)" class="input-field text-xs py-1">
+                  <option [ngValue]="null" disabled>Produit…</option>
+                  <option *ngFor="let p of produits" [ngValue]="p.id">{{ p.libelle }}</option>
+                </select>
+              </td>
+              <td class="table-cell min-w-[160px]">
+                <select [(ngModel)]="l.fournisseur_id" [attr.aria-label]="'Fournisseur, ligne ' + (i + 1)" class="input-field text-xs py-1">
+                  <option [ngValue]="null" disabled>Fournisseur…</option>
+                  <option *ngFor="let f of fournisseurs" [ngValue]="f.id">{{ f.libelle }}</option>
+                </select>
+              </td>
+              <td class="table-cell min-w-[170px]">
+                <select [(ngModel)]="l.corridor_id" [attr.aria-label]="'Corridor, ligne ' + (i + 1)" class="input-field text-xs py-1">
+                  <option [ngValue]="null">—</option>
+                  <option *ngFor="let c of corridors" [ngValue]="c.id">{{ c.libelle }}</option>
+                </select>
+              </td>
+              <td class="table-cell w-32">
+                <input type="number" min="0" step="1" [(ngModel)]="l.quantite_tm" [attr.aria-label]="'Quantité prévue, ligne ' + (i + 1)"
+                  class="input-field w-full text-right text-xs py-1 table-input" placeholder="0"/>
+              </td>
+              <td class="table-cell w-40">
+                <input type="date" [(ngModel)]="l.date_livraison" [attr.aria-label]="'Date de livraison prévue, ligne ' + (i + 1)" class="input-field text-xs py-1"/>
+              </td>
+              <td class="table-cell min-w-[170px]">
+                <select [(ngModel)]="l.statut" [attr.aria-label]="'Statut, ligne ' + (i + 1)" class="input-field text-xs py-1">
+                  <option *ngFor="let s of statuts" [ngValue]="s.code">{{ s.libelle }}</option>
+                </select>
+              </td>
+              <td class="table-cell text-right font-semibold whitespace-nowrap">
+                <ng-container *ngIf="debutGroupe(i) && l.produit_id">
+                  {{ cumul(l.produit_id) | number:'1.0-0' }}
+                  <span *ngIf="taux(l.produit_id) !== null" class="block font-normal" [ngClass]="classeCouverture(taux(l.produit_id))">
+                    {{ taux(l.produit_id) | percent:'1.0-0' }} du besoin
+                  </span>
+                </ng-container>
+              </td>
+              <td class="table-cell text-center">
+                <button type="button" *ngIf="canWrite && !publie" (click)="supprimerLigne(i)" class="text-red-600 hover:text-red-800"
+                  [attr.aria-label]="'Supprimer la ligne ' + (i + 1)" title="Supprimer la ligne">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="!lignes.length">
+              <td colspan="8" class="table-cell text-center text-gray-400 py-6">
+                Aucun encours. {{ canWrite && !publie ? 'Cliquez sur « Ajouter une ligne » pour saisir une livraison prévue.' : '' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-2 text-xs text-gray-400">
+        Fournisseur ou corridor absent de la liste : l'ajouter dans Paramètres (onglets Fournisseurs, Corridors).
+      </p>
+    </div>
+
+    </fieldset>
+  </ng-container>
+</div>

@@ -174,6 +174,42 @@
       </div>
     </div>
 
+    <!-- Encours fournisseurs par produit (menu Encours) -->
+    <div *ngIf="stats?.encours?.produits?.length" class="card">
+      <h3 class="section-title">Encours fournisseurs par produit (TM)</h3>
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg">Produit</th>
+              <th class="table-header text-right">Cumul encours</th>
+              <th class="table-header text-right">Besoin</th>
+              <th class="table-header rounded-tr-lg text-right">Taux de couverture</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let e of stats.encours.produits" class="table-row-hover">
+              <td class="table-cell font-medium text-primary-700">{{ e.produit }}</td>
+              <td class="table-cell text-right">{{ e.cumul | number:'1.0-0' }}</td>
+              <td class="table-cell text-right">{{ e.besoin === null ? '—' : (e.besoin | number:'1.0-0') }}</td>
+              <td class="table-cell text-right">
+                <span *ngIf="e.taux !== null; else sansTaux" [class]="classeCouverture(e.taux)">{{ e.taux | percent:'1.0-0' }}</span>
+                <ng-template #sansTaux><span class="text-gray-400">—</span></ng-template>
+              </td>
+            </tr>
+            <tr class="bg-primary-50 font-semibold">
+              <td class="table-cell text-primary-800">Total</td>
+              <td class="table-cell text-right">{{ stats.encours.total.cumul | number:'1.0-0' }}</td>
+              <td class="table-cell text-right">{{ stats.encours.total.besoin | number:'1.0-0' }}</td>
+              <td class="table-cell text-right">
+                <span *ngIf="stats.encours.total.taux !== null" [class]="classeCouverture(stats.encours.total.taux)">{{ stats.encours.total.taux | percent:'1.0-0' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </ng-container>
 </div>
 

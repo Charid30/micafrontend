@@ -70,7 +70,7 @@ export class LayoutComponent implements OnInit {
 
   get hasSaisieAccess(): boolean {
     if (this.authService.isAdmin()) return true;
-    const modules = ['stocks','corridors','depots-int','temps-attente','veille-marche','veille-geo','achats-traders','ventes','tresorerie','recommandations','caf_moyen'];
+    const modules = ['stocks','corridors','depots-int','temps-attente','veille-marche','veille-geo','achats-traders','encours-livraison','ventes','tresorerie','recommandations','caf_moyen'];
     return modules.some(m => this.authService.hasPermission(m, 'READ'));
   }
 

@@ -104,7 +104,7 @@ export class RapportsComponent implements OnInit {
       { titre: 'Stocks dans les dépôts extérieurs', lignes: this.rep.stocks.exterieurs },
     ] : [];
   }
-  get aEncours(): boolean { return !!this.rep?.encours.lignes.some((l: any) => l.quantite > 0); }
+  get aEncours(): boolean { return !!this.rep?.encours?.produits?.length; }
   get lignesDettes(): any[] {
     const d = this.rep?.dettes || {};
     return [

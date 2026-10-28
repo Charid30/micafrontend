@@ -32,6 +32,7 @@ const routes: Routes = [
       { path: 'saisie/temps-attente', loadChildren: () => import('../features/saisie/camions/camions.module').then(m => m.CamionsModule) },
       { path: 'saisie/veille-marche', loadChildren: () => import('../features/saisie/veille-marche/veille-marche.module').then(m => m.VeilleMarcheModule) },
       { path: 'saisie/veille-geo', loadChildren: () => import('../features/saisie/veille-geo/veille-geo.module').then(m => m.VeilleGeoModule) },
+      { path: 'saisie/encours-livraison', loadChildren: () => import('../features/saisie/encours-livraison/encours-livraison.module').then(m => m.EncoursLivraisonModule) },
       { path: 'saisie/achats-traders', loadChildren: () => import('../features/saisie/achats-traders/achats-traders.module').then(m => m.AchatsTradersModule) },
       { path: 'saisie/ventes', loadChildren: () => import('../features/saisie/ventes/ventes.module').then(m => m.VentesModule) },
       { path: 'saisie/tresorerie', loadChildren: () => import('../features/saisie/finances/finances.module').then(m => m.FinancesModule) },
