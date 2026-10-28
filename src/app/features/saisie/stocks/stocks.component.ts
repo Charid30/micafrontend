@@ -76,10 +76,14 @@ export class StocksComponent implements OnInit {
         this.dateSaisie       = data.date_saisie || null;
         this.droits           = data.droits || { stocks: false, actions: false };
         this.parametres       = data.parametres || this.parametres;
-        this.depotsInterieurs = data.depots_interieurs || [];
+        // Produit pas encore saisi (ce jour en saisie quotidienne) : champs vides, rien n'est enregistre
+        // tant qu'ils restent vides (le rapport garde la derniere valeur saisie)
+        this.depotsInterieurs = (data.depots_interieurs || []).map((d: any) => ({
+          ...d, lignes: d.lignes.map((l: any) => (l.saisi ? l : { ...l, stock_bacs: null, stock_embranchement: null })),
+        }));
         // A l'exterieur, un seul champ de saisie (stock disponible) porte par stock_bacs
         this.depotsExterieurs = (data.depots_exterieurs || []).map((d: any) => ({
-          ...d, lignes: d.lignes.map((l: any) => ({ ...l, stock_bacs: l.stock_disponible, stock_embranchement: 0 })),
+          ...d, lignes: d.lignes.map((l: any) => ({ ...l, stock_bacs: l.saisi ? l.stock_disponible : null, stock_embranchement: null })),
         }));
         this.recalculer();
         this.error = null;
@@ -105,6 +109,9 @@ export class StocksComponent implements OnInit {
 
   // ── Calculs en temps reel (memes regles que le serveur)
   private num(v: any): number { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; }
+  private vide(v: any): boolean { return v === null || v === undefined || v === ''; }
+  // Aucun stock saisi sur la ligne (champs vides)
+  nonSaisi(l: any): boolean { return this.vide(l.stock_bacs) && this.vide(l.stock_embranchement); }
   private arrondi(v: number | null, d = 2): number | null { return v === null ? null : Math.round(v * 10 ** d) / 10 ** d; }
   private couleur(autonomie: number | null, objectif: number): string | null {
     if (autonomie === null) return null;
@@ -121,9 +128,9 @@ export class StocksComponent implements OnInit {
       for (const l of d.lignes) {
         l.volume_total = this.num(l.stock_bacs) + this.num(l.stock_embranchement);
         const conso = this.num(l.conso_moyenne);
-        const autonomie = conso > 0 ? (l.volume_total - this.num(l.impompable)) / conso : null;
+        const autonomie = conso > 0 && !this.nonSaisi(l) ? (l.volume_total - this.num(l.impompable)) / conso : null;
         l.stock_securite = l.objectif_jours * conso;
-        const couverture = l.stock_securite > 0 ? (l.volume_total / l.stock_securite) * 100 : null;
+        const couverture = l.stock_securite > 0 && !this.nonSaisi(l) ? (l.volume_total / l.stock_securite) * 100 : null;
         l.autonomie = this.arrondi(autonomie);
         l.couverture = this.arrondi(couverture, 1);
         l.couverture_ok = couverture === null ? null : couverture >= p.couverture_objectif_pct;
@@ -135,7 +142,7 @@ export class StocksComponent implements OnInit {
       for (const l of d.lignes) {
         l.stock_disponible = this.num(l.stock_bacs);
         const besoin = this.num(l.besoin_journalier);
-        const autonomie = besoin > 0 ? l.stock_disponible / besoin : null;
+        const autonomie = besoin > 0 && !this.nonSaisi(l) ? l.stock_disponible / besoin : null;
         l.autonomie = this.arrondi(autonomie);
         l.negatif = l.stock_disponible < 0;
         l.couleur = this.couleur(autonomie, l.objectif_jours);
@@ -220,20 +227,21 @@ export class StocksComponent implements OnInit {
     const interieurs = this.depotsInterieurs.flatMap(d => this.lignesVisibles(d).map(l => ({ ...l, depot_id: d.depot_id, interieur: true })));
     const exterieurs = this.depotsExterieurs.flatMap(d => d.lignes.map((l: any) => ({ ...l, depot_id: d.depot_id, interieur: false })));
     // Uniquement le perimetre de la page : une saisie interieure n'ecrase pas une saisie exterieure faite en parallele
+    // Une ligne laissee vide n'est pas envoyee : elle n'ecrase pas le dernier stock saisi (ex. autre depot)
     const lignes = (this.interieur ? interieurs : exterieurs).map(l => ({
       depot_id: l.depot_id,
       produit_id: l.produit_id,
-      ...(this.droits.stocks ? {
+      ...(this.droits.stocks && !this.nonSaisi(l) ? {
         stock_bacs: vide(l.stock_bacs) ? 0 : Number(l.stock_bacs),
         stock_embranchement: l.interieur && !vide(l.stock_embranchement) ? Number(l.stock_embranchement) : 0,
       } : {}),
       ...(this.droits.actions ? { action: l.action || '' } : {}),
-    }));
+    })).filter(l => 'stock_bacs' in l || 'action' in l);
     if (this.interieur && this.droits.stocks && interieurs.some(l => this.num(l.stock_bacs) < 0 || this.num(l.stock_embranchement) < 0)) {
       this.toast.error('Un stock de dépôt intérieur ne peut pas être négatif.');
       return;
     }
-    if (!lignes.length) { this.toast.error('Aucune ligne à enregistrer.'); return; }
+    if (!lignes.length) { this.toast.error('Aucun stock saisi : renseignez au moins un produit.'); return; }
 
     if (!(await this.dialog.confirmerEnregistrement(`la saisie des stocks ${this.interieur ? 'intérieurs' : 'extérieurs'} du jour`))) return;
     this.saving = true;
