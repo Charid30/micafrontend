@@ -87,12 +87,17 @@ export class EncoursLivraisonComponent implements OnInit {
     });
   }
 
-  // ── Planning
-  ajouterLigne(produitId: number | null = null): void {
+  // ── Planning : un bloc par produit, ses livraisons dessous (comme l'onglet Excel)
+  ajouterLigne(produitId: number): void {
     this.lignes.push({ produit_id: produitId, fournisseur_id: null, corridor_id: null, quantite_tm: null, date_livraison: null, statut: 'EN_COURS', observation: '' });
   }
 
-  supprimerLigne(i: number): void { this.lignes.splice(i, 1); }
+  supprimerLigne(l: LigneEncours): void {
+    const i = this.lignes.indexOf(l);
+    if (i >= 0) this.lignes.splice(i, 1);
+  }
+
+  lignesDe(produitId: number): LigneEncours[] { return this.lignes.filter(l => l.produit_id === produitId); }
 
   // Lignes regroupees par produit, dans l'ordre des produits (comme le fichier Excel)
   trier(): void {
@@ -104,19 +109,6 @@ export class EncoursLivraisonComponent implements OnInit {
 
   // ── Synthese par produit (meme calcul que le serveur et l'onglet Excel)
   private qte(l: LigneEncours): number { return Number(l.quantite_tm) || 0; }
-
-  get fournisseursUtilises(): any[] {
-    return this.fournisseurs.filter(f => this.lignes.some(l => l.fournisseur_id === f.id));
-  }
-
-  get produitsSynthese(): any[] {
-    return this.produits.filter(p => this.lignes.some(l => l.produit_id === p.id) || (Number(this.besoins[p.id]) > 0));
-  }
-
-  quantite(produitId: number, fournisseurId: number): number | null {
-    const l = this.lignes.filter(x => x.produit_id === produitId && x.fournisseur_id === fournisseurId);
-    return l.length ? l.reduce((s, x) => s + this.qte(x), 0) : null;
-  }
 
   cumul(produitId: number): number {
     return this.lignes.filter(l => l.produit_id === produitId).reduce((s, l) => s + this.qte(l), 0);
@@ -132,11 +124,8 @@ export class EncoursLivraisonComponent implements OnInit {
     return b && b > 0 ? this.cumul(produitId) / b : null;
   }
 
-  totalFournisseur(fournisseurId: number): number {
-    return this.lignes.filter(l => l.fournisseur_id === fournisseurId).reduce((s, l) => s + this.qte(l), 0);
-  }
   get totalCumul(): number { return this.lignes.reduce((s, l) => s + this.qte(l), 0); }
-  get totalBesoin(): number { return this.produitsSynthese.reduce((s, p) => s + (this.besoin(p.id) || 0), 0); }
+  get totalBesoin(): number { return this.produits.reduce((s, p) => s + (this.besoin(p.id) || 0), 0); }
   get totalTaux(): number | null { return this.totalBesoin > 0 ? this.totalCumul / this.totalBesoin : null; }
 
   classeCouverture(taux: number | null): string {
@@ -145,9 +134,6 @@ export class EncoursLivraisonComponent implements OnInit {
   }
 
   libelleProduit(id: number | null): string { return this.produits.find(p => p.id === id)?.libelle || ''; }
-
-  // Premiere ligne d'un groupe de produit (affichage du cumul par produit dans le planning)
-  debutGroupe(i: number): boolean { return i === 0 || this.lignes[i - 1].produit_id !== this.lignes[i].produit_id; }
 
   // ── Actions
   async onArchive(): Promise<void> {
@@ -165,11 +151,12 @@ export class EncoursLivraisonComponent implements OnInit {
 
   async onSave(): Promise<void> {
     if (!this.rapport) return;
-    // Lignes totalement vides : ignorees ; ligne incomplete : signalee avant l'envoi
-    const lignes = this.lignes.filter(l => l.produit_id || l.fournisseur_id || l.quantite_tm);
-    const incomplete = lignes.findIndex(l => !l.produit_id || !l.fournisseur_id || l.quantite_tm === null || (l.quantite_tm as any) === '');
-    if (incomplete >= 0) {
-      this.toast.error(`Ligne ${incomplete + 1} du planning : produit, fournisseur et quantité prévue sont obligatoires.`);
+    // Livraison ajoutee mais laissee vide : ignoree ; livraison incomplete : signalee avant l'envoi
+    const vide = (v: any) => v === null || v === undefined || v === '';
+    const lignes = this.lignes.filter(l => l.fournisseur_id || !vide(l.quantite_tm));
+    const incomplete = lignes.find(l => !l.fournisseur_id || vide(l.quantite_tm));
+    if (incomplete) {
+      this.toast.error(`${this.libelleProduit(incomplete.produit_id)} : le fournisseur et la quantité prévue sont obligatoires pour chaque livraison.`);
       return;
     }
     if (!(await this.dialog.confirmerEnregistrement('les encours de la semaine'))) return;
