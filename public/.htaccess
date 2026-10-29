@@ -42,3 +42,13 @@ RewriteRule . /mica/index.html [L]
   ExpiresByType image/jpeg "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 year"
 </IfModule>
+
+# Service worker des notifications : jamais mis en cache (sa mise a jour doit etre immediate)
+<Files "push-sw.js">
+  <IfModule mod_expires.c>
+    ExpiresActive Off
+  </IfModule>
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache"
+  </IfModule>
+</Files>

@@ -8,7 +8,9 @@
  *  Projet : MICA – SONABHY
  *  Merci
  * ================================================================== */
-import { Component, HostListener, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit, inject } from '@angular/core';
+import { ToastService } from '../core/services/toast.service';
+import { NotificationsService } from '../core/services/notifications.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/services/auth.service';
@@ -28,6 +30,29 @@ export class LayoutComponent implements OnInit {
   // Administrateurs : sauvegarde de la base manquee ou en echec
   alerteSauvegarde: string | null = null;
 
+  private readonly notifications = inject(NotificationsService);
+  private readonly toast = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly CLE_NOTIF_MASQUEE = 'mica_notif_masquee';
+  proposerNotifications = false;
+
+  async activerNotifications(): Promise<void> {
+    try {
+      const e = await this.notifications.activer();
+      this.proposerNotifications = false;
+      if (e === 'actif') this.toast.success('Notifications activées sur ce navigateur.');
+      else if (e === 'refuse') this.toast.error('Notifications bloquées : autorisez-les dans les réglages du navigateur (icône du cadenas).');
+    } catch {
+      this.toast.error('Impossible d\'activer les notifications sur ce navigateur.');
+    }
+    this.cdr.detectChanges();
+  }
+
+  masquerNotifications(): void {
+    this.proposerNotifications = false;
+    try { localStorage.setItem(this.CLE_NOTIF_MASQUEE, '1'); } catch { /* stockage indisponible */ }
+  }
+
   constructor(public authService: AuthService, private router: Router, private http: HttpClient) {
     this.checkMobile();
   }
@@ -41,6 +66,15 @@ export class LayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.rafraichir();
+    // Notifications push deja autorisees sur ce navigateur : rattachees a l'utilisateur connecte ;
+    // sinon, proposition de les activer (sauf si l'utilisateur l'a deja masquee)
+    this.notifications.synchroniser();
+    this.notifications.etat().then(e => {
+      let masquee = false;
+      try { masquee = localStorage.getItem(this.CLE_NOTIF_MASQUEE) === '1'; } catch { /* stockage indisponible */ }
+      this.proposerNotifications = e === 'inactif' && !masquee;
+      this.cdr.detectChanges();
+    });
     if (this.authService.isAdmin()) {
       this.http.get<any>(`${environment.apiUrl}/administration/sauvegardes/etat`).subscribe({
         next: (e) => { this.alerteSauvegarde = e.alerte; },

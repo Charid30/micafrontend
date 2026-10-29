@@ -137,6 +137,31 @@
       <app-double-auth-config mode="profil"></app-double-auth-config>
     </div>
 
+    <!-- ══════════ Notifications push ══════════ -->
+    <div class="card" id="notifications">
+      <h3 class="section-title mb-1">Notifications</h3>
+      <p class="text-sm text-gray-500 mb-4">
+        Sur ce navigateur : rapport hebdomadaire prêt, et rappel le soir quand une saisie du jour dont vous avez la charge n'est pas faite.
+      </p>
+      <ng-container [ngSwitch]="etatNotif">
+        <p *ngSwitchCase="'non-supporte'" class="text-sm text-gray-500 italic">
+          Ce navigateur ne prend pas en charge les notifications (ou la page n'est pas en HTTPS).
+        </p>
+        <p *ngSwitchCase="'refuse'" class="text-sm text-red-700">
+          Les notifications sont bloquées pour ce site. Autorisez-les dans les réglages du navigateur (icône du cadenas à gauche de l'adresse), puis rechargez la page.
+        </p>
+        <div *ngSwitchCase="'actif'" class="flex flex-wrap items-center gap-3">
+          <span class="badge-success">Activées</span>
+          <button type="button" class="btn-outline" [disabled]="notifEnCours" (click)="testerNotifications()">Envoyer un essai</button>
+          <button type="button" class="btn-outline" [disabled]="notifEnCours" (click)="desactiverNotifications()">Désactiver</button>
+        </div>
+        <div *ngSwitchCase="'inactif'" class="flex flex-wrap items-center gap-3">
+          <span class="badge-neutral">Désactivées</span>
+          <button type="button" class="btn-primary" [disabled]="notifEnCours" (click)="activerNotifications()">Activer les notifications</button>
+        </div>
+      </ng-container>
+    </div>
+
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
       <!-- ══════════ Mes droits ══════════ -->

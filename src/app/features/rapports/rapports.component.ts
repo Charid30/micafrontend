@@ -18,6 +18,89 @@ import { environment } from '../../../environments/environment';
 
 const API = `${environment.apiUrl}/rapports`;
 
+// ── PDF du rapport : feuille de style propre au document (couleurs MICA en dur)
+const PDF_CSS = `
+.pdf-doc { width: 190mm; background: #fff; color: #111; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.3; }
+.pdf-doc * { font-family: 'Times New Roman', Times, serif !important; letter-spacing: normal !important; box-shadow: none !important; }
+.pdf-doc p, .pdf-doc li, .pdf-doc dt, .pdf-doc dd, .pdf-doc span, .pdf-doc strong, .pdf-doc div { font-size: 12pt !important; }
+.pdf-doc p, .pdf-doc ul.list-disc li { text-align: justify !important; }
+.pdf-doc ul.list-disc { list-style: disc !important; padding-left: 16pt !important; margin: 0 0 6pt !important; }
+.pdf-doc ul.list-disc li { margin-bottom: 2pt !important; }
+.pdf-doc .card { background: #fff !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; margin: 0 0 12pt !important; }
+.pdf-doc .print-header { text-align: center; padding: 0 0 6pt !important; margin-bottom: 14pt !important; border-bottom: 2px solid #163832 !important; }
+.pdf-doc .print-header p { text-align: center !important; color: #333 !important; margin-top: 3pt !important; }
+.pdf-doc h1 { font-size: 16pt !important; font-weight: bold !important; text-transform: uppercase; color: #0B2B26 !important; margin: 0 !important; }
+.pdf-doc h2 { font-size: 14pt !important; font-weight: bold !important; text-transform: uppercase; color: #0B2B26 !important; border-bottom: 1px solid #8EB69B !important; padding-bottom: 2pt !important; margin: 4pt 0 8pt !important; }
+.pdf-doc .section-title { font-size: 13pt !important; font-weight: bold !important; color: #0B2B26 !important; margin: 0 0 6pt !important; }
+.pdf-doc h4 { font-size: 12pt !important; font-weight: bold !important; color: #235347 !important; margin: 8pt 0 4pt !important; }
+.pdf-doc .text-gray-400 { color: #6b7280 !important; }
+.pdf-doc .text-red-700, .pdf-doc .text-red-600 { color: #b91c1c !important; }
+.pdf-doc .text-yellow-700 { color: #a16207 !important; }
+.pdf-doc .line-through { text-decoration: line-through !important; }
+.pdf-doc .grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8pt !important; margin-bottom: 6pt; }
+.pdf-doc .grid > div { border: 1px solid #8EB69B !important; border-radius: 0 !important; display: flex; flex-direction: column; }
+.pdf-doc .grid li { display: flex !important; justify-content: space-between !important; gap: 6pt; padding: 2pt 6pt !important; border-top: 1px solid #DAF1DE !important; }
+.pdf-doc .bg-primary-800 { background: #051F20 !important; color: #fff !important; text-align: center; font-weight: bold !important; padding: 3pt 6pt !important; }
+.pdf-doc .bg-primary-50, .pdf-doc tr.bg-primary-50 td { background: #DAF1DE !important; }
+.pdf-doc .overflow-x-auto { overflow: visible !important; border: 0 !important; border-radius: 0 !important; }
+.pdf-doc table { width: 100% !important; min-width: 0 !important; border-collapse: collapse !important; margin: 0 0 4pt !important; }
+.pdf-doc table th, .pdf-doc table td { border: 1px solid #8EB69B !important; padding: 2pt 4pt !important; min-width: 0 !important; position: static !important; white-space: normal !important; vertical-align: middle !important; font-size: 12pt !important; }
+.pdf-doc table th { background: #051F20 !important; color: #fff !important; font-weight: bold !important; text-transform: none !important; text-align: center !important; border-radius: 0 !important; }
+.pdf-doc table td span, .pdf-doc table td strong { font-size: inherit !important; }
+.pdf-doc table.pdf-large th, .pdf-doc table.pdf-large td { font-size: 10pt !important; }
+.pdf-doc table td.pdf-vide { border: 0 !important; padding: 0 !important; background: #fff !important; }
+.pdf-doc dl { border: 1px solid #8EB69B !important; border-radius: 0 !important; }
+.pdf-doc dl > div { display: flex !important; justify-content: space-between !important; padding: 3pt 6pt !important; border-top: 1px solid #DAF1DE !important; }
+.pdf-doc .auto-rouge, .pdf-doc .auto-jaune, .pdf-doc .auto-vert, .pdf-doc .auto-aucune { display: inline-block !important; min-width: 0 !important; padding: 0 3pt !important; border-radius: 2pt !important; font-weight: bold !important; font-size: inherit !important; }
+.pdf-doc p .auto-rouge, .pdf-doc p .auto-jaune, .pdf-doc p .auto-vert { font-size: 12pt !important; }
+.pdf-doc .auto-rouge { background: #fee2e2 !important; color: #b91c1c !important; }
+.pdf-doc .auto-jaune { background: #fef9c3 !important; color: #854d0e !important; }
+.pdf-doc .auto-vert { background: #DAF1DE !important; color: #0B2B26 !important; }
+.pdf-doc .auto-aucune { color: #9ca3af !important; font-weight: normal !important; }
+.pdf-doc .tendance-favorable { color: #15803d !important; }
+.pdf-doc .tendance-defavorable { color: #b91c1c !important; }
+.pdf-doc .tendance-stable { color: #6b7280 !important; }
+`;
+
+// Éléments à ne jamais couper entre deux pages (une ligne de tableau, un paragraphe, un bloc de stocks...)
+const PDF_INSECABLES = 'h1, h2, h3, h4, p, li, tr, dl > div, .grid';
+
+// Pousse sur la page suivante tout élément insécable qui chevauche un saut de page.
+// Un titre n'est jamais laissé seul en bas de page ; dans un tableau, l'en-tête est répété.
+function paginer(racine: HTMLElement, hauteurPage: number): void {
+  const elements = Array.from(racine.querySelectorAll<HTMLElement>(PDF_INSECABLES))
+    .filter(e => !e.parentElement?.closest(PDF_INSECABLES));
+  for (const e of elements) {
+    const origine = racine.getBoundingClientRect().top;
+    const r = e.getBoundingClientRect();
+    const haut = r.top - origine;
+    const bas = r.bottom - origine + (/^H[1-4]$/.test(e.tagName) ? 60 : 0);
+    if (bas - haut >= hauteurPage) continue;
+    const page = Math.floor(haut / hauteurPage);
+    if (Math.floor((bas - 1) / hauteurPage) === page) continue;
+    const reste = Math.ceil((page + 1) * hauteurPage - haut) + 1;
+
+    if (e.tagName === 'TR' && e.parentElement?.tagName !== 'THEAD') {
+      const vide = document.createElement('tr');
+      const td = document.createElement('td');
+      td.className = 'pdf-vide';
+      td.colSpan = 50;
+      td.style.height = `${reste}px`;
+      vide.appendChild(td);
+      e.before(vide);
+      const entete = e.closest('table')?.tHead?.rows[0];
+      if (entete) e.before(entete.cloneNode(true));
+    } else {
+      // Ligne d'en-tête en bas de page : tout le tableau passe à la page suivante
+      const cible = e.tagName === 'TR' ? (e.closest('.overflow-x-auto') as HTMLElement || e.closest('table')!) : e;
+      const hautCible = cible.getBoundingClientRect().top - origine;
+      const vide = document.createElement('div');
+      vide.style.height = `${Math.max(0, Math.ceil((page + 1) * hauteurPage - hautCible) + 1)}px`;
+      cible.before(vide);
+    }
+  }
+}
+
 @Component({
   selector: 'app-rapports',
   templateUrl: './rapports.component.html',
@@ -226,6 +309,10 @@ export class RapportsComponent implements OnInit {
 
   // ── Téléchargement PDF ──────────────────────────────────────
 
+  // Le PDF est construit à partir d'une copie de la zone imprimable, avec sa propre feuille de style
+  // (Times New Roman 12, texte justifié, couleurs en dur) : il ne dépend ni de la largeur de l'écran
+  // ni du chargement des styles de l'application. Les sauts de page sont placés à la main entre deux
+  // lignes (jamais au milieu d'une ligne de tableau) et l'en-tête du tableau est répété.
   async telecharger(): Promise<void> {
     const el = document.getElementById('rapport-print-zone');
     if (!el) return;
@@ -234,18 +321,46 @@ export class RapportsComponent implements OnInit {
     const an  = this.apercu?.rapport?.annee;
     const nom = `rapport_semaine_${sem}_${an}.pdf`;
 
-    const html2pdf = (await import('html2pdf.js')).default;
+    // Le support hors écran sert seulement à la mise en page ; html2pdf copie le document lui-même
+    const support = document.createElement('div');
+    support.style.cssText = 'position:absolute;left:-10000px;top:0';
+    const doc = document.createElement('div');
+    doc.className = 'pdf-doc';
+    support.appendChild(doc);
+    const style = document.createElement('style');
+    style.textContent = PDF_CSS;
+    doc.appendChild(style);
+    const copie = el.cloneNode(true) as HTMLElement;
+    copie.removeAttribute('id');
+    doc.appendChild(copie);
+    // Tableaux larges (beaucoup de colonnes) : police réduite pour que toutes les colonnes tiennent
+    doc.querySelectorAll('table').forEach(t => {
+      if ((t.tHead?.rows[0]?.cells.length || 0) > 7) t.classList.add('pdf-large');
+    });
+    document.body.appendChild(support);
+    // Tailwind met les images en display:block, ce qui fausse la mesure de la ligne de base des
+    // polices par html2canvas (faite dans la page) : le texte des cellules serait décalé vers le bas
+    const correctif = document.createElement('style');
+    correctif.textContent = 'img { display: inline-block !important; }';
+    document.head.appendChild(correctif);
 
-    const opt: any = {
-      margin:      [10, 10, 10, 10],
-      filename:    nom,
-      image:       { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak:   { mode: ['avoid-all', 'css'] },
-    };
-
-    html2pdf().set(opt).from(el).save();
+    try {
+      // Hauteur utile d'une page A4 (277 mm) à la largeur utile (190 mm)
+      paginer(doc, doc.getBoundingClientRect().width * 277 / 190);
+      const html2pdf = (await import('html2pdf.js')).default;
+      const opt: any = {
+        margin:      [10, 10, 10, 10],
+        filename:    nom,
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:   { mode: [] },
+      };
+      await html2pdf().set(opt).from(doc).save();
+    } finally {
+      support.remove();
+      correctif.remove();
+    }
   }
 
   // ── Impression ─────────────────────────────────────────────

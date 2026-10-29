@@ -15,6 +15,7 @@ import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DialogService } from '../../core/services/dialog.service';
+import { NotificationsService, EtatNotifications } from '../../core/services/notifications.service';
 
 // « Mon profil » : identite, coordonnees, droits, mot de passe et historique des connexions
 @Component({
@@ -44,7 +45,43 @@ export class ProfilComponent implements OnInit {
   voirMdp = false;
   savingMdp = false;
 
-  ngOnInit(): void { this.charger(); }
+  // Notifications push de ce navigateur
+  private readonly notifications = inject(NotificationsService);
+  etatNotif: EtatNotifications | null = null;
+  notifEnCours = false;
+
+  ngOnInit(): void {
+    this.charger();
+    this.notifications.etat().then(e => { this.etatNotif = e; this.cdr.detectChanges(); });
+  }
+
+  private async actionNotif(action: () => Promise<void>): Promise<void> {
+    this.notifEnCours = true;
+    this.cdr.detectChanges();
+    try { await action(); }
+    catch (e: any) { this.toast.error(e?.error?.message || 'Opération impossible sur ce navigateur.'); }
+    this.notifEnCours = false;
+    this.etatNotif = await this.notifications.etat();
+    this.cdr.detectChanges();
+  }
+
+  activerNotifications(): Promise<void> {
+    return this.actionNotif(async () => {
+      const e = await this.notifications.activer();
+      if (e === 'actif') this.toast.success('Notifications activées sur ce navigateur.');
+    });
+  }
+
+  desactiverNotifications(): Promise<void> {
+    return this.actionNotif(async () => {
+      await this.notifications.desactiver();
+      this.toast.success('Notifications désactivées sur ce navigateur.');
+    });
+  }
+
+  testerNotifications(): Promise<void> {
+    return this.actionNotif(async () => { this.toast.success((await this.notifications.tester()).message); });
+  }
 
   charger(): void {
     this.http.get<any>(this.api).subscribe({

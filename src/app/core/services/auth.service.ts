@@ -8,7 +8,8 @@
  *  Projet : MICA – SONABHY
  *  Merci
  * ================================================================== */
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { NotificationsService } from './notifications.service';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
@@ -24,6 +25,8 @@ export class AuthService {
 
   private userSubject = new BehaviorSubject<Utilisateur | null>(this.storedUser());
   public user$ = this.userSubject.asObservable();
+
+  private readonly notifications = inject(NotificationsService);
 
   constructor(private http: HttpClient, private router: Router) {
     localStorage.removeItem(this.LEGACY_TOKEN_KEY); // nettoyage de l'ancien stockage du jeton
@@ -67,7 +70,10 @@ export class AuthService {
 
   /** Déconnexion volontaire : efface aussi le cookie côté serveur */
   logout(): void {
-    this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} });
+    // Notifications push : ce navigateur n'est plus rattache au compte (poste partage), puis
+    // fermeture de la session cote serveur (le detachement a besoin de la session encore ouverte)
+    this.notifications.detacher().finally(() =>
+      this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} }));
     this.clearSession();
   }
 
