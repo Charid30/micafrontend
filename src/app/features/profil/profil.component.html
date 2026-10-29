@@ -141,7 +141,7 @@
     <div class="card" id="notifications">
       <h3 class="section-title mb-1">Notifications</h3>
       <p class="text-sm text-gray-500 mb-4">
-        Sur ce navigateur : rapport hebdomadaire prêt, et rappel le soir quand une saisie du jour dont vous avez la charge n'est pas faite.
+        Obligatoires sur chaque navigateur utilisé : rapport hebdomadaire prêt, et rappel le soir quand une saisie du jour dont vous avez la charge n'est pas faite.
       </p>
       <ng-container [ngSwitch]="etatNotif">
         <p *ngSwitchCase="'non-supporte'" class="text-sm text-gray-500 italic">
@@ -153,7 +153,6 @@
         <div *ngSwitchCase="'actif'" class="flex flex-wrap items-center gap-3">
           <span class="badge-success">Activées</span>
           <button type="button" class="btn-outline" [disabled]="notifEnCours" (click)="testerNotifications()">Envoyer un essai</button>
-          <button type="button" class="btn-outline" [disabled]="notifEnCours" (click)="desactiverNotifications()">Désactiver</button>
         </div>
         <div *ngSwitchCase="'inactif'" class="flex flex-wrap items-center gap-3">
           <span class="badge-neutral">Désactivées</span>

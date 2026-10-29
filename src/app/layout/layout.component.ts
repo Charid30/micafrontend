@@ -10,7 +10,7 @@
  * ================================================================== */
 import { ChangeDetectorRef, Component, HostListener, OnInit, inject } from '@angular/core';
 import { ToastService } from '../core/services/toast.service';
-import { NotificationsService } from '../core/services/notifications.service';
+import { NotificationsService, EtatNotifications } from '../core/services/notifications.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/services/auth.service';
@@ -33,24 +33,52 @@ export class LayoutComponent implements OnInit {
   private readonly notifications = inject(NotificationsService);
   private readonly toast = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly CLE_NOTIF_MASQUEE = 'mica_notif_masquee';
-  proposerNotifications = false;
+  // Notifications push obligatoires : la fenetre bloque l'application tant que l'etat est
+  // « inactif » ou « refuse ». Navigateur sans prise en charge (ancien, ou site hors HTTPS) :
+  // pas de blocage, sinon personne ne pourrait travailler.
+  etatNotif: EtatNotifications | null = null;
+  notifEnCours = false;
 
   async activerNotifications(): Promise<void> {
+    this.notifEnCours = true;
+    this.cdr.detectChanges();
     try {
-      const e = await this.notifications.activer();
-      this.proposerNotifications = false;
-      if (e === 'actif') this.toast.success('Notifications activées sur ce navigateur.');
-      else if (e === 'refuse') this.toast.error('Notifications bloquées : autorisez-les dans les réglages du navigateur (icône du cadenas).');
+      this.etatNotif = await this.notifications.activer();
+      if (this.etatNotif === 'actif') this.toast.success('Notifications activées sur ce navigateur.');
     } catch {
-      this.toast.error('Impossible d\'activer les notifications sur ce navigateur.');
+      this.toast.error('Impossible d\'activer les notifications. Réessayez dans un instant.');
     }
+    this.notifEnCours = false;
     this.cdr.detectChanges();
   }
 
-  masquerNotifications(): void {
-    this.proposerNotifications = false;
-    try { localStorage.setItem(this.CLE_NOTIF_MASQUEE, '1'); } catch { /* stockage indisponible */ }
+  // Apres un changement dans les reglages du navigateur : autorise -> abonnement immediat
+  async verifierNotifications(): Promise<void> {
+    this.etatNotif = await this.notifications.etat();
+    if (this.etatNotif === 'inactif' && 'Notification' in window && Notification.permission === 'granted') {
+      return this.activerNotifications();
+    }
+    if (this.etatNotif === 'refuse') this.toast.error('Les notifications sont toujours bloquées pour ce site.');
+    this.cdr.detectChanges();
+  }
+
+  private async controlerNotifications(): Promise<void> {
+    await this.notifications.synchroniser();
+    this.etatNotif = await this.notifications.etat();
+    this.cdr.detectChanges();
+  }
+
+  // Retour sur l'onglet (reglages du navigateur modifies entre-temps, autorisation retiree...)
+  @HostListener('document:visibilitychange')
+  surRetourOnglet(): void {
+    if (document.visibilityState === 'visible' && this.etatNotif !== 'non-supporte') this.verifierNotificationsSilencieux();
+  }
+
+  private async verifierNotificationsSilencieux(): Promise<void> {
+    const e = await this.notifications.etat();
+    if (e === 'inactif' && 'Notification' in window && Notification.permission === 'granted') return this.activerNotifications();
+    this.etatNotif = e;
+    this.cdr.detectChanges();
   }
 
   constructor(public authService: AuthService, private router: Router, private http: HttpClient) {
@@ -66,15 +94,9 @@ export class LayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.rafraichir();
-    // Notifications push deja autorisees sur ce navigateur : rattachees a l'utilisateur connecte ;
-    // sinon, proposition de les activer (sauf si l'utilisateur l'a deja masquee)
-    this.notifications.synchroniser();
-    this.notifications.etat().then(e => {
-      let masquee = false;
-      try { masquee = localStorage.getItem(this.CLE_NOTIF_MASQUEE) === '1'; } catch { /* stockage indisponible */ }
-      this.proposerNotifications = e === 'inactif' && !masquee;
-      this.cdr.detectChanges();
-    });
+    // Notifications push : deja autorisees sur ce navigateur -> rattachees a l'utilisateur connecte ;
+    // sinon, fenetre d'activation obligatoire
+    this.controlerNotifications();
     if (this.authService.isAdmin()) {
       this.http.get<any>(`${environment.apiUrl}/administration/sauvegardes/etat`).subscribe({
         next: (e) => { this.alerteSauvegarde = e.alerte; },

@@ -72,13 +72,6 @@ export class ProfilComponent implements OnInit {
     });
   }
 
-  desactiverNotifications(): Promise<void> {
-    return this.actionNotif(async () => {
-      await this.notifications.desactiver();
-      this.toast.success('Notifications désactivées sur ce navigateur.');
-    });
-  }
-
   testerNotifications(): Promise<void> {
     return this.actionNotif(async () => { this.toast.success((await this.notifications.tester()).message); });
   }
