@@ -24,6 +24,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   stats: any = null;
   error: string | null = null;
   alertesOuvertes = false;
+  provisoireOuvert = false;
 
   private sub: Subscription | null = null;
   private timer: any = null;

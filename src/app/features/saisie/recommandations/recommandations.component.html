@@ -84,7 +84,7 @@
           </label>
           <p *ngIf="informationsRepriseDe" class="text-xs text-primary-600 bg-primary-50 border border-primary-200 rounded-lg px-3 py-2 mb-2">
             Texte repris de la semaine {{ informationsRepriseDe.semaine_iso }} / {{ informationsRepriseDe.annee }} :
-            vérifiez-le, modifiez-le si besoin, puis enregistrez.
+            vérifiez-le, modifiez-le si besoin, puis enregistrez. Il n'apparaîtra dans le rapport qu'après l'enregistrement.
           </p>
           <textarea id="infosUtiles" rows="4" [(ngModel)]="informations_utiles"
             class="input-field w-full text-sm resize-y"
