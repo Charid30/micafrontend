@@ -30,6 +30,10 @@ export class AuthInterceptor implements HttpInterceptor {
         if (err.status === 401 && !req.url.endsWith('/auth/login')) {
           this.authService.clearSession();
         }
+        // Adresse bannie : plus aucun acces, retour a la connexion (le message s'y affiche)
+        if (err.status === 403 && err.error?.code === 'ACCES_BANNI' && !req.url.endsWith('/auth/login')) {
+          this.authService.clearSession();
+        }
         // Premiere connexion ou mot de passe expire : le serveur n'accepte que le changement de mot de passe
         if (err.status === 403 && err.error?.code === 'MOT_DE_PASSE_A_CHANGER') {
           this.authService.exigerChangementMotDePasse();
