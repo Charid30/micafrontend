@@ -10,9 +10,11 @@
  * ================================================================== */
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -33,13 +35,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private sub: Subscription | null = null;
   private timer: any = null;
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private router: Router, private authService: AuthService) {}
 
   // Semaine affichee : null = dernier rapport publie
   rapportId: number | null = null;
   rapports: any[] = [];
 
+  // Une session ouverte avant l'ajout du droit a une liste de droits perimee : on la relit avant de conclure
   ngOnInit(): void {
+    if (this.authService.hasPermission('dashboard', 'READ')) return this.ouvrir();
+    this.authService.relire().subscribe({
+      next: () => {
+        if (this.authService.hasPermission('dashboard', 'READ')) this.ouvrir();
+        else this.router.navigateByUrl(this.authService.pageAccueil(), { replaceUrl: true });
+      },
+      error: () => { /* 401 : l'intercepteur ferme la session */ },
+    });
+  }
+
+  private ouvrir(): void {
     this.http.get<any[]>(`${environment.apiUrl}/rapports/liste`).subscribe({
       next: (liste) => { this.rapports = liste; this.cdr.detectChanges(); },
       error: () => { /* le selecteur reste limite au dernier rapport publie */ },

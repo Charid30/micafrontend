@@ -1,0 +1,547 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     Merci
+     ================================================================== -->
+<div class="space-y-6 has-save-bar">
+
+  <!-- En-tête -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">RDC : Dépôt de {{ nomPays }}</h2>
+      <p class="text-sm text-gray-500 mt-1">Stocks, camions, chargements et réceptions des dépôts côtiers</p>
+    </div>
+    <div *ngIf="!enPreparation" class="flex items-center gap-2">
+      <button type="button" class="btn-secondary !px-2" (click)="aller(-1)" aria-label="Jour précédent" title="Jour précédent">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <input type="date" class="input-field w-40" [ngModel]="date" (change)="choisir($any($event.target))" [max]="aujourdhui" aria-label="Date de l'état"/>
+      <button type="button" class="btn-secondary !px-2" [disabled]="date >= aujourdhui" (click)="aller(1)" aria-label="Jour suivant" title="Jour suivant">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <!-- Actions : barre fixe en bas de l'écran sous 1024 px -->
+      <div class="save-bar">
+        <button type="button" class="btn-secondary" (click)="telecharger()" [disabled]="loading || generation">
+          {{ generation ? 'Génération...' : 'PDF' }}
+        </button>
+        <button *ngIf="canWrite && onglet === 'etat'" type="button" class="btn-primary" (click)="enregistrer()" [disabled]="saving || loading">
+          {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+        <span *ngIf="!canWrite" class="text-xs text-amber-600 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">Lecture seule</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="card border-red-200 bg-red-50 text-sm text-red-700">{{ error }}</div>
+  <div *ngIf="loading" class="card text-sm text-gray-500">Chargement…</div>
+  <div *ngIf="enPreparation" class="card text-sm text-gray-600">Le suivi du dépôt de {{ nomPays }} est en préparation.</div>
+
+  <ng-container *ngIf="!loading && !error && !enPreparation">
+    <div class="tabs" role="tablist">
+      <button *ngFor="let t of onglets" type="button" (click)="onglet = t.cle" role="tab" [attr.aria-selected]="onglet === t.cle"
+        [class]="onglet === t.cle ? 'px-5 py-2 text-sm font-semibold border-b-2 border-primary-700 text-primary-800' : 'px-5 py-2 text-sm text-gray-500 hover:text-gray-700'">
+        {{ t.libelle }}
+      </button>
+    </div>
+
+    <!-- Etat du jour -->
+    <ng-container *ngIf="onglet === 'etat'">
+      <p *ngIf="!saisieFaite" class="text-sm text-amber-700">Aucun stock saisi pour cette date. Les besoins en camions sont repris du dernier jour saisi.</p>
+
+      <div class="card" (input)="modifie = true">
+        <h3 class="section-title mb-3">Stocks (volume ambiant en m³, butane en TM)</h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Dépôt</th>
+                <th *ngFor="let p of produits; let dernier = last" class="table-header" [class.rounded-tr-lg]="dernier">{{ p.libelle }}</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let d of depots" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ d.libelle }}</td>
+                <td *ngFor="let p of produits" class="table-cell">
+                  <input type="number" min="0" step="any" class="input-field table-input text-right" [(ngModel)]="stocks[cle(d.id, p.code)]" [disabled]="!canWrite" [attr.aria-label]="'Stock ' + p.libelle + ' ' + d.libelle"/>
+                </td>
+              </tr>
+              <tr class="bg-primary-50 font-semibold">
+                <td class="table-cell sticky-col">Total</td>
+                <td *ngFor="let p of produits" class="table-cell text-right whitespace-nowrap">{{ nombre(totalStock(p.code)) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" (input)="modifie = true">
+        <h3 class="section-title mb-3">Camions-citernes en attente et chargés</h3>
+        <p class="mb-3 text-xs text-gray-500">Chargés : camions saisis le {{ veilleFr }}, comptés automatiquement. En attente : à saisir.</p>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Dépôt</th>
+                <th class="table-header"></th>
+                <th *ngFor="let p of produits" class="table-header">{{ p.libelle }}</th>
+                <th class="table-header rounded-tr-lg">Total</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <ng-container *ngFor="let d of depots">
+                <tr class="table-row-hover">
+                  <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ d.libelle }}</td>
+                  <td class="table-cell whitespace-nowrap">Chargés</td>
+                  <td *ngFor="let p of produits" class="table-cell text-right">{{ charge(d.id, p.code) || '' }}</td>
+                  <td class="table-cell text-right font-semibold">{{ totalChargesDepot(d.id) }}</td>
+                </tr>
+                <tr class="table-row-hover">
+                  <td class="table-cell sticky-col"></td>
+                  <td class="table-cell whitespace-nowrap">En attente</td>
+                  <td *ngFor="let p of produits" class="table-cell">
+                    <input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="attentes[cle(d.id, p.code)]" [disabled]="!canWrite" [attr.aria-label]="'Camions en attente ' + p.libelle + ' ' + d.libelle"/>
+                  </td>
+                  <td class="table-cell text-right font-semibold">{{ totalAttenteDepot(d.id) }}</td>
+                </tr>
+              </ng-container>
+              <tr class="bg-primary-50 font-semibold">
+                <td class="table-cell sticky-col">Total</td>
+                <td class="table-cell">Chargés</td>
+                <td *ngFor="let p of produits" class="table-cell text-right">{{ totalCharges(p.code) }}</td>
+                <td class="table-cell text-right">{{ grandTotalCharges }}</td>
+              </tr>
+              <tr class="bg-primary-50 font-semibold">
+                <td class="table-cell sticky-col">Total</td>
+                <td class="table-cell whitespace-nowrap">En attente</td>
+                <td *ngFor="let p of produits" class="table-cell text-right">{{ totalAttente(p.code) }}</td>
+                <td class="table-cell text-right">{{ grandTotalAttente }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title mb-3">Chargements du {{ veilleFr }} (tonnes)</h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Produit</th>
+                <th *ngFor="let c of colonnes" class="table-header">{{ c.libelle }}</th>
+                <th class="table-header rounded-tr-lg">Total</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let p of produits" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ p.libelle }}</td>
+                <td *ngFor="let c of colonnes" class="table-cell text-right whitespace-nowrap">{{ tonne(p.code, c.code) ? tonnage(tonne(p.code, c.code)) : '' }}</td>
+                <td class="table-cell text-right font-semibold whitespace-nowrap">{{ tonnage(totalTonnesProduit(p.code)) }}</td>
+              </tr>
+              <tr class="bg-primary-50 font-semibold">
+                <td class="table-cell sticky-col">Total</td>
+                <td *ngFor="let c of colonnes" class="table-cell text-right whitespace-nowrap">{{ tonnage(totalTonnesColonne(c.code)) }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ tonnage(grandTotalTonnes) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p *ngIf="sansTonnage" class="mt-3 text-xs text-amber-700">{{ sansTonnage }} camion(s) sans tonnage (quantités relevées, sans densité) ne sont pas comptés ici.</p>
+      </div>
+
+      <div class="card" (input)="modifie = true">
+        <h3 class="section-title mb-3">Besoins en camions</h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Produit</th>
+                <th class="table-header">Quantité</th>
+                <th class="table-header rounded-tr-lg">Répartition par dépôt</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let b of besoins" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ b.libelle }}</td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="b.quantite" [disabled]="!canWrite" [attr.aria-label]="'Besoin en camions ' + b.libelle"/></td>
+                <td class="table-cell"><input type="text" maxlength="255" class="input-field table-input-wide" [(ngModel)]="b.repartition" [disabled]="!canWrite" [attr.aria-label]="'Répartition ' + b.libelle"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Chargements -->
+    <ng-container *ngIf="onglet === 'chargements'">
+      <form *ngIf="canWrite" id="rdc-formulaire-camion" class="card" (ngSubmit)="enregistrerCamion()">
+        <h3 class="section-title mb-3">{{ camion.id ? 'Modifier le camion' : 'Ajouter un camion du ' + dateFr }}</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label class="text-sm text-gray-700">Dépôt
+            <select class="input-field mt-1" name="depot" [(ngModel)]="camion.depot_id" required>
+              <option [ngValue]="null">Choisir</option>
+              <option *ngFor="let d of depots" [ngValue]="d.id">{{ d.libelle }}</option>
+            </select>
+          </label>
+          <label class="text-sm text-gray-700">Produit
+            <select class="input-field mt-1" name="produit" [(ngModel)]="camion.produit" required>
+              <option value="">Choisir</option>
+              <option *ngFor="let p of produits" [value]="p.code">{{ p.libelle }}</option>
+            </select>
+          </label>
+          <label class="text-sm text-gray-700">N° de bon
+            <input class="input-field mt-1" name="bon" maxlength="40" [(ngModel)]="camion.bon" required/>
+          </label>
+          <label class="text-sm text-gray-700">N° de commande
+            <input class="input-field mt-1" name="commande" maxlength="40" [(ngModel)]="camion.commande"/>
+          </label>
+          <label class="text-sm text-gray-700">Tracteur
+            <input class="input-field mt-1" name="tracteur" maxlength="20" [(ngModel)]="camion.tracteur"/>
+          </label>
+          <label class="text-sm text-gray-700">Remorque
+            <input class="input-field mt-1" name="remorque" maxlength="20" [(ngModel)]="camion.remorque"/>
+          </label>
+          <label class="text-sm text-gray-700">Destination
+            <select class="input-field mt-1" name="destination" [(ngModel)]="camion.destination" required>
+              <option value="">Choisir</option>
+              <option *ngFor="let d of destinations" [value]="d.libelle">{{ d.libelle }}</option>
+              <option [value]="AUTRE">Autre…</option>
+            </select>
+          </label>
+          <label *ngIf="camion.destination === AUTRE" class="text-sm text-gray-700">Préciser la destination
+            <input class="input-field mt-1" name="autre" maxlength="80" [(ngModel)]="camion.autre" required/>
+          </label>
+
+          <ng-container *ngIf="modeCamion === 'QUANTITES'">
+            <label class="text-sm text-gray-700">Quantité à 20 °C (L)
+              <input type="number" min="0" step="1" class="input-field mt-1" name="quantite_20" [(ngModel)]="camion.quantite_20" required/>
+            </label>
+            <label class="text-sm text-gray-700">Quantité observée (L)
+              <input type="number" min="0" step="1" class="input-field mt-1" name="volume_ambiant" [(ngModel)]="camion.volume_ambiant" required/>
+            </label>
+          </ng-container>
+          <label *ngIf="modeCamion === 'GPL'" class="text-sm text-gray-700">Quantité (kg)
+            <input type="number" min="0" step="1" class="input-field mt-1" name="quantite_kg" [(ngModel)]="camion.quantite_kg" required/>
+          </label>
+          <ng-container *ngIf="modeCamion !== 'QUANTITES'">
+            <label class="text-sm text-gray-700">Température (°C)
+              <input type="number" step="0.01" class="input-field mt-1" name="temperature" [(ngModel)]="camion.temperature" [required]="modeCamion === 'CALCUL'"/>
+            </label>
+            <label class="text-sm text-gray-700">Densité à 15 °C (kg/m³)
+              <input type="number" step="0.1" class="input-field mt-1" name="densite" [(ngModel)]="camion.densite" [required]="modeCamion === 'CALCUL'"/>
+            </label>
+          </ng-container>
+          <ng-container *ngIf="modeCamion === 'CALCUL'">
+            <label class="text-sm text-gray-700">Volume ambiant (L)
+              <input type="number" min="0" step="1" class="input-field mt-1" name="volume_ambiant" [(ngModel)]="camion.volume_ambiant" required/>
+            </label>
+            <label class="text-sm text-gray-700">VCF du dépôt (facultatif)
+              <input type="number" step="0.0001" class="input-field mt-1" name="vcf_depot" [(ngModel)]="camion.vcf_depot"/>
+            </label>
+          </ng-container>
+        </div>
+        <p *ngIf="modeCamion === 'CALCUL'" class="mt-3 text-xs text-gray-500">Sans VCF du dépôt, MICA le calcule à partir de la température et de la densité.</p>
+        <div class="mt-4 flex gap-2">
+          <button type="submit" class="btn-primary" [disabled]="saving">{{ camion.id ? 'Enregistrer' : 'Ajouter le camion' }}</button>
+          <button *ngIf="camion.id" type="button" class="btn-secondary" (click)="annulerCamion()">Annuler</button>
+        </div>
+      </form>
+
+      <div class="card">
+        <h3 class="section-title mb-3">Camions du {{ dateFr }} ({{ chargements.length }})</h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Bon</th>
+                <th class="table-header">Dépôt</th>
+                <th class="table-header">Produit</th>
+                <th class="table-header">Destination</th>
+                <th class="table-header">Tracteur / remorque</th>
+                <th class="table-header">Temp.</th>
+                <th class="table-header">Densité</th>
+                <th class="table-header">Volume (L)</th>
+                <th class="table-header">VCF</th>
+                <th class="table-header">À 15 °C (m³)</th>
+                <th class="table-header" [class.rounded-tr-lg]="!canWrite">Tonnes</th>
+                <th *ngIf="canWrite" class="table-header rounded-tr-lg">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngIf="!chargements.length"><td colspan="12" class="table-cell text-center text-gray-400">Aucun camion saisi pour cette date.</td></tr>
+              <tr *ngFor="let l of chargements" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ l.bon }}</td>
+                <td class="table-cell whitespace-nowrap">{{ l.depot }}</td>
+                <td class="table-cell">{{ libelleProduit(l.produit) }}</td>
+                <td class="table-cell whitespace-nowrap">{{ l.destination }}</td>
+                <td class="table-cell whitespace-nowrap">{{ l.tracteur }}<ng-container *ngIf="l.remorque"> / {{ l.remorque }}</ng-container></td>
+                <td class="table-cell text-right">{{ nombre(l.temperature) }}</td>
+                <td class="table-cell text-right">{{ nombre(l.densite) }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ nombre(l.volume_ambiant) }}</td>
+                <td class="table-cell text-right">{{ l.vcf === null ? '' : (l.vcf | number:'1.4-4') }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ nombre(l.volume_15) }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ tonnage(l.tonnes_air) }}</td>
+                <td *ngIf="canWrite" class="table-cell whitespace-nowrap">
+                  <button type="button" class="text-primary-700 hover:underline mr-3" (click)="modifierCamion(l)">Modifier</button>
+                  <button type="button" class="text-red-600 hover:underline" (click)="supprimerCamion(l)">Supprimer</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title mb-3">Cumul du mois au {{ dateFr }}</h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Dépôt</th>
+                <th class="table-header">Produit</th>
+                <th class="table-header">Camions du jour</th>
+                <th class="table-header">Tonnes du jour</th>
+                <th class="table-header">Camions du mois</th>
+                <th class="table-header rounded-tr-lg">Tonnes du mois</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngIf="!cumuls.length"><td colspan="6" class="table-cell text-center text-gray-400">Aucun chargement ce mois-ci.</td></tr>
+              <tr *ngFor="let c of cumuls" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ libelleDepot(c.depot_id) }}</td>
+                <td class="table-cell">{{ libelleProduit(c.produit) }}</td>
+                <td class="table-cell text-right">{{ c.camions_jour }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ tonnage(c.tonnes_jour) }}</td>
+                <td class="table-cell text-right">{{ c.camions }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ tonnage(c.tonnes_air) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Receptions -->
+    <ng-container *ngIf="onglet === 'receptions'">
+      <form *ngIf="canWrite" class="card" (ngSubmit)="enregistrerReception()">
+        <h3 class="section-title mb-3">{{ reception.id ? 'Modifier la réception' : 'Ajouter une réception' }}</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label class="text-sm text-gray-700">Date
+            <input type="date" class="input-field mt-1" name="date_reception" [(ngModel)]="reception.date_reception" required/>
+          </label>
+          <label class="text-sm text-gray-700">Fournisseur
+            <input class="input-field mt-1" name="fournisseur" maxlength="120" [(ngModel)]="reception.fournisseur" required/>
+          </label>
+          <label class="text-sm text-gray-700">Dépôt
+            <select class="input-field mt-1" name="r_depot" [(ngModel)]="reception.depot_id" required>
+              <option [ngValue]="null">Choisir</option>
+              <option *ngFor="let d of depots" [ngValue]="d.id">{{ d.libelle }}</option>
+            </select>
+          </label>
+          <label class="text-sm text-gray-700">Produit
+            <select class="input-field mt-1" name="r_produit" [(ngModel)]="reception.produit" required>
+              <option value="">Choisir</option>
+              <option *ngFor="let p of produits" [value]="p.code">{{ p.libelle }}</option>
+            </select>
+          </label>
+          <label class="text-sm text-gray-700">Quantité
+            <input type="number" min="0" step="any" class="input-field mt-1" name="quantite" [(ngModel)]="reception.quantite" required/>
+          </label>
+          <label class="text-sm text-gray-700">Unité
+            <select class="input-field mt-1" name="unite" [(ngModel)]="reception.unite">
+              <option *ngFor="let u of unites | keyvalue" [value]="u.key">{{ u.value }}</option>
+            </select>
+          </label>
+          <label class="text-sm text-gray-700">Statut
+            <select class="input-field mt-1" name="statut" [(ngModel)]="reception.statut">
+              <option *ngFor="let s of statuts | keyvalue" [value]="s.key">{{ s.value }}</option>
+            </select>
+          </label>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button type="submit" class="btn-primary" [disabled]="saving">{{ reception.id ? 'Enregistrer' : 'Ajouter la réception' }}</button>
+          <button *ngIf="reception.id" type="button" class="btn-secondary" (click)="annulerReception()">Annuler</button>
+        </div>
+      </form>
+
+      <div class="card">
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Date</th>
+                <th class="table-header">Fournisseur</th>
+                <th class="table-header">Dépôt</th>
+                <th class="table-header">Produit</th>
+                <th class="table-header">Quantité</th>
+                <th class="table-header" [class.rounded-tr-lg]="!canWrite">Statut</th>
+                <th *ngIf="canWrite" class="table-header rounded-tr-lg">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngIf="!receptions.length"><td colspan="7" class="table-cell text-center text-gray-400">Aucune réception enregistrée.</td></tr>
+              <tr *ngFor="let r of receptions" class="table-row-hover">
+                <td class="table-cell sticky-col whitespace-nowrap">{{ r.date_reception | date:'dd/MM/yyyy' }}</td>
+                <td class="table-cell">{{ r.fournisseur }}</td>
+                <td class="table-cell whitespace-nowrap">{{ r.depot }}</td>
+                <td class="table-cell">{{ libelleProduit(r.produit) }}</td>
+                <td class="table-cell text-right whitespace-nowrap">{{ nombre(r.quantite) }} {{ unites[r.unite] }}</td>
+                <td class="table-cell">{{ statuts[r.statut] }}</td>
+                <td *ngIf="canWrite" class="table-cell whitespace-nowrap">
+                  <button type="button" class="text-primary-700 hover:underline mr-3" (click)="modifierReception(r)">Modifier</button>
+                  <button type="button" class="text-red-600 hover:underline" (click)="supprimerReception(r)">Supprimer</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Destinations : administrateurs -->
+    <ng-container *ngIf="onglet === 'destinations' && isAdmin">
+      <form class="card" (ngSubmit)="ajouterDestination()">
+        <h3 class="section-title mb-3">Ajouter une destination</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <label class="text-sm text-gray-700">Nom
+            <input class="input-field mt-1" name="d_libelle" maxlength="80" [(ngModel)]="nouvelleDestination.libelle" required/>
+          </label>
+          <label class="text-sm text-gray-700">Colonne du tableau des tonnes
+            <select class="input-field mt-1" name="d_colonne" [(ngModel)]="nouvelleDestination.colonne">
+              <option *ngFor="let c of colonnes" [value]="c.code">{{ c.libelle }}</option>
+            </select>
+          </label>
+          <button type="submit" class="btn-primary" [disabled]="saving">Ajouter</button>
+        </div>
+        <p class="mt-3 text-xs text-gray-500">Un camion saisi avec « Autre » rejoint la bonne colonne dès que sa destination est ajoutée ici sous le même nom.</p>
+      </form>
+
+      <div class="card">
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Destination</th>
+                <th class="table-header rounded-tr-lg">Colonne</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let d of destinations" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ d.libelle }}</td>
+                <td class="table-cell">
+                  <select class="input-field table-input-wide" [ngModel]="d.colonne" [ngModelOptions]="{ standalone: true }" (ngModelChange)="changerColonne(d, $event)" [attr.aria-label]="'Colonne de ' + d.libelle">
+                    <option *ngFor="let c of colonnes" [value]="c.code">{{ c.libelle }}</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <!-- Modèle du PDF : valeurs en texte, jamais affiché à l'écran -->
+  <div id="rdc-pdf" class="hidden">
+    <h1>État des stocks : dépôts côtiers du {{ nomPays }}</h1>
+    <p class="pdf-date">Situation au {{ dateFr }}</p>
+    <h4>Stocks (volume ambiant en m³, butane en TM)</h4>
+    <table>
+      <thead><tr><th>Dépôt</th><th *ngFor="let p of produits">{{ p.libelle }}</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let d of depots">
+          <td>{{ d.libelle }}</td>
+          <td *ngFor="let p of produits" class="pdf-nombre">{{ nombre(stocks[cle(d.id, p.code)]) }}</td>
+        </tr>
+        <tr class="pdf-total">
+          <td>Total</td>
+          <td *ngFor="let p of produits" class="pdf-nombre">{{ nombre(totalStock(p.code)) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Camions-citernes (chargés le {{ veilleFr }}, en attente au {{ dateFr }})</h4>
+    <table>
+      <thead><tr><th>Dépôt</th><th></th><th *ngFor="let p of produits">{{ p.libelle }}</th><th>Total</th></tr></thead>
+      <tbody>
+        <ng-container *ngFor="let d of depots">
+          <tr *ngIf="totalChargesDepot(d.id) || totalAttenteDepot(d.id)">
+            <td>{{ d.libelle }}</td><td>Chargés</td>
+            <td *ngFor="let p of produits" class="pdf-nombre">{{ charge(d.id, p.code) || '' }}</td>
+            <td class="pdf-nombre">{{ totalChargesDepot(d.id) }}</td>
+          </tr>
+          <tr *ngIf="totalChargesDepot(d.id) || totalAttenteDepot(d.id)">
+            <td></td><td>En attente</td>
+            <td *ngFor="let p of produits" class="pdf-nombre">{{ nombre(attentes[cle(d.id, p.code)]) }}</td>
+            <td class="pdf-nombre">{{ totalAttenteDepot(d.id) }}</td>
+          </tr>
+        </ng-container>
+        <tr class="pdf-total">
+          <td>Total</td><td>Chargés</td>
+          <td *ngFor="let p of produits" class="pdf-nombre">{{ totalCharges(p.code) }}</td>
+          <td class="pdf-nombre">{{ grandTotalCharges }}</td>
+        </tr>
+        <tr class="pdf-total">
+          <td>Total</td><td>En attente</td>
+          <td *ngFor="let p of produits" class="pdf-nombre">{{ totalAttente(p.code) }}</td>
+          <td class="pdf-nombre">{{ grandTotalAttente }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Chargements du {{ veilleFr }} (tonnes)</h4>
+    <table>
+      <thead><tr><th>Produit</th><th *ngFor="let c of colonnes">{{ c.libelle }}</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let p of produits">
+          <td>{{ p.libelle }}</td>
+          <td *ngFor="let c of colonnes" class="pdf-nombre">{{ tonne(p.code, c.code) ? tonnage(tonne(p.code, c.code)) : '' }}</td>
+          <td class="pdf-nombre">{{ tonnage(totalTonnesProduit(p.code)) }}</td>
+        </tr>
+        <tr class="pdf-total">
+          <td>Total</td>
+          <td *ngFor="let c of colonnes" class="pdf-nombre">{{ tonnage(totalTonnesColonne(c.code)) }}</td>
+          <td class="pdf-nombre">{{ tonnage(grandTotalTonnes) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="sansTonnage">{{ sansTonnage }} camion(s) sans tonnage ne sont pas comptés dans ce tableau.</p>
+
+    <h4>Réceptions des 30 derniers jours</h4>
+    <table>
+      <thead><tr><th>Date</th><th>Fournisseur</th><th>Dépôt</th><th>Produit</th><th>Quantité</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr *ngIf="!receptionsRecentes.length"><td colspan="6">Aucune réception sur la période.</td></tr>
+        <tr *ngFor="let r of receptionsRecentes">
+          <td>{{ r.date_reception | date:'dd/MM/yyyy' }}</td>
+          <td>{{ r.fournisseur }}</td>
+          <td>{{ r.depot }}</td>
+          <td>{{ libelleProduit(r.produit) }}</td>
+          <td class="pdf-nombre">{{ nombre(r.quantite) }} {{ unites[r.unite] }}</td>
+          <td>{{ statuts[r.statut] }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Besoins en camions</h4>
+    <table>
+      <thead><tr><th>Produit</th><th>Quantité</th><th>Répartition par dépôt</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let b of besoins">
+          <td>{{ b.libelle }}</td>
+          <td class="pdf-nombre">{{ nombre(b.quantite) }}</td>
+          <td>{{ b.repartition }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

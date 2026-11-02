@@ -55,7 +55,15 @@ export class AuthService {
   pageApresConnexion(): string {
     if (this.mustChangePassword()) return '/auth/force-change-password';
     if (this.doubleAuthRequise()) return '/auth/double-authentification';
-    return '/dashboard';
+    return this.pageAccueil();
+  }
+
+  /** Premiere page accessible : un compte RDC n'a pas le tableau de bord */
+  pageAccueil(): string {
+    if (this.hasPermission('dashboard', 'READ')) return '/dashboard';
+    if (this.hasPermission('rdc-ghana', 'READ')) return '/rdc/ghana';
+    if (this.hasPermission('rdc-benin', 'READ')) return '/rdc/benin';
+    return '/profil';
   }
 
   doubleAuthRequise(): boolean {
@@ -112,10 +120,13 @@ export class AuthService {
 
   /** Relit le profil de session (rappel d'expiration du mot de passe, droits a jour) */
   rafraichir(): void {
-    this.http.get<AuthResponse>(`${environment.apiUrl}/auth/me`).subscribe({
-      next: (res) => { if (res.utilisateur) this.mettreAJour(res.utilisateur); },
-      error: () => { /* 401 : l'intercepteur ferme la session */ },
-    });
+    this.relire().subscribe({ error: () => { /* 401 : l'intercepteur ferme la session */ } });
+  }
+
+  relire(): Observable<AuthResponse> {
+    return this.http.get<AuthResponse>(`${environment.apiUrl}/auth/me`).pipe(
+      tap((res) => { if (res.utilisateur) this.mettreAJour(res.utilisateur); }),
+    );
   }
 
   /** Change le mot de passe depuis le profil (ancien mot de passe requis) */

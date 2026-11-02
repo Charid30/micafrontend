@@ -106,7 +106,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.tempsReel.demarrer();
     this.abonnementAvis = this.tempsReel.avis$.subscribe((par) => { this.auteurModification = par; this.cdr.detectChanges(); });
-    this.authService.rafraichir();
+    // Droits relus : le menu suit tout changement fait depuis la derniere connexion
+    this.authService.relire().subscribe({ next: () => this.cdr.detectChanges(), error: () => { /* 401 : l'intercepteur ferme la session */ } });
     // Notifications push : deja autorisees sur ce navigateur -> rattachees a l'utilisateur connecte ;
     // sinon, fenetre d'activation obligatoire
     this.controlerNotifications();
@@ -117,9 +118,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
       });
     }
     // Fermer le drawer après navigation sur mobile
+    this.rdcOuvert = this.router.url.startsWith('/rdc/');
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe(() => { if (this.isMobile) this.sidebarOpen = false; });
+      .subscribe(() => {
+        if (this.isMobile) this.sidebarOpen = false;
+        if (this.router.url.startsWith('/rdc/')) this.rdcOuvert = true;
+      });
   }
 
   // Mode "tiroir" (menu en surimpression) sous 1024 px (breakpoint lg de Tailwind) :
@@ -141,6 +146,34 @@ export class LayoutComponent implements OnInit, OnDestroy {
     if (this.authService.isAdmin()) return true;
     const modules = ['stocks','corridors','depots-int','temps-attente','veille-marche','veille-geo','achats-traders','encours-livraison','ventes','tresorerie','recommandations','caf_moyen','centrales'];
     return modules.some(m => this.authService.hasPermission(m, 'READ'));
+  }
+
+  // Memes droits que l'API de l'historique
+  get hasHistoriqueAccess(): boolean {
+    return ['stocks', 'corridors', 'tresorerie', 'ventes', 'recommandations', 'caf_moyen'].some(m => this.authService.hasPermission(m, 'READ'));
+  }
+
+  // Menu RDC : sous-menus selon les droits du compte
+  get paysRdc(): { url: string; libelle: string }[] {
+    return [
+      { droit: 'rdc-ghana', url: '/rdc/ghana', libelle: 'Dépôt de Ghana' },
+      { droit: 'rdc-benin', url: '/rdc/benin', libelle: 'Dépôt de Bénin' },
+    ].filter(p => this.authService.hasPermission(p.droit, 'READ'));
+  }
+
+  // La liste est recalculee a chaque rendu : sans suivi, les liens seraient recrees sans fin
+  readonly parUrl = (_: number, p: { url: string }) => p.url;
+
+  rdcOuvert = false;
+
+  // Menu replie : le sous-menu n'a pas la place de s'afficher, on deplie d'abord le menu
+  basculerRdc(): void {
+    if (!this.sidebarOpen && !this.isMobile) {
+      this.sidebarOpen = true;
+      this.rdcOuvert = true;
+      return;
+    }
+    this.rdcOuvert = !this.rdcOuvert;
   }
 
   get hasRapportsAccess(): boolean {
