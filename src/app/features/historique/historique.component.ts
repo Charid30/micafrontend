@@ -12,6 +12,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { environment } from '../../../environments/environment';
+import { ecouterTempsReel } from '../../core/services/temps-reel.service';
 
 interface Serie { label: string; data: (number | null)[]; color: string; }
 interface HistoData { labels: string[]; datasets: Serie[]; }
@@ -38,6 +39,9 @@ const PERIODES = [
   standalone: false,
 })
 export class HistoriqueComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['*'], () => this.loadData(), { consultation: true });
+
   modules  = MODULES;
   periodes = PERIODES;
 
@@ -94,7 +98,7 @@ export class HistoriqueComponent implements OnInit {
   get unite(): string       { return MODULES.find(m => m.key === this.moduleKey)?.unite ?? ''; }
 
   loadData(): void {
-    this.loading = true;
+    this.loading = !this.direct.silencieux;
     this.error   = null;
     if (this.vueJournaliere) { this.loadJournalier(); return; }
     this.http.get<HistoData>(`${environment.apiUrl}/historique/${this.moduleKey}?semaines=${this.semaines}`)

@@ -8,7 +8,9 @@
  *  Projet : MICA – SONABHY
  *  Merci
  * ================================================================== */
-import { ChangeDetectorRef, Component, HostListener, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { TempsReelService } from '../core/services/temps-reel.service';
 import { ToastService } from '../core/services/toast.service';
 import { NotificationsService, EtatNotifications } from '../core/services/notifications.service';
 import { Router, NavigationEnd } from '@angular/router';
@@ -22,7 +24,7 @@ import { environment } from '../../environments/environment';
   templateUrl: './layout.component.html',
   standalone: false,
 })
-export class LayoutComponent implements OnInit {
+export class LayoutComponent implements OnInit, OnDestroy {
   sidebarOpen = true;
   isMobile = false;
   today = new Date();
@@ -31,6 +33,10 @@ export class LayoutComponent implements OnInit {
   alerteSauvegarde: string | null = null;
 
   private readonly notifications = inject(NotificationsService);
+  readonly tempsReel = inject(TempsReelService);
+  // Rafraichissement automatique : auteur de l'enregistrement signale dans le bandeau
+  auteurModification: string | null = null;
+  private abonnementAvis?: Subscription;
   private readonly toast = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
   // Notifications push obligatoires : la fenetre bloque l'application tant que l'etat est
@@ -92,7 +98,14 @@ export class LayoutComponent implements OnInit {
     return m?.rappel && !this.rappelMasque ? m.jours_restants : null;
   }
 
+  ngOnDestroy(): void {
+    this.abonnementAvis?.unsubscribe();
+    this.tempsReel.arreter();
+  }
+
   ngOnInit(): void {
+    this.tempsReel.demarrer();
+    this.abonnementAvis = this.tempsReel.avis$.subscribe((par) => { this.auteurModification = par; this.cdr.detectChanges(); });
     this.authService.rafraichir();
     // Notifications push : deja autorisees sur ce navigateur -> rattachees a l'utilisateur connecte ;
     // sinon, fenetre d'activation obligatoire
@@ -126,7 +139,7 @@ export class LayoutComponent implements OnInit {
 
   get hasSaisieAccess(): boolean {
     if (this.authService.isAdmin()) return true;
-    const modules = ['stocks','corridors','depots-int','temps-attente','veille-marche','veille-geo','achats-traders','encours-livraison','ventes','tresorerie','recommandations','caf_moyen'];
+    const modules = ['stocks','corridors','depots-int','temps-attente','veille-marche','veille-geo','achats-traders','encours-livraison','ventes','tresorerie','recommandations','caf_moyen','centrales'];
     return modules.some(m => this.authService.hasPermission(m, 'READ'));
   }
 

@@ -14,6 +14,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { environment } from '../../../../environments/environment';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 const API = environment.apiUrl;
 
@@ -37,6 +38,7 @@ const MODULE_LABELS: Record<string, string> = {
   'tresorerie-lignes': 'Trésorerie : gestion des lignes (chef Tréso)',
   'recommandations': 'Recommandations',
   'caf_moyen': 'CAF moyen des achats',
+  'centrales': 'Centrale SONABEL',
   'rapports': 'Rapports PDF',
   'administration': 'Administration',
   'parametres': 'Paramètres',
@@ -48,6 +50,9 @@ const MODULE_LABELS: Record<string, string> = {
   standalone: false,
 })
 export class UtilisateursComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['utilisateurs', 'agents'], () => this.loadAll());
+
   private readonly dialog = inject(DialogService);
   tabs = [
     { key: 'agents', label: 'Agents' },

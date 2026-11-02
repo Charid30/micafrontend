@@ -16,6 +16,7 @@ import { ActivatedRoute } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 // Les calculs ci-dessous reproduisent ceux du serveur (Backend/src/services/autonomie.service.js)
 // pour un affichage instantane pendant la saisie ; les valeurs enregistrees sont recalculees par le serveur.
@@ -25,6 +26,9 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: false,
 })
 export class StocksComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['stocks', 'referentiel-stocks'], () => this.charger());
+
   private readonly dialog = inject(DialogService);
   loading = true;
   saving = false;
@@ -68,7 +72,7 @@ export class StocksComponent implements OnInit {
   ngOnInit(): void { this.charger(); }
 
   charger(): void {
-    this.loading = true;
+    this.loading = !this.direct.silencieux;
     this.http.get(`${environment.apiUrl}/stocks/semaine-courante`).subscribe({
       next: (data: any) => {
         this.rapport          = data.rapport;

@@ -14,6 +14,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { environment } from '../../../../environments/environment';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 const API = environment.apiUrl;
 
@@ -23,6 +24,9 @@ const API = environment.apiUrl;
   standalone: false,
 })
 export class StructuresComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['entreprises', 'directions'], () => this.loadAll());
+
   private readonly dialog = inject(DialogService);
   tabs = [
     { key: 'entreprises', label: 'Entreprises' },

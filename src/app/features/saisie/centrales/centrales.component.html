@@ -1,0 +1,190 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     Merci
+     ================================================================== -->
+<div class="space-y-6 has-save-bar">
+
+  <!-- En-tête -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Centrale SONABEL</h2>
+      <p class="text-sm text-gray-500 mt-1">Stocks de combustible, autonomie et camions en attente, jour par jour</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn-secondary !px-2" (click)="aller(-1)" aria-label="Jour précédent" title="Jour précédent">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <input type="date" class="input-field w-40" [ngModel]="date" (change)="choisir($any($event.target))" [max]="aujourdhui" aria-label="Date de la situation"/>
+      <button type="button" class="btn-secondary !px-2" [disabled]="date >= aujourdhui" (click)="aller(1)" aria-label="Jour suivant" title="Jour suivant">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <!-- Actions : barre fixe en bas de l'écran sous 1024 px -->
+      <div class="save-bar">
+        <button type="button" class="btn-secondary" (click)="telecharger()" [disabled]="loading || generation">
+          {{ generation ? 'Génération...' : 'PDF' }}
+        </button>
+        <button *ngIf="canWrite" type="button" class="btn-primary" (click)="enregistrer()" [disabled]="saving || loading">
+          {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+        </button>
+        <span *ngIf="!canWrite" class="text-xs text-amber-600 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">Lecture seule</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="card border-red-200 bg-red-50 text-sm text-red-700">{{ error }}</div>
+
+  <div *ngIf="loading" class="card text-sm text-gray-500">Chargement…</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <div class="tabs" role="tablist">
+      <button *ngFor="let t of onglets" type="button" (click)="onglet = t.cle" role="tab" [attr.aria-selected]="onglet === t.cle"
+        [class]="onglet === t.cle ? 'px-5 py-2 text-sm font-semibold border-b-2 border-primary-700 text-primary-800' : 'px-5 py-2 text-sm text-gray-500 hover:text-gray-700'">
+        {{ t.libelle }}
+      </button>
+    </div>
+
+    <!-- Situation du jour -->
+    <ng-container *ngIf="onglet === 'jour'">
+      <p *ngIf="!saisieFaite" class="text-sm text-amber-700">
+        Aucune saisie pour cette date. Capacités, besoins et observations sont repris du dernier jour saisi.
+      </p>
+
+      <div class="card" (input)="modifie = true">
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Centrale</th>
+                <th class="table-header">Produit</th>
+                <th class="table-header">Capacité</th>
+                <th class="table-header">Stock</th>
+                <th class="table-header">Creux à combler</th>
+                <th class="table-header">Besoin journalier</th>
+                <th class="table-header">Autonomie (jours)</th>
+                <th class="table-header">Camions en attente</th>
+                <th class="table-header rounded-tr-lg">Observation</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let l of lignes" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ l.centrale }}</td>
+                <td class="table-cell">{{ l.combustible }}</td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="l.capacite" [disabled]="!canWrite" [attr.aria-label]="'Capacité ' + l.centrale + ' ' + l.combustible"/></td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [class.!border-red-500]="depasse(l)" [(ngModel)]="l.stock" [disabled]="!canWrite" [attr.aria-label]="'Stock ' + l.centrale + ' ' + l.combustible"/></td>
+                <td class="table-cell text-right whitespace-nowrap">{{ nombre(creux(l)) }}</td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="l.besoin_journalier" [disabled]="!canWrite" [attr.aria-label]="'Besoin journalier ' + l.centrale + ' ' + l.combustible"/></td>
+                <td class="table-cell text-right"><span [ngClass]="classeAutonomie(autonomie(l))">{{ jours(autonomie(l)) }}</span></td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="l.camions_attente" [disabled]="!canWrite" [attr.aria-label]="'Camions en attente ' + l.centrale + ' ' + l.combustible"/></td>
+                <td class="table-cell"><input type="text" maxlength="255" class="input-field table-input-wide" [(ngModel)]="l.observation" [disabled]="!canWrite" [attr.aria-label]="'Observation ' + l.centrale + ' ' + l.combustible"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-xs text-gray-500">Autonomie = stock ÷ besoin journalier. Rouge : moins de {{ seuilRouge }} jours. Jaune : moins de {{ seuilJaune }} jours.</p>
+      </div>
+
+      <div class="card" (input)="modifie = true">
+        <h3 class="section-title mb-3">Camions-citernes sur les parcs</h3>
+        <div class="overflow-x-auto rounded-lg border border-primary-200">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="table-header rounded-tl-lg sticky-col">Parc</th>
+                <th class="table-header">HFO</th>
+                <th class="table-header">DDO</th>
+                <th class="table-header rounded-tr-lg">Observation</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y border-primary-50">
+              <tr *ngFor="let p of parcs" class="table-row-hover">
+                <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ p.libelle }}</td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="p.camions_hfo" [disabled]="!canWrite" [attr.aria-label]="'Camions HFO ' + p.libelle"/></td>
+                <td class="table-cell"><input type="number" min="0" step="1" class="input-field table-input text-right" [(ngModel)]="p.camions_ddo" [disabled]="!canWrite" [attr.aria-label]="'Camions DDO ' + p.libelle"/></td>
+                <td class="table-cell"><input type="text" maxlength="255" class="input-field table-input-wide" [(ngModel)]="p.observation" [disabled]="!canWrite" [attr.aria-label]="'Observation ' + p.libelle"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Evolution -->
+    <div *ngIf="onglet === 'evolution' && evolution" class="card">
+      <p class="mb-3 text-sm text-gray-500">Autonomie en jours et stock, sur les 7 jours se terminant à la date choisie.</p>
+      <div class="overflow-x-auto rounded-lg border border-primary-200">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="table-header rounded-tl-lg sticky-col">Centrale</th>
+              <th class="table-header">Produit</th>
+              <th *ngFor="let d of evolution.dates; let dernier = last" class="table-header whitespace-nowrap" [class.rounded-tr-lg]="dernier">{{ d | date:'dd/MM' }}</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y border-primary-50">
+            <tr *ngFor="let l of evolution.lignes" class="table-row-hover">
+              <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ l.centrale }}</td>
+              <td class="table-cell">{{ l.combustible }}</td>
+              <td *ngFor="let v of l.valeurs" class="table-cell text-right whitespace-nowrap">
+                <ng-container *ngIf="v; else vide">
+                  <span [ngClass]="classeAutonomie(v.autonomie)">{{ jours(v.autonomie) }}</span>
+                  <p class="mt-0.5 text-xs text-gray-500">{{ nombre(v.stock) }}</p>
+                </ng-container>
+                <ng-template #vide><span class="text-gray-300">—</span></ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Modèle du PDF : valeurs en texte, jamais affiché à l'écran -->
+  <div id="centrales-pdf" class="hidden">
+    <h1>Centrales SONABEL : stocks, autonomie et camions en attente</h1>
+    <p class="pdf-date">Situation au {{ dateFr }}</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Centrale</th><th>Produit</th><th>Capacité</th><th>Stock</th><th>Creux</th><th>Besoin journalier</th><th>Autonomie (jours)</th><th>Camions</th><th>Observation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let l of lignes">
+          <td>{{ l.centrale }}</td>
+          <td class="pdf-centre">{{ l.combustible }}</td>
+          <td class="pdf-nombre">{{ nombre(l.capacite) }}</td>
+          <td class="pdf-nombre">{{ nombre(l.stock) }}</td>
+          <td class="pdf-nombre">{{ nombre(creux(l)) }}</td>
+          <td class="pdf-nombre">{{ nombre(l.besoin_journalier) }}</td>
+          <td class="pdf-nombre"><span [ngClass]="classeAutonomie(autonomie(l))">{{ jours(autonomie(l)) }}</span></td>
+          <td class="pdf-nombre">{{ nombre(l.camions_attente) }}</td>
+          <td>{{ l.observation }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>Camions-citernes sur les parcs</h4>
+    <table>
+      <thead>
+        <tr><th>Parc</th><th>HFO</th><th>DDO</th><th>Observation</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of parcs">
+          <td>{{ p.libelle }}</td>
+          <td class="pdf-nombre">{{ nombre(p.camions_hfo) }}</td>
+          <td class="pdf-nombre">{{ nombre(p.camions_ddo) }}</td>
+          <td>{{ p.observation }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

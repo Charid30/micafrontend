@@ -15,6 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 @Component({
   selector: 'app-recommandations',
@@ -22,6 +23,9 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: false,
 })
 export class RecommandationsComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['recommandations'], () => this.ngOnInit());
+
   private readonly dialog = inject(DialogService);
   loading = true;
   saving  = false;

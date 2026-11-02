@@ -14,6 +14,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/services/toast.service';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 // Situation de tresorerie : lignes parametrables, N-1 repris du rapport precedent.
 // Les calculs reproduisent ceux du serveur (Backend/src/services/tresorerie.service.js) pour l'affichage en direct.
@@ -23,6 +24,9 @@ import { ToastService } from '../../../core/services/toast.service';
   standalone: false,
 })
 export class FinancesComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['finances'], () => this.charger());
+
   private readonly dialog = inject(DialogService);
   loading = true;
   saving  = false;

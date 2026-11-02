@@ -179,6 +179,15 @@
         <span *ngIf="sidebarOpen || isMobile" class="text-sm">CAF moyen</span>
       </a>
 
+      <a *ngIf="authService.isAdmin() || authService.hasPermission('centrales', 'READ')"
+        routerLink="/saisie/centrales" routerLinkActive="sidebar-link-active" class="sidebar-link">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        <span *ngIf="sidebarOpen || isMobile" class="text-sm">Centrale SONABEL</span>
+      </a>
+
       <a routerLink="/historique" routerLinkActive="sidebar-link-active" class="sidebar-link">
         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -350,6 +359,15 @@
       </button>
     </div>
 
+
+    <!-- Un autre utilisateur a enregistre sur cet ecran pendant une saisie : rien n'est ecrase -->
+    <div *ngIf="auteurModification" class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-yellow-200 bg-yellow-50 px-4 py-2 text-sm text-yellow-800" role="status">
+      <span class="flex-1 min-w-0"><strong>{{ auteurModification }}</strong> vient d'enregistrer des données sur cet écran. Votre saisie en cours n'a pas été modifiée.</span>
+      <button type="button" (click)="tempsReel.rechargerMaintenant()" class="font-semibold underline hover:no-underline">Recharger (ma saisie en cours sera perdue)</button>
+      <button type="button" (click)="tempsReel.ignorerAvis()" class="p-1 rounded hover:bg-yellow-100" aria-label="Masquer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
 
     <main class="flex-1 overflow-auto p-3 md:p-6">
       <router-outlet></router-outlet>

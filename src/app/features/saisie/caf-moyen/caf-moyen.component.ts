@@ -15,6 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 @Component({
   selector: 'app-caf-moyen',
@@ -22,6 +23,9 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: false,
 })
 export class CafMoyenComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['caf-moyen'], () => this.loadData());
+
   private readonly dialog = inject(DialogService);
   loading = true;
   saving  = false;
@@ -45,7 +49,7 @@ export class CafMoyenComponent implements OnInit {
   }
 
   loadData(): void {
-    this.loading = true;
+    this.loading = !this.direct.silencieux;
     this.http.get<any>(`${environment.apiUrl}/caf-moyen?annee=${this.annee}`).subscribe({
       next: (data) => {
         this.mois    = data.mois;

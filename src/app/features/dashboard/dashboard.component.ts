@@ -12,6 +12,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ecouterTempsReel } from '../../core/services/temps-reel.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -19,6 +20,9 @@ import { environment } from '../../../environments/environment';
   standalone: false,
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['*'], () => this.ngOnInit(), { consultation: true });
+
   today = new Date();
   loading = true;
   stats: any = null;
@@ -49,7 +53,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private charger(): void {
-    this.loading = true;
+    this.loading = !this.direct.silencieux;
     this.error = null;
     this.sub?.unsubscribe();
     clearTimeout(this.timer);

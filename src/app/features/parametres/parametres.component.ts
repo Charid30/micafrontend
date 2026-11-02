@@ -15,6 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
+import { ecouterTempsReel } from '../../core/services/temps-reel.service';
 
 const API = environment.apiUrl;
 
@@ -24,6 +25,9 @@ const API = environment.apiUrl;
   standalone: false,
 })
 export class ParametresComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['parametres', 'frequences', 'produits', 'depots', 'corridors', 'fournisseurs', 'marketeurs'], () => { this.loadAll(); this.chargerFrequences(); });
+
   private readonly dialog = inject(DialogService);
   loading = true;
   saving = false;
@@ -124,7 +128,7 @@ export class ParametresComponent implements OnInit {
   }
 
   loadAll(): void {
-    this.loading = true;
+    this.loading = !this.direct.silencieux;
     let done = 0;
     const tick = () => { done++; if (done === 6) { this.loading = false; this.cdr.detectChanges(); } };
 

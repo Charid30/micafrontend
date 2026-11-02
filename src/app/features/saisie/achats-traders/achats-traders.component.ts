@@ -15,6 +15,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
+import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
 
 const API = `${environment.apiUrl}/achats-traders`;
 
@@ -24,6 +25,9 @@ const API = `${environment.apiUrl}/achats-traders`;
   standalone: false,
 })
 export class AchatsTradersComponent implements OnInit {
+  // Rafraichissement automatique quand un autre utilisateur enregistre
+  private readonly direct = ecouterTempsReel(['achats-traders'], () => this.ngOnInit());
+
   private readonly dialog = inject(DialogService);
   produits: any[] = [];
   fournisseurs: any[] = [];
