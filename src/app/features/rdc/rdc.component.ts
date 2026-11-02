@@ -103,6 +103,10 @@ export class RdcComponent implements OnInit {
   receptions: any[] = [];
 
   camion = { ...FORM_CAMION };
+  modaleCamion = false;
+  readonly etapes = ['Chargement', 'Camion', 'Quantités'];
+  etape = 1;
+  erreurEtape: string | null = null;
   reception = { ...FORM_RECEPTION };
   nouvelleDestination = { libelle: '', colonne: 'A_CLASSER' };
 
@@ -121,6 +125,7 @@ export class RdcComponent implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.detruit)).subscribe((p) => {
       this.pays = p.get('pays') || '';
       this.onglet = 'etat';
+      this.modaleCamion = false;
       this.reinitialiserCamion();
       this.reinitialiserReception();
       this.charger();
@@ -268,7 +273,7 @@ export class RdcComponent implements OnInit {
 
   private estDansLaListe(destination: string): boolean { return this.destinations.some(d => d.libelle === destination); }
 
-  private ecrire(requete: any, message: string | null, suite: () => void): void {
+  private ecrire(requete: any, message: string | null, suite: () => void, echec?: (message: string) => void): void {
     this.saving = true;
     this.cdr.detectChanges();
     requete.subscribe({
@@ -281,9 +286,63 @@ export class RdcComponent implements OnInit {
       error: (err: any) => {
         this.saving = false;
         this.toast.error(err.error?.message || 'Erreur lors de l\'enregistrement.');
+        echec?.(err.error?.message || '');
         this.cdr.detectChanges();
       },
     });
+  }
+
+  private focusEtape(): void {
+    setTimeout(() => document.querySelector<HTMLElement>('#rdc-etape input, #rdc-etape select')?.focus());
+  }
+
+  allerEtape(etape: number): void {
+    this.etape = etape;
+    this.erreurEtape = null;
+    this.cdr.detectChanges();
+    this.focusEtape();
+  }
+
+  // Champs obligatoires de chaque etape ; le serveur reste seul juge des valeurs
+  private champsManquants(): string[] {
+    const c = this.camion;
+    const vide = (v: any) => v === null || v === undefined || v === '';
+    const manque = (champs: [any, string][]) => champs.filter(([v]) => vide(v)).map(([, libelle]) => libelle);
+    if (this.etape === 1) {
+      return manque([[c.depot_id, 'dépôt'], [c.produit, 'produit'], [c.destination, 'destination'],
+        [c.destination === AUTRE ? c.autre.trim() : 'ok', 'précision de la destination']]);
+    }
+    if (this.etape === 2) return manque([[c.bon.trim(), 'n° de bon']]);
+    if (this.modeCamion === 'QUANTITES') return manque([[c.quantite_20, 'quantité à 20 °C'], [c.volume_ambiant, 'quantité observée']]);
+    if (this.modeCamion === 'GPL') return manque([[c.quantite_kg, 'quantité']]);
+    return manque([[c.temperature, 'température'], [c.densite, 'densité'], [c.volume_ambiant, 'volume ambiant']]);
+  }
+
+  // Suivant, ou enregistrement a la derniere etape (bouton ou touche Entree)
+  validerEtape(): void {
+    const manquants = this.champsManquants();
+    if (manquants.length) {
+      this.erreurEtape = `À renseigner : ${manquants.join(', ')}.`;
+      this.cdr.detectChanges();
+      return;
+    }
+    if (this.etape < this.etapes.length) { this.allerEtape(this.etape + 1); return; }
+    this.erreurEtape = null;
+    this.enregistrerCamion();
+  }
+
+  // Le formulaire garde depot, produit, destination et lot du dernier camion ajoute
+  nouveauCamion(): void {
+    this.camion = { ...this.camion, id: null };
+    this.modaleCamion = true;
+    // Depot, produit et destination deja connus (camion suivant) : on reprend au camion
+    this.allerEtape(this.camion.depot_id && this.camion.produit && this.camion.destination ? 2 : 1);
+  }
+
+  fermerCamion(): void {
+    if (this.camion.id) this.reinitialiserCamion();
+    this.modaleCamion = false;
+    this.cdr.detectChanges();
   }
 
   enregistrerCamion(): void {
@@ -294,10 +353,11 @@ export class RdcComponent implements OnInit {
     };
     const requete = id ? this.http.put<any>(`${this.api}/chargements/${id}`, corps) : this.http.post<any>(`${this.api}/chargements`, corps);
     this.ecrire(requete, null, () => {
-      if (id) { this.reinitialiserCamion(); return; }
-      // Saisie par etapes : depot, produit, destination et lot restent pour le camion suivant
+      if (id) { this.fermerCamion(); return; }
+      // Saisie par etapes : la fenetre reste ouverte, depot, produit, destination et lot restent pour le camion suivant
       this.camion = { ...this.camion, bon: '', commande: '', tracteur: '', remorque: '', temperature: null, volume_ambiant: null, quantite_20: null, quantite_kg: null };
-    });
+      this.allerEtape(2);
+    }, (message) => { if (/\bbon\b/i.test(message)) this.allerEtape(2); });
   }
 
   modifierCamion(l: any): void {
@@ -308,11 +368,9 @@ export class RdcComponent implements OnInit {
       temperature: l.temperature, densite: l.densite, volume_ambiant: l.volume_ambiant, vcf_depot: l.vcf_depot,
       quantite_20: l.quantite_20, quantite_kg: l.quantite_kg,
     };
-    this.cdr.detectChanges();
-    document.getElementById('rdc-formulaire-camion')?.scrollIntoView({ behavior: 'smooth' });
+    this.modaleCamion = true;
+    this.allerEtape(1);
   }
-
-  annulerCamion(): void { this.reinitialiserCamion(); }
 
   async supprimerCamion(l: any): Promise<void> {
     if (!(await this.dialog.confirmer({
