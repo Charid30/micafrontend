@@ -146,10 +146,14 @@ export class RapportsComponent implements OnInit {
     return !!this.apercu?.tresorerie?.lignes?.some((l: any) => l.montant_n !== null || l.montant_n1 !== null);
   }
   // Annexes (detail de l'autonomie, tresorerie, ventes par marketeur) : numerotees selon leur presence
-  annexe(section: 'autonomie' | 'tresorerie' | 'ventes'): number {
+  get aVeilleMarche(): boolean { return !!this.rep?.veille_marche?.length; }
+  get aVeilleGeo(): boolean { return !!this.rep?.veille_geopolitique?.length; }
+  annexe(section: 'autonomie' | 'tresorerie' | 'marche' | 'geo' | 'ventes'): number {
     const presentes = [
       ...(this.aAutonomie ? ['autonomie'] : []),
       ...(this.aTresorerie ? ['tresorerie'] : []),
+      ...(this.aVeilleMarche ? ['marche'] : []),
+      ...(this.aVeilleGeo ? ['geo'] : []),
       ...(this.apercu?.marketeurs?.length ? ['ventes'] : []),
     ];
     return presentes.indexOf(section) + 1;

@@ -466,6 +466,70 @@
           <p class="text-xs text-gray-500 mt-1">Montants en FCFA ; dettes en négatif. Flèche verte : évolution favorable, rouge : défavorable.</p>
         </div>
 
+        <!-- ── Veille marche petrolier : indicateurs renseignes (semaine N differente de zero) ── -->
+        <div class="card" *ngIf="aVeilleMarche">
+          <h3 class="section-title mb-3">Annexe {{ annexe('marche') }} – Veille marché pétrolier</h3>
+          <div class="overflow-x-auto rounded-lg border border-primary-200">
+            <table class="min-w-full text-xs">
+              <thead>
+                <tr>
+                  <th class="table-header rounded-tl-lg">Indicateur</th>
+                  <th class="table-header text-right whitespace-nowrap">Semaine {{ apercu.rapport.semaine_iso }}</th>
+                  <th class="table-header text-right whitespace-nowrap">Semaine précédente</th>
+                  <th class="table-header text-right">Variation</th>
+                  <th class="table-header text-center">Tendance</th>
+                  <th class="table-header rounded-tr-lg">Source</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y border-primary-50">
+                <tr *ngFor="let i of rep.veille_marche">
+                  <td class="table-cell py-1 text-primary-700">{{ i.libelle }} <span class="text-gray-500">({{ i.unite }})</span></td>
+                  <td class="table-cell py-1 text-right whitespace-nowrap">{{ i.prix_n | number:'1.0-3' }}</td>
+                  <td class="table-cell py-1 text-right whitespace-nowrap text-gray-600">{{ i.prix_n1 === null ? '—' : (i.prix_n1 | number:'1.0-3') }}</td>
+                  <td class="table-cell py-1 text-right whitespace-nowrap font-semibold">
+                    <span *ngIf="i.variation !== null; else sansVariation" [ngClass]="classeTendance(i)">{{ i.variation > 0 ? '+' : '' }}{{ i.variation | percent:'1.2-2' }}</span>
+                    <ng-template #sansVariation><span class="text-gray-300">—</span></ng-template>
+                  </td>
+                  <td class="table-cell py-1 text-center whitespace-nowrap">
+                    <!-- Le PDF coupe sinon la fleche et le mot sur deux lignes -->
+                    <span *ngIf="i.tendance" [ngClass]="classeTendance(i)" style="white-space: nowrap">{{ i.tendance === 'hausse' ? '▲ Hausse' : i.tendance === 'baisse' ? '▼ Baisse' : '→ Stable' }}</span>
+                  </td>
+                  <td class="table-cell py-1 text-gray-600">{{ i.source }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Seuls les indicateurs renseignés cette semaine figurent au rapport. Hausse en rouge, baisse en vert.</p>
+        </div>
+
+        <!-- ── Veille geopolitique : zones renseignees ── -->
+        <div class="card" *ngIf="aVeilleGeo">
+          <h3 class="section-title mb-3">Annexe {{ annexe('geo') }} – Veille géopolitique</h3>
+          <div class="overflow-x-auto rounded-lg border border-primary-200">
+            <table class="min-w-full text-xs">
+              <thead>
+                <tr>
+                  <th class="table-header rounded-tl-lg">Zone</th>
+                  <th class="table-header">Événement</th>
+                  <th class="table-header">Impact sur l'approvisionnement</th>
+                  <th class="table-header text-center rounded-tr-lg">Risque</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y border-primary-50">
+                <tr *ngFor="let z of rep.veille_geopolitique">
+                  <td class="table-cell py-1 font-medium text-primary-700 whitespace-nowrap align-top">{{ z.zone }}</td>
+                  <td class="table-cell py-1 whitespace-pre-line align-top">{{ z.evenement }}</td>
+                  <td class="table-cell py-1 whitespace-pre-line align-top">{{ z.impact }}</td>
+                  <td class="table-cell py-1 text-center whitespace-nowrap align-top font-semibold"
+                    [ngClass]="z.niveau_risque === 'ELEVE' ? 'text-red-700' : z.niveau_risque === 'MOYEN' ? 'text-yellow-700' : 'text-primary-700'">
+                    {{ z.niveau_risque === 'ELEVE' ? 'Élevé' : z.niveau_risque === 'MOYEN' ? 'Moyen' : z.niveau_risque === 'FAIBLE' ? 'Faible' : '' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- ── Annexe : sorties volumes par marketeur ── -->
         <div class="card" *ngIf="apercu.marketeurs.length > 0">
           <h3 class="section-title mb-3">Annexe {{ annexe('ventes') }} – Sorties volumes par marketeur</h3>

@@ -127,14 +127,15 @@
             <tr>
               <th class="table-header rounded-tl-lg sticky-col">Centrale</th>
               <th class="table-header">Produit</th>
-              <th *ngFor="let d of evolution.dates; let dernier = last" class="table-header whitespace-nowrap" [class.rounded-tr-lg]="dernier">{{ d | date:'dd/MM' }}</th>
+              <!-- Jours de meme largeur, centres comme leurs valeurs : une colonne remplie ne decale pas les autres -->
+              <th *ngFor="let d of evolution.dates; let dernier = last" class="table-header whitespace-nowrap !text-center w-24 min-w-24" [class.rounded-tr-lg]="dernier">{{ d | date:'dd/MM' }}</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y border-primary-50">
             <tr *ngFor="let l of evolution.lignes" class="table-row-hover">
               <td class="table-cell font-medium text-primary-700 sticky-col whitespace-nowrap">{{ l.centrale }}</td>
               <td class="table-cell">{{ l.combustible }}</td>
-              <td *ngFor="let v of l.valeurs" class="table-cell text-right whitespace-nowrap">
+              <td *ngFor="let v of l.valeurs" class="table-cell text-center whitespace-nowrap w-24 min-w-24">
                 <ng-container *ngIf="v; else vide">
                   <span [ngClass]="classeAutonomie(v.autonomie)">{{ jours(v.autonomie) }}</span>
                   <p class="mt-0.5 text-xs text-gray-500">{{ nombre(v.stock) }}</p>
