@@ -43,6 +43,7 @@ const routes: Routes = [
       { path: 'historique', loadChildren: () => import('../features/historique/historique.module').then(m => m.HistoriqueModule) },
       { path: 'rapports', loadChildren: () => import('../features/rapports/rapports.module').then(m => m.RapportsModule) },
       { path: 'administration/utilisateurs', loadChildren: () => import('../features/administration/utilisateurs/utilisateurs.module').then(m => m.UtilisateursModule) },
+      { path: 'administration/interims', loadChildren: () => import('../features/administration/interims/interims.module').then(m => m.InterimsModule) },
       { path: 'administration/structures', loadChildren: () => import('../features/administration/structures/structures.module').then(m => m.StructuresModule) },
       { path: 'administration/securite', loadChildren: () => import('../features/administration/exploitation/exploitation.module').then(m => m.ExploitationModule) },
       { path: 'profil', loadChildren: () => import('../features/profil/profil.module').then(m => m.ProfilModule) },

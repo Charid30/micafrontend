@@ -40,7 +40,7 @@ export class StocksComponent implements OnInit {
   rapport: any = null;
   frequence: string | null = null;
   dateSaisie: string | null = null;
-  droits = { stocks: false, actions: false };
+  droits: { stocks: boolean; actions: boolean; depots?: number[] | null } = { stocks: false, actions: false };
   parametres = { seuil_rouge_jours: 10, couverture_objectif_pct: 100, densite_gaz: 0.56 };
   depotsInterieurs: any[] = [];
   depotsExterieurs: any[] = [];
@@ -56,6 +56,8 @@ export class StocksComponent implements OnInit {
   get interieur(): boolean { return this.perimetre === 'INTERIEUR'; }
 
   get canWriteAny(): boolean { return this.droits.stocks || this.droits.actions; }
+  // Saisie des quantites : seulement sur les depots du droit d'ecriture (ex. lecture de tous, ecriture de Bingo)
+  peutSaisir(depotId: number): boolean { return this.droits.stocks && (!this.droits.depots || this.droits.depots.includes(depotId)); }
   get estPublie(): boolean { return this.rapport?.statut === 'PUBLIE'; }
   get canSeeReferentiel(): boolean {
     return this.authService.hasPermission('impompable', 'READ') || this.authService.hasPermission('referentiel-stocks', 'READ');
@@ -235,7 +237,7 @@ export class StocksComponent implements OnInit {
     const lignes = (this.interieur ? interieurs : exterieurs).map(l => ({
       depot_id: l.depot_id,
       produit_id: l.produit_id,
-      ...(this.droits.stocks && !this.nonSaisi(l) ? {
+      ...(this.peutSaisir(l.depot_id) && !this.nonSaisi(l) ? {
         stock_bacs: vide(l.stock_bacs) ? 0 : Number(l.stock_bacs),
         stock_embranchement: l.interieur && !vide(l.stock_embranchement) ? Number(l.stock_embranchement) : 0,
       } : {}),

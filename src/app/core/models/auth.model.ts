@@ -19,6 +19,7 @@ export interface Permission {
   action: string;
   depot_id?: number | null;
   depot?: { id: number; code: string; libelle: string; type: 'INTERIEUR' | 'EXTERIEUR' } | null;
+  interim_de?: string;                           // droit recu d'un agent absent (interim)
 }
 
 export interface Agent {
@@ -56,6 +57,7 @@ export interface Utilisateur {
   codes_secours_restants?: number;               // connexion avec un code de secours
   agent: Agent;
   permissions: Permission[];
+  interims?: { id: number; titulaire: string; date_fin: string }[];   // interims assures en ce moment
 }
 
 export interface AuthResponse {

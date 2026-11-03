@@ -32,7 +32,7 @@ export class ReferentielStocksComponent implements OnInit {
   saving: string | null = null;
   error: string | null = null;
   data: any = null;
-  droits = { depots: false, depot_restreint: null as number | null, exterieur: false };
+  droits = { depots: false, depots_restreints: null as number[] | null, exterieur: false };
   parametres = { seuil_rouge_jours: 10, couverture_objectif_pct: 100, densite_gaz: 0.56 };
   dateEffet = new Date().toISOString().split('T')[0];
 
@@ -61,7 +61,7 @@ export class ReferentielStocksComponent implements OnInit {
   }
 
   peutModifierDepot(depot: any): boolean {
-    return this.droits.depots && (!this.droits.depot_restreint || this.droits.depot_restreint === depot.depot_id);
+    return this.droits.depots && (!this.droits.depots_restreints || this.droits.depots_restreints.includes(depot.depot_id));
   }
 
   private objetSection(section: string): string {

@@ -77,7 +77,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Retour sur l'onglet (reglages du navigateur modifies entre-temps, autorisation retiree...)
   @HostListener('document:visibilitychange')
   surRetourOnglet(): void {
-    if (document.visibilityState === 'visible' && this.etatNotif !== 'non-supporte') this.verifierNotificationsSilencieux();
+    if (document.visibilityState !== 'visible') return;
+    if (this.etatNotif !== 'non-supporte') this.verifierNotificationsSilencieux();
+    this.authService.relire().subscribe({ next: () => this.cdr.detectChanges(), error: () => { /* 401 : l'intercepteur ferme la session */ } });
   }
 
   private async verifierNotificationsSilencieux(): Promise<void> {
@@ -166,6 +168,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   readonly parUrl = (_: number, p: { url: string }) => p.url;
 
   rdcOuvert = false;
+  readonly parInterim = (_: number, i: { id: number }) => i.id;
 
   // Menu replie : le sous-menu n'a pas la place de s'afficher, on deplie d'abord le menu
   basculerRdc(): void {

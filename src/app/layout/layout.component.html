@@ -247,6 +247,13 @@
           <span *ngIf="sidebarOpen || isMobile" class="text-sm">Agents & Comptes</span>
         </a>
 
+        <a routerLink="/administration/interims" routerLinkActive="sidebar-link-active" class="sidebar-link">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+          </svg>
+          <span *ngIf="sidebarOpen || isMobile" class="text-sm">Intérims</span>
+        </a>
+
         <a routerLink="/administration/structures" routerLinkActive="sidebar-link-active" class="sidebar-link">
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -362,6 +369,14 @@
         pour les administrateurs. Configurez-la dès maintenant (application Google ou Microsoft Authenticator sur votre téléphone).
       </span>
       <a routerLink="/profil" fragment="double-authentification" class="font-semibold underline hover:no-underline">Configurer</a>
+    </div>
+
+    <!-- Interim en cours : droits d'un agent absent -->
+    <div *ngFor="let i of authService.currentUser?.interims; trackBy: parInterim" class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-primary-200 bg-primary-50 px-4 py-2 text-sm text-primary-800" role="status">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+      </svg>
+      <span class="flex-1 min-w-0">Vous assurez l'intérim de <strong>{{ i.titulaire }}</strong> jusqu'au <strong>{{ i.date_fin | date:'dd/MM/yyyy' }}</strong> : ses menus sont ajoutés aux vôtres.</span>
     </div>
 
     <!-- Rappel : expiration prochaine du mot de passe -->
