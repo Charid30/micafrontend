@@ -41,6 +41,7 @@ const MODULE_LABELS: Record<string, string> = {
   'centrales': 'Centrale SONABEL',
   'rdc-ghana': 'RDC : Dépôt de Ghana',
   'rdc-benin': 'RDC : Dépôt de Bénin',
+  'rdc-cote-ivoire': "RDC : Dépôt de Côte d'Ivoire",
   'dashboard': 'Tableau de bord',
   'rapports': 'Rapports PDF',
   'administration': 'Administration',

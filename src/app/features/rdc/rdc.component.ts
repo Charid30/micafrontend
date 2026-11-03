@@ -40,10 +40,23 @@ const FORM_CAMION = {
   quantite_kg: null as number | null,
 };
 const FORM_RECEPTION = {
-  id: null as number | null, date_reception: '', fournisseur: '', depot_id: null as number | null, produit: '',
+  id: null as number | null, date_reception: '', date_fin: '', numero_eme: '', accostage: '', fournisseur: '',
+  depot_id: null as number | null, produit: '',
   quantite: null as number | null, unite: 'TM', statut: 'LIVRE',
 };
+const FORM_DESTINATION = { libelle: '', colonne: 'A_CLASSER' };
 const AUTRE = '__autre__';
+const PAYS: Record<string, { nom: string; de: string }> = {
+  ghana: { nom: 'Ghana', de: 'du Ghana' }, benin: { nom: 'Bénin', de: 'du Bénin' }, 'cote-ivoire': { nom: "Côte d'Ivoire", de: "de Côte d'Ivoire" },
+};
+const ONGLETS = [
+  { cle: 'etat', libelle: 'État du jour' }, { cle: 'chargements', libelle: 'Chargements' },
+  { cle: 'receptions', libelle: 'Réceptions' }, { cle: 'destinations', libelle: 'Destinations' },
+];
+const ETAPES: Record<string, string[]> = {
+  camion: ['Chargement', 'Camion', 'Quantités'], reception: ['Réception', 'Produit'], destination: ['Nom', 'Colonne'],
+};
+const VALIDER: Record<string, string> = { camion: 'Ajouter le camion', reception: 'Ajouter la réception', destination: 'Ajouter la destination' };
 
 // Menu RDC : etat quotidien des depots cotiers, chargements camion par camion, receptions
 @Component({
@@ -64,10 +77,7 @@ export class RdcComponent implements OnInit {
   readonly authService = inject(AuthService);
 
   readonly AUTRE = AUTRE;
-  readonly onglets = [
-    { cle: 'etat', libelle: 'État du jour' }, { cle: 'chargements', libelle: 'Chargements' }, { cle: 'receptions', libelle: 'Réceptions' },
-    ...(this.authService.isAdmin() ? [{ cle: 'destinations', libelle: 'Destinations' }] : []),
-  ];
+  onglets = ONGLETS;
   readonly statuts: Record<string, string> = { PREVU: 'Prévu', EN_COURS: 'En cours', LIVRE: 'Livré' };
   readonly unites: Record<string, string> = { TM: 'TM', M3: 'm³' };
   private readonly fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
@@ -103,20 +113,35 @@ export class RdcComponent implements OnInit {
   receptions: any[] = [];
 
   camion = { ...FORM_CAMION };
-  modaleCamion = false;
-  readonly etapes = ['Chargement', 'Camion', 'Quantités'];
+  modale = '';      // saisie ouverte : camion, reception ou destination
   etape = 1;
   erreurEtape: string | null = null;
   reception = { ...FORM_RECEPTION };
-  nouvelleDestination = { libelle: '', colonne: 'A_CLASSER' };
+  destination = { ...FORM_DESTINATION };
 
-  get nomPays(): string { return this.pays === 'benin' ? 'Bénin' : 'Ghana'; }
+  get nomPays(): string { return PAYS[this.pays]?.nom || ''; }
+  get dePays(): string { return PAYS[this.pays]?.de || ''; }
+  // Benin : la saisie des camions attend la decision sur le detail fourni par chaque depot
+  get camionsOuverts(): boolean { return this.pays !== 'benin'; }
+  get unitesStocks(): string {
+    return this.pays === 'cote-ivoire' ? 'volume ambiant en m³ ; gaz, fuel et DDO en TM' : 'volume ambiant en m³, butane en TM';
+  }
+  get titreRepartition(): string { return this.pays === 'cote-ivoire' ? 'Wagons ou camions' : 'Répartition par dépôt'; }
   get droit(): string { return `rdc-${this.pays}`; }
   get canWrite(): boolean { return this.authService.hasPermission(this.droit, 'WRITE'); }
   get isAdmin(): boolean { return this.authService.isAdmin(); }
   get enPreparation(): boolean { return !this.loading && !this.error && !this.depots.length; }
   get dateFr(): string { return this.fr(this.date); }
   get veilleFr(): string { return this.fr(this.veille); }
+
+  get etapes(): string[] { return ETAPES[this.modale] || []; }
+  get enEdition(): boolean { return this.modale === 'camion' ? !!this.camion.id : this.modale === 'reception' && !!this.reception.id; }
+  get libelleValider(): string { return this.enEdition ? 'Enregistrer' : VALIDER[this.modale]; }
+  get titreSaisie(): string {
+    if (this.modale === 'camion') return this.camion.id ? 'Modifier le chargement' : `Nouveau chargement du ${this.dateFr}`;
+    if (this.modale === 'reception') return this.reception.id ? 'Modifier la réception' : 'Nouvelle réception';
+    return 'Nouvelle destination';
+  }
 
   private get api(): string { return `${environment.apiUrl}/rdc/${this.pays}`; }
 
@@ -125,7 +150,8 @@ export class RdcComponent implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.detruit)).subscribe((p) => {
       this.pays = p.get('pays') || '';
       this.onglet = 'etat';
-      this.modaleCamion = false;
+      this.onglets = ONGLETS.filter(o => (o.cle !== 'destinations' || this.isAdmin) && (o.cle !== 'chargements' || this.camionsOuverts));
+      this.modale = '';
       this.reinitialiserCamion();
       this.reinitialiserReception();
       this.charger();
@@ -308,6 +334,13 @@ export class RdcComponent implements OnInit {
     const c = this.camion;
     const vide = (v: any) => v === null || v === undefined || v === '';
     const manque = (champs: [any, string][]) => champs.filter(([v]) => vide(v)).map(([, libelle]) => libelle);
+    if (this.modale === 'destination') return this.etape === 1 ? manque([[this.destination.libelle.trim(), 'nom de la destination']]) : [];
+    if (this.modale === 'reception') {
+      const r = this.reception;
+      return this.etape === 1
+        ? manque([[r.date_reception, 'date'], [r.fournisseur.trim(), 'fournisseur'], [r.depot_id, 'dépôt']])
+        : manque([[r.produit, 'produit'], [r.quantite, 'quantité']]);
+    }
     if (this.etape === 1) {
       return manque([[c.depot_id, 'dépôt'], [c.produit, 'produit'], [c.destination, 'destination'],
         [c.destination === AUTRE ? c.autre.trim() : 'ok', 'précision de la destination']]);
@@ -328,20 +361,23 @@ export class RdcComponent implements OnInit {
     }
     if (this.etape < this.etapes.length) { this.allerEtape(this.etape + 1); return; }
     this.erreurEtape = null;
-    this.enregistrerCamion();
+    if (this.modale === 'camion') this.enregistrerCamion();
+    else if (this.modale === 'reception') this.enregistrerReception();
+    else this.ajouterDestination();
   }
 
   // Le formulaire garde depot, produit, destination et lot du dernier camion ajoute
   nouveauCamion(): void {
     this.camion = { ...this.camion, id: null };
-    this.modaleCamion = true;
+    this.modale = 'camion';
     // Depot, produit et destination deja connus (camion suivant) : on reprend au camion
     this.allerEtape(this.camion.depot_id && this.camion.produit && this.camion.destination ? 2 : 1);
   }
 
-  fermerCamion(): void {
+  fermerSaisie(): void {
     if (this.camion.id) this.reinitialiserCamion();
-    this.modaleCamion = false;
+    if (this.reception.id) this.reinitialiserReception();
+    this.modale = '';
     this.cdr.detectChanges();
   }
 
@@ -353,7 +389,7 @@ export class RdcComponent implements OnInit {
     };
     const requete = id ? this.http.put<any>(`${this.api}/chargements/${id}`, corps) : this.http.post<any>(`${this.api}/chargements`, corps);
     this.ecrire(requete, null, () => {
-      if (id) { this.fermerCamion(); return; }
+      if (id) { this.fermerSaisie(); return; }
       // Saisie par etapes : la fenetre reste ouverte, depot, produit, destination et lot restent pour le camion suivant
       this.camion = { ...this.camion, bon: '', commande: '', tracteur: '', remorque: '', temperature: null, volume_ambiant: null, quantite_20: null, quantite_kg: null };
       this.allerEtape(2);
@@ -368,7 +404,7 @@ export class RdcComponent implements OnInit {
       temperature: l.temperature, densite: l.densite, volume_ambiant: l.volume_ambiant, vcf_depot: l.vcf_depot,
       quantite_20: l.quantite_20, quantite_kg: l.quantite_kg,
     };
-    this.modaleCamion = true;
+    this.modale = 'camion';
     this.allerEtape(1);
   }
 
@@ -380,24 +416,37 @@ export class RdcComponent implements OnInit {
   }
 
   // ── Receptions
+  periode(r: any): string { return this.fr(r.date_reception) + (r.date_fin ? ` au ${this.fr(r.date_fin)}` : ''); }
+  detailReception(r: any): string { return [r.accostage, r.numero_eme ? `EME ${r.numero_eme}` : ''].filter(Boolean).join(', '); }
+
   private reinitialiserReception(): void { this.reception = { ...FORM_RECEPTION, date_reception: this.date }; }
+
+  ouvrirReception(): void {
+    this.reinitialiserReception();
+    this.modale = 'reception';
+    this.allerEtape(1);
+  }
 
   enregistrerReception(): void {
     const { id, ...r } = this.reception;
     const corps = { ...r, depot_id: Number(r.depot_id) };
     const requete = id ? this.http.put<any>(`${this.api}/receptions/${id}`, corps) : this.http.post<any>(`${this.api}/receptions`, corps);
-    this.ecrire(requete, null, () => this.reinitialiserReception());
+    this.ecrire(requete, null, () => {
+      if (id) { this.fermerSaisie(); return; }
+      this.reinitialiserReception();
+      this.allerEtape(1);
+    });
   }
 
   modifierReception(r: any): void {
     this.reception = {
-      id: r.id, date_reception: r.date_reception, fournisseur: r.fournisseur, depot_id: r.depot_id, produit: r.produit,
+      id: r.id, date_reception: r.date_reception, date_fin: r.date_fin || '', numero_eme: r.numero_eme || '', accostage: r.accostage || '',
+      fournisseur: r.fournisseur, depot_id: r.depot_id, produit: r.produit,
       quantite: r.quantite, unite: r.unite, statut: r.statut,
     };
-    this.cdr.detectChanges();
+    this.modale = 'reception';
+    this.allerEtape(1);
   }
-
-  annulerReception(): void { this.reinitialiserReception(); }
 
   async supprimerReception(r: any): Promise<void> {
     if (!(await this.dialog.confirmer({
@@ -407,9 +456,17 @@ export class RdcComponent implements OnInit {
   }
 
   // ── Destinations (administrateurs)
+  ouvrirDestination(): void {
+    this.destination = { ...FORM_DESTINATION };
+    this.modale = 'destination';
+    this.allerEtape(1);
+  }
+
   ajouterDestination(): void {
-    this.ecrire(this.http.post<any>(`${this.api}/destinations`, this.nouvelleDestination), null,
-      () => { this.nouvelleDestination = { libelle: '', colonne: 'A_CLASSER' }; });
+    this.ecrire(this.http.post<any>(`${this.api}/destinations`, this.destination), null, () => {
+      this.destination = { ...FORM_DESTINATION };
+      this.allerEtape(1);
+    }, () => this.allerEtape(1));
   }
 
   changerColonne(d: any, colonne: string): void {

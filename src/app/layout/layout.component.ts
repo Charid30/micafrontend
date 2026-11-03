@@ -158,6 +158,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     return [
       { droit: 'rdc-ghana', url: '/rdc/ghana', libelle: 'Dépôt de Ghana' },
       { droit: 'rdc-benin', url: '/rdc/benin', libelle: 'Dépôt de Bénin' },
+      { droit: 'rdc-cote-ivoire', url: '/rdc/cote-ivoire', libelle: "Dépôt de Côte d'Ivoire" },
     ].filter(p => this.authService.hasPermission(p.droit, 'READ'));
   }
 

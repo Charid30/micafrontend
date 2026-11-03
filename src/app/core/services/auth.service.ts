@@ -63,6 +63,7 @@ export class AuthService {
     if (this.hasPermission('dashboard', 'READ')) return '/dashboard';
     if (this.hasPermission('rdc-ghana', 'READ')) return '/rdc/ghana';
     if (this.hasPermission('rdc-benin', 'READ')) return '/rdc/benin';
+    if (this.hasPermission('rdc-cote-ivoire', 'READ')) return '/rdc/cote-ivoire';
     return '/profil';
   }
 
