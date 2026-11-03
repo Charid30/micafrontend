@@ -95,6 +95,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   // Rappel d'expiration du mot de passe : masquable pour la session en cours
   rappelMasque = false;
+
+  // Alertes flottantes : un seul detail ouvert a la fois
+  panneauAlerte: string | null = null;
+  basculerAlerte(cle: string): void { this.panneauAlerte = this.panneauAlerte === cle ? null : cle; }
+  get doubleAuthAnnoncee(): boolean {
+    const u = this.authService.currentUser;
+    return !!u?.double_auth_echeance && !u?.double_auth_active;
+  }
+  get alertesFlottantes(): boolean {
+    return !!(this.auteurModification || this.alerteSauvegarde || this.doubleAuthAnnoncee
+      || this.authService.currentUser?.interims?.length || this.rappelMotDePasse !== null);
+  }
   get rappelMotDePasse(): number | null {
     const m = this.authService.currentUser?.mot_de_passe;
     return m?.rappel && !this.rappelMasque ? m.jours_restants : null;
@@ -161,6 +173,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       { droit: 'rdc-ghana', url: '/rdc/ghana', libelle: 'Dépôt de Ghana' },
       { droit: 'rdc-benin', url: '/rdc/benin', libelle: 'Dépôt de Bénin' },
       { droit: 'rdc-cote-ivoire', url: '/rdc/cote-ivoire', libelle: "Dépôt de Côte d'Ivoire" },
+      { droit: 'rdc-togo', url: '/rdc/togo', libelle: 'Dépôt de Togo' },
     ].filter(p => this.authService.hasPermission(p.droit, 'READ'));
   }
 

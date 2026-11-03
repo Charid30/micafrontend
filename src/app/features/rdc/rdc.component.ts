@@ -34,20 +34,23 @@ const PDF_CSS = `
 `;
 
 const FORM_CAMION = {
-  id: null as number | null, depot_id: null as number | null, produit: '', bon: '', commande: '', tracteur: '', remorque: '',
+  id: null as number | null, depot_id: null as number | null, produit: '', bon: '', commande: '', bl: '', tracteur: '', remorque: '',
   destination: '', autre: '', temperature: null as number | null, densite: null as number | null,
   volume_ambiant: null as number | null, vcf_depot: null as number | null, quantite_20: null as number | null,
-  quantite_kg: null as number | null,
+  quantite_kg: null as number | null, volume_15_l: null as number | null,
 };
 const FORM_RECEPTION = {
   id: null as number | null, date_reception: '', date_fin: '', numero_eme: '', accostage: '', fournisseur: '',
+  type_operation: '', lieu_livraison: '',
   depot_id: null as number | null, produit: '',
   quantite: null as number | null, unite: 'TM', statut: 'LIVRE',
 };
 const FORM_DESTINATION = { libelle: '', colonne: 'A_CLASSER' };
 const AUTRE = '__autre__';
+const AUTRE_LIEU = -1;       // reception livree hors depot suivi (ex. ZENER au Togo)
 const PAYS: Record<string, { nom: string; de: string }> = {
   ghana: { nom: 'Ghana', de: 'du Ghana' }, benin: { nom: 'Bénin', de: 'du Bénin' }, 'cote-ivoire': { nom: "Côte d'Ivoire", de: "de Côte d'Ivoire" },
+  togo: { nom: 'Togo', de: 'du Togo' },
 };
 const ONGLETS = [
   { cle: 'etat', libelle: 'État du jour' }, { cle: 'chargements', libelle: 'Chargements' },
@@ -79,7 +82,9 @@ export class RdcComponent implements OnInit {
   readonly AUTRE = AUTRE;
   onglets = ONGLETS;
   readonly statuts: Record<string, string> = { PREVU: 'Prévu', EN_COURS: 'En cours', LIVRE: 'Livré' };
-  readonly unites: Record<string, string> = { TM: 'TM', M3: 'm³' };
+  readonly AUTRE_LIEU = AUTRE_LIEU;
+  readonly unites: Record<string, string> = { TM: 'TM', M3: 'm³ ambiant', M315: 'm³ à 15 °C' };
+  readonly typesOperation = ['Cession', 'Achat', 'Transfert'];
   private readonly fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
   private readonly fmtTonnes = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
@@ -102,6 +107,8 @@ export class RdcComponent implements OnInit {
   charges: Record<string, number> = {};
   tonnes: Record<string, number> = {};
   sansTonnage = 0;
+  camionsParColonne: Record<string, number> = {};
+  chargementsEn = 'TONNES';
   besoins: any[] = [];
   receptionsRecentes: any[] = [];
   stocks: Record<string, number | null> = {};
@@ -198,6 +205,8 @@ export class RdcComponent implements OnInit {
     this.charges = e.charges;
     this.tonnes = e.tonnes;
     this.sansTonnage = e.sans_tonnage;
+    this.camionsParColonne = e.camions || {};
+    this.chargementsEn = e.chargements_en || 'TONNES';
     this.besoins = e.besoins;
     this.receptionsRecentes = e.receptions;
     this.stocks = {};
@@ -247,7 +256,12 @@ export class RdcComponent implements OnInit {
   get grandTotalCharges(): number { return this.produits.reduce((s, p) => s + this.totalCharges(p.code), 0); }
   get grandTotalAttente(): number { return this.produits.reduce((s, p) => s + this.totalAttente(p.code), 0); }
 
-  tonne(produit: string, colonne: string): number { return this.tonnes[`${produit}_${colonne}`] || 0; }
+  // Tableau des chargements : tonnes, ou nombre de camions (etats du Benin et du Togo)
+  get enCamions(): boolean { return this.chargementsEn === 'CAMIONS'; }
+  tonne(produit: string, colonne: string): number {
+    return (this.enCamions ? this.camionsParColonne : this.tonnes)[`${produit}_${colonne}`] || 0;
+  }
+  valeurChargement(v: number): string { return this.enCamions ? String(v) : this.tonnage(v); }
   totalTonnesProduit(produit: string): number { return this.colonnes.reduce((s, c) => s + this.tonne(produit, c.code), 0); }
   totalTonnesColonne(colonne: string): number { return this.produits.reduce((s, p) => s + this.tonne(p.code, colonne), 0); }
   get grandTotalTonnes(): number { return this.produits.reduce((s, p) => s + this.totalTonnesProduit(p.code), 0); }
@@ -291,7 +305,9 @@ export class RdcComponent implements OnInit {
 
   // ── Chargements : formulaire selon le depot et le produit
   get modeCamion(): string {
-    if (this.depots.find(d => d.id === Number(this.camion.depot_id))?.mode_saisie === 'QUANTITES') return 'QUANTITES';
+    const mode = this.depots.find(d => d.id === Number(this.camion.depot_id))?.mode_saisie;
+    if (mode === 'QUANTITES') return 'QUANTITES';
+    if (mode === 'VOLUMES' && this.camion.produit !== 'BUTANE') return 'VOLUMES';
     return this.camion.produit === 'BUTANE' ? 'GPL' : 'CALCUL';
   }
 
@@ -338,7 +354,8 @@ export class RdcComponent implements OnInit {
     if (this.modale === 'reception') {
       const r = this.reception;
       return this.etape === 1
-        ? manque([[r.date_reception, 'date'], [r.fournisseur.trim(), 'fournisseur'], [r.depot_id, 'dépôt']])
+        ? manque([[r.date_reception, 'date'], [r.fournisseur.trim() || r.type_operation.trim(), 'fournisseur ou type d\'opération'],
+          [r.depot_id, 'lieu de livraison'], [r.depot_id === AUTRE_LIEU ? r.lieu_livraison.trim() : 'ok', 'nom du lieu']])
         : manque([[r.produit, 'produit'], [r.quantite, 'quantité']]);
     }
     if (this.etape === 1) {
@@ -346,6 +363,7 @@ export class RdcComponent implements OnInit {
         [c.destination === AUTRE ? c.autre.trim() : 'ok', 'précision de la destination']]);
     }
     if (this.etape === 2) return manque([[c.bon.trim(), 'n° de bon']]);
+    if (this.modeCamion === 'VOLUMES') return manque([[c.volume_ambiant, 'volume ambiant'], [c.volume_15_l, 'volume à 15 °C']]);
     if (this.modeCamion === 'QUANTITES') return manque([[c.quantite_20, 'quantité à 20 °C'], [c.volume_ambiant, 'quantité observée']]);
     if (this.modeCamion === 'GPL') return manque([[c.quantite_kg, 'quantité']]);
     return manque([[c.temperature, 'température'], [c.densite, 'densité'], [c.volume_ambiant, 'volume ambiant']]);
@@ -399,10 +417,11 @@ export class RdcComponent implements OnInit {
   modifierCamion(l: any): void {
     const connue = this.estDansLaListe(l.destination);
     this.camion = {
-      id: l.id, depot_id: l.depot_id, produit: l.produit, bon: l.bon || '', commande: l.commande || '', tracteur: l.tracteur || '',
+      id: l.id, depot_id: l.depot_id, produit: l.produit, bon: l.bon || '', commande: l.commande || '', bl: l.bl || '', tracteur: l.tracteur || '',
       remorque: l.remorque || '', destination: connue ? l.destination : AUTRE, autre: connue ? '' : l.destination,
       temperature: l.temperature, densite: l.densite, volume_ambiant: l.volume_ambiant, vcf_depot: l.vcf_depot,
       quantite_20: l.quantite_20, quantite_kg: l.quantite_kg,
+      volume_15_l: l.volume_15 === null ? null : Math.round(l.volume_15 * 1000),
     };
     this.modale = 'camion';
     this.allerEtape(1);
@@ -417,7 +436,7 @@ export class RdcComponent implements OnInit {
 
   // ── Receptions
   periode(r: any): string { return this.fr(r.date_reception) + (r.date_fin ? ` au ${this.fr(r.date_fin)}` : ''); }
-  detailReception(r: any): string { return [r.accostage, r.numero_eme ? `EME ${r.numero_eme}` : ''].filter(Boolean).join(', '); }
+  detailReception(r: any): string { return [r.type_operation, r.accostage, r.numero_eme ? `EME ${r.numero_eme}` : ''].filter(Boolean).join(', '); }
 
   private reinitialiserReception(): void { this.reception = { ...FORM_RECEPTION, date_reception: this.date }; }
 
@@ -429,7 +448,8 @@ export class RdcComponent implements OnInit {
 
   enregistrerReception(): void {
     const { id, ...r } = this.reception;
-    const corps = { ...r, depot_id: Number(r.depot_id) };
+    const autreLieu = r.depot_id === AUTRE_LIEU;
+    const corps = { ...r, depot_id: autreLieu ? null : Number(r.depot_id), lieu_livraison: autreLieu ? r.lieu_livraison : '' };
     const requete = id ? this.http.put<any>(`${this.api}/receptions/${id}`, corps) : this.http.post<any>(`${this.api}/receptions`, corps);
     this.ecrire(requete, null, () => {
       if (id) { this.fermerSaisie(); return; }
@@ -441,7 +461,8 @@ export class RdcComponent implements OnInit {
   modifierReception(r: any): void {
     this.reception = {
       id: r.id, date_reception: r.date_reception, date_fin: r.date_fin || '', numero_eme: r.numero_eme || '', accostage: r.accostage || '',
-      fournisseur: r.fournisseur, depot_id: r.depot_id, produit: r.produit,
+      fournisseur: r.fournisseur || '', type_operation: r.type_operation || '', lieu_livraison: r.lieu_livraison || '',
+      depot_id: r.depot_id ?? (r.lieu_livraison ? AUTRE_LIEU : null), produit: r.produit,
       quantite: r.quantite, unite: r.unite, statut: r.statut,
     };
     this.modale = 'reception';
