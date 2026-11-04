@@ -16,7 +16,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { DialogService } from '../../../core/services/dialog.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
-import { paginer } from '../../../shared/pdf/paginer';
+import { enregistrerPdf } from '../../../shared/pdf/paginer';
 
 const PDF_CSS = `
 .pdf-doc { width: 277mm; background: #fff; color: #111; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.3; }
@@ -201,8 +201,6 @@ export class CentralesComponent implements OnInit {
     document.head.appendChild(correctif);
 
     try {
-      paginer(doc, doc.getBoundingClientRect().width * 190 / 277);
-      const html2pdf = (await import('html2pdf.js')).default;
       const opt: any = {
         margin:      [10, 10, 10, 10],
         filename:    `centrales_sonabel_${this.date}.pdf`,
@@ -211,7 +209,7 @@ export class CentralesComponent implements OnInit {
         jsPDF:       { unit: 'mm', format: 'a4', orientation: 'landscape' },
         pagebreak:   { mode: [] },
       };
-      await html2pdf().set(opt).from(doc).save();
+      await enregistrerPdf(doc, opt);
     } catch {
       this.toast.error('Impossible de générer le PDF.');
     } finally {

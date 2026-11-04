@@ -16,7 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
-import { paginer } from '../../shared/pdf/paginer';
+import { enregistrerPdf } from '../../shared/pdf/paginer';
 
 const API = `${environment.apiUrl}/rapports`;
 
@@ -325,9 +325,6 @@ export class RapportsComponent implements OnInit {
     document.head.appendChild(correctif);
 
     try {
-      // Hauteur utile d'une page A4 (277 mm) à la largeur utile (190 mm)
-      paginer(doc, doc.getBoundingClientRect().width * 277 / 190);
-      const html2pdf = (await import('html2pdf.js')).default;
       const opt: any = {
         margin:      [10, 10, 10, 10],
         filename:    nom,
@@ -336,7 +333,7 @@ export class RapportsComponent implements OnInit {
         jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak:   { mode: [] },
       };
-      await html2pdf().set(opt).from(doc).save();
+      await enregistrerPdf(doc, opt);
     } finally {
       support.remove();
       correctif.remove();
@@ -358,7 +355,7 @@ export class RapportsComponent implements OnInit {
         #rapport-print-zone,
         #rapport-print-zone * { visibility: visible !important; }
         #rapport-print-zone {
-          position: fixed; top: 0; left: 0; width: 100%;
+          position: absolute; top: 0; left: 0; width: 100%;
           font-size: 10px;
           color: #000 !important;
         }
@@ -370,6 +367,10 @@ export class RapportsComponent implements OnInit {
           margin-bottom: 10px;
         }
         #rapport-print-zone table { width: 100%; border-collapse: collapse; }
+        /* Sauts de page : jamais au milieu d'une ligne, un titre reste avec sa suite, l'en-tête se répète */
+        #rapport-print-zone tr, #rapport-print-zone li, #rapport-print-zone .grid { break-inside: avoid; page-break-inside: avoid; }
+        #rapport-print-zone h1, #rapport-print-zone h2, #rapport-print-zone h3, #rapport-print-zone h4 { break-after: avoid; page-break-after: avoid; }
+        #rapport-print-zone thead { display: table-header-group; }
         #rapport-print-zone th {
           background: #1a4a3f !important;
           color: #fff !important;
