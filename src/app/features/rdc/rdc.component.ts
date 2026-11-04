@@ -18,7 +18,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { DialogService } from '../../core/services/dialog.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
-import { genererPdfPaysage } from '../../shared/pdf/pdf-paysage';
+import { imprimerPdf } from '../../shared/pdf/pdf-serveur';
 
 const PDF_CSS = `
 .pdf-doc { width: 277mm; background: #fff; color: #111; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.3; }
@@ -500,7 +500,7 @@ export class RdcComponent implements OnInit {
     this.generation = true;
     this.cdr.detectChanges();
     try {
-      await genererPdfPaysage(el, PDF_CSS, `rdc_${this.pays}_${this.date}.pdf`);
+      await imprimerPdf(this.http, el, PDF_CSS, `rdc_${this.pays}_${this.date}.pdf`, { paysage: true });
     } catch {
       this.toast.error('Impossible de générer le PDF.');
     } finally {

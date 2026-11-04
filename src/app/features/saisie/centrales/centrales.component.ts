@@ -16,7 +16,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { DialogService } from '../../../core/services/dialog.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ecouterTempsReel } from '../../../core/services/temps-reel.service';
-import { paginer } from '../../../shared/pdf/paginer';
+import { imprimerPdf } from '../../../shared/pdf/pdf-serveur';
 
 const PDF_CSS = `
 .pdf-doc { width: 277mm; background: #fff; color: #111; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.3; }
@@ -174,49 +174,19 @@ export class CentralesComponent implements OnInit {
     });
   }
 
-  // Meme procede que le rapport : copie du modele, feuille de style propre et sauts de page
-  // entre deux lignes. A4 paysage : 277 mm x 190 mm utiles.
+  // Meme procede que le rapport : copie du modele et feuille de style propre, imprimees par Chrome
+  // sur le serveur (A4 paysage, 277 mm x 190 mm utiles)
   async telecharger(): Promise<void> {
     const el = document.getElementById('centrales-pdf');
     if (!el) return;
     this.generation = true;
     this.cdr.detectChanges();
 
-    const support = document.createElement('div');
-    support.style.cssText = 'position:absolute;left:-10000px;top:0';
-    const doc = document.createElement('div');
-    doc.className = 'pdf-doc';
-    support.appendChild(doc);
-    const style = document.createElement('style');
-    style.textContent = PDF_CSS;
-    doc.appendChild(style);
-    const copie = el.cloneNode(true) as HTMLElement;
-    copie.removeAttribute('id');
-    copie.classList.remove('hidden');
-    doc.appendChild(copie);
-    document.body.appendChild(support);
-    // Tailwind met les images en display:block, ce qui decale le texte dans html2canvas
-    const correctif = document.createElement('style');
-    correctif.textContent = 'img { display: inline-block !important; }';
-    document.head.appendChild(correctif);
-
     try {
-      paginer(doc, doc.getBoundingClientRect().width * 190 / 277);
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt: any = {
-        margin:      [10, 10, 10, 10],
-        filename:    `centrales_sonabel_${this.date}.pdf`,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'landscape' },
-        pagebreak:   { mode: [] },
-      };
-      await html2pdf().set(opt).from(doc).save();
+      await imprimerPdf(this.http, el, PDF_CSS, `centrales_sonabel_${this.date}.pdf`, { paysage: true });
     } catch {
       this.toast.error('Impossible de générer le PDF.');
     } finally {
-      support.remove();
-      correctif.remove();
       this.generation = false;
       this.cdr.detectChanges();
     }

@@ -16,7 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
-import { paginer } from '../../shared/pdf/paginer';
+import { imprimerPdf } from '../../shared/pdf/pdf-serveur';
 
 const API = `${environment.apiUrl}/rapports`;
 
@@ -289,57 +289,30 @@ export class RapportsComponent implements OnInit {
 
   // ── Téléchargement PDF ──────────────────────────────────────
 
-  // Le PDF est construit à partir d'une copie de la zone imprimable, avec sa propre feuille de style
-  // (Times New Roman 12, texte justifié, couleurs en dur) : il ne dépend ni de la largeur de l'écran
-  // ni du chargement des styles de l'application. Les sauts de page sont placés à la main entre deux
-  // lignes (jamais au milieu d'une ligne de tableau) et l'en-tête du tableau est répété.
+  // Le PDF est imprimé par Chrome sur le serveur à partir d'une copie de la zone imprimable, avec sa
+  // propre feuille de style (Times New Roman 12, texte justifié, couleurs en dur) : vraie pagination,
+  // aucune ligne coupée, en-têtes de tableau répétés, numéros de page, texte sélectionnable.
+  pdfEnCours = false;
+
   async telecharger(): Promise<void> {
     const el = document.getElementById('rapport-print-zone');
-    if (!el) return;
-
+    if (!el || this.pdfEnCours) return;
     const sem = this.apercu?.rapport?.semaine_iso;
     const an  = this.apercu?.rapport?.annee;
-    const nom = `rapport_semaine_${sem}_${an}.pdf`;
-
-    // Le support hors écran sert seulement à la mise en page ; html2pdf copie le document lui-même
-    const support = document.createElement('div');
-    support.style.cssText = 'position:absolute;left:-10000px;top:0';
-    const doc = document.createElement('div');
-    doc.className = 'pdf-doc';
-    support.appendChild(doc);
-    const style = document.createElement('style');
-    style.textContent = PDF_CSS;
-    doc.appendChild(style);
-    const copie = el.cloneNode(true) as HTMLElement;
-    copie.removeAttribute('id');
-    doc.appendChild(copie);
-    // Tableaux larges (beaucoup de colonnes) : police réduite pour que toutes les colonnes tiennent
-    doc.querySelectorAll('table').forEach(t => {
-      if ((t.tHead?.rows[0]?.cells.length || 0) > 7) t.classList.add('pdf-large');
-    });
-    document.body.appendChild(support);
-    // Tailwind met les images en display:block, ce qui fausse la mesure de la ligne de base des
-    // polices par html2canvas (faite dans la page) : le texte des cellules serait décalé vers le bas
-    const correctif = document.createElement('style');
-    correctif.textContent = 'img { display: inline-block !important; }';
-    document.head.appendChild(correctif);
-
+    this.pdfEnCours = true;
+    this.cdr.detectChanges();
     try {
-      // Hauteur utile d'une page A4 (277 mm) à la largeur utile (190 mm)
-      paginer(doc, doc.getBoundingClientRect().width * 277 / 190);
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt: any = {
-        margin:      [10, 10, 10, 10],
-        filename:    nom,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:   { mode: [] },
-      };
-      await html2pdf().set(opt).from(doc).save();
+      await imprimerPdf(this.http, el, PDF_CSS, `rapport_semaine_${sem}_${an}.pdf`, {
+        // Tableaux larges (beaucoup de colonnes) : police réduite pour que toutes les colonnes tiennent
+        preparer: (doc) => doc.querySelectorAll('table').forEach(t => {
+          if ((t.tHead?.rows[0]?.cells.length || 0) > 7) t.classList.add('pdf-large');
+        }),
+      });
+    } catch {
+      this.toast.error('Impossible de générer le PDF.');
     } finally {
-      support.remove();
-      correctif.remove();
+      this.pdfEnCours = false;
+      this.cdr.detectChanges();
     }
   }
 
