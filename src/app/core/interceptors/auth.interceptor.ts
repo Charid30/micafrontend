@@ -33,7 +33,7 @@ export class AuthInterceptor implements HttpInterceptor {
       tap((e) => { if (ecriture && e instanceof HttpResponse) this.tempsReel.marquerEnregistre(); }),
       catchError((err: HttpErrorResponse) => {
         if (err.status === 401 && !req.url.endsWith('/auth/login')) {
-          this.authService.clearSession();
+          this.authService.clearSession(err.error?.code === 'SESSION_INACTIVE' ? err.error.message : undefined);
         }
         // Adresse bannie : plus aucun acces, retour a la connexion (le message s'y affiche)
         if (err.status === 403 && err.error?.code === 'ACCES_BANNI' && !req.url.endsWith('/auth/login')) {

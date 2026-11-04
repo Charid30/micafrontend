@@ -51,6 +51,17 @@ export class AuthService {
     this.userSubject.next(res.utilisateur);
   }
 
+  private readonly MOTIF_KEY = 'mica_motif_deconnexion';
+
+  /** Motif de la derniere fermeture de session, lu une seule fois par la page de connexion */
+  motifDeconnexion(): string | null {
+    try {
+      const motif = sessionStorage.getItem(this.MOTIF_KEY);
+      sessionStorage.removeItem(this.MOTIF_KEY);
+      return motif;
+    } catch { return null; }
+  }
+
   /** Page a ouvrir apres la connexion selon les obligations du compte */
   pageApresConnexion(): string {
     if (this.mustChangePassword()) return '/auth/force-change-password';
@@ -78,17 +89,18 @@ export class AuthService {
     this.router.navigate(['/auth/double-authentification']);
   }
 
-  /** Déconnexion volontaire : efface aussi le cookie côté serveur */
-  logout(): void {
+  /** Déconnexion volontaire (ou après inactivité) : la session est aussi fermée côté serveur */
+  logout(motif?: string): void {
     // Notifications push : ce navigateur n'est plus rattache au compte (poste partage), puis
     // fermeture de la session cote serveur (le detachement a besoin de la session encore ouverte)
     this.notifications.detacher().finally(() =>
       this.http.post(`${environment.apiUrl}/auth/logout`, {}).subscribe({ error: () => {} }));
-    this.clearSession();
+    this.clearSession(motif);
   }
 
-  /** Session expirée ou refusée (401) : nettoyage local uniquement */
-  clearSession(): void {
+  /** Session expirée ou refusée (401) : nettoyage local ; le motif s'affiche sur la page de connexion */
+  clearSession(motif?: string): void {
+    try { if (motif) sessionStorage.setItem(this.MOTIF_KEY, motif); } catch { /* stockage indisponible */ }
     localStorage.removeItem(this.USER_KEY);
     this.userSubject.next(null);
     this.router.navigate(['/auth/login']);

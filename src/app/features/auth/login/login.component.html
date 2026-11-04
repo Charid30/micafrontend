@@ -78,6 +78,14 @@
         </p>
       </div>
 
+      <!-- Session fermee apres inactivite -->
+      <div *ngIf="info && !error" class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2 border bg-primary-50 border-primary-200 text-primary-800" role="status">
+        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        {{ info }}
+      </div>
+
       <!-- Alerte erreur -->
       <div *ngIf="error"
            class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2 border bg-[#fff5f5] border-red-300 text-red-600">

@@ -11,6 +11,7 @@
 import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { TempsReelService } from '../core/services/temps-reel.service';
+import { InactiviteService } from '../core/services/inactivite.service';
 import { ToastService } from '../core/services/toast.service';
 import { NotificationsService, EtatNotifications } from '../core/services/notifications.service';
 import { Router, NavigationEnd } from '@angular/router';
@@ -34,6 +35,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   private readonly notifications = inject(NotificationsService);
   readonly tempsReel = inject(TempsReelService);
+  // Deconnexion apres inactivite : secondes restantes pendant la derniere minute
+  readonly inactivite = inject(InactiviteService);
+  deconnexionDans: number | null = null;
+  private abonnementInactivite?: Subscription;
   // Rafraichissement automatique : auteur de l'enregistrement signale dans le bandeau
   auteurModification: string | null = null;
   private abonnementAvis?: Subscription;
@@ -104,7 +109,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     return !!u?.double_auth_echeance && !u?.double_auth_active;
   }
   get alertesFlottantes(): boolean {
-    return !!(this.auteurModification || this.alerteSauvegarde || this.doubleAuthAnnoncee
+    return !!(this.deconnexionDans !== null || this.auteurModification || this.alerteSauvegarde || this.doubleAuthAnnoncee
       || this.authService.currentUser?.interims?.length || this.rappelMotDePasse !== null);
   }
   get rappelMotDePasse(): number | null {
@@ -113,12 +118,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.abonnementInactivite?.unsubscribe();
+    this.inactivite.arreter();
     this.abonnementAvis?.unsubscribe();
     this.tempsReel.arreter();
   }
 
   ngOnInit(): void {
     this.tempsReel.demarrer();
+    this.inactivite.demarrer();
+    this.abonnementInactivite = this.inactivite.restant$.subscribe((s) => { this.deconnexionDans = s; this.cdr.detectChanges(); });
     this.abonnementAvis = this.tempsReel.avis$.subscribe((par) => { this.auteurModification = par; this.cdr.detectChanges(); });
     // Droits relus : le menu suit tout changement fait depuis la derniere connexion
     this.authService.relire().subscribe({ next: () => this.cdr.detectChanges(), error: () => { /* 401 : l'intercepteur ferme la session */ } });

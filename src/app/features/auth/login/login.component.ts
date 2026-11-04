@@ -22,6 +22,8 @@ export class LoginComponent {
   form: FormGroup;
   loading = false;
   error = '';
+  // Session fermee (inactivite) : explication affichee a l'arrivee
+  info: string | null = null;
   showPassword = false;
   // Etape 2 : code de double authentification (ou code de secours)
   etape2fa = false;
@@ -35,6 +37,7 @@ export class LoginComponent {
       password: ['', Validators.required],
     });
     this.formCode = this.fb.group({ code: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(12)]] });
+    this.info = this.authService.motifDeconnexion();
   }
 
   onSubmit(): void {

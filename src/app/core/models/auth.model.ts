@@ -58,6 +58,7 @@ export interface Utilisateur {
   agent: Agent;
   permissions: Permission[];
   interims?: { id: number; titulaire: string; date_fin: string }[];   // interims assures en ce moment
+  session_inactivite_minutes?: number;           // fermeture de la session apres inactivite
 }
 
 export interface AuthResponse {
