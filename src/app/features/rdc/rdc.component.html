@@ -41,6 +41,9 @@
     </div>
   </div>
 
+  <!-- Jour passé : message flottant (composant partagé avec les Stocks et la Centrale SONABEL) -->
+  <app-jour-passe *ngIf="!enPreparation && date && aujourdhui && date < aujourdhui" [date]="date" (revenir)="revenirAujourdhui()"></app-jour-passe>
+
   <div *ngIf="error" class="card border-red-200 bg-red-50 text-sm text-red-700">{{ error }}</div>
   <div *ngIf="loading" class="card text-sm text-gray-500">Chargement…</div>
   <div *ngIf="enPreparation" class="card text-sm text-gray-600">Le suivi du dépôt de {{ nomPays }} est en préparation.</div>

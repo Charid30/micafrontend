@@ -12,10 +12,11 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { JourPasseComponent } from '../../shared/jour-passe/jour-passe.component';
 import { RdcComponent } from './rdc.component';
 
 @NgModule({
   declarations: [RdcComponent],
-  imports: [CommonModule, FormsModule, RouterModule.forChild([{ path: '', component: RdcComponent }])],
+  imports: [CommonModule, FormsModule, JourPasseComponent, RouterModule.forChild([{ path: '', component: RdcComponent }])],
 })
 export class RdcModule {}

@@ -76,18 +76,8 @@
     </div>
   </div>
 
-  <!-- Jour passé : bandeau de consultation -->
-  <div *ngIf="jourVu" class="card flex flex-col gap-3 border-primary-200 bg-[#f0faf3] sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex items-center gap-3">
-      <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-      </svg>
-      <p class="text-sm text-primary-700">
-        Consultation du <strong>{{ jourVu | date:'EEEE d MMMM yyyy':'':'fr' }}</strong> : données renseignées ce jour-là, en lecture seule.
-      </p>
-    </div>
-    <button type="button" class="btn-secondary flex-shrink-0" (click)="revenirAujourdhui()">Revenir à aujourd'hui</button>
-  </div>
+  <!-- Jour passé : message flottant (composant partagé avec RDC et Centrale SONABEL) -->
+  <app-jour-passe *ngIf="jourVu" [date]="jourVu" [lectureSeule]="true" (revenir)="revenirAujourdhui()"></app-jour-passe>
 
   <!-- Rapport archivé -->
   <div *ngIf="estPublie" class="card flex items-center gap-3 border-primary-200 bg-[#f0faf3]">

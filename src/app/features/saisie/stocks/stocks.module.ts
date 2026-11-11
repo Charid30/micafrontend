@@ -12,11 +12,12 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { JourPasseComponent } from '../../../shared/jour-passe/jour-passe.component';
 import { StocksComponent } from './stocks.component';
 import { FrequenceModule } from '../../../shared/frequence/frequence.module';
 
 @NgModule({
   declarations: [StocksComponent],
-  imports: [CommonModule, FormsModule, FrequenceModule, RouterModule.forChild([{ path: '', component: StocksComponent }])],
+  imports: [CommonModule, FormsModule, JourPasseComponent, FrequenceModule, RouterModule.forChild([{ path: '', component: StocksComponent }])],
 })
 export class StocksModule {}

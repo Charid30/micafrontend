@@ -117,6 +117,11 @@ export class CentralesComponent implements OnInit {
     this.charger(date);
   }
 
+  // Message flottant du jour passé : retour au jour courant (confirmation si une saisie n'est pas enregistrée)
+  revenirAujourdhui(): void {
+    if (this.aujourdhui) this.allerA(this.aujourdhui);
+  }
+
   aller(jours: number): void {
     const d = new Date(`${this.date}T00:00:00Z`);
     d.setUTCDate(d.getUTCDate() + jours);
