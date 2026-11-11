@@ -62,19 +62,7 @@ export async function imprimerPdf(
   http: HttpClient, modele: HTMLElement, css: string, fichier: string,
   options: { paysage?: boolean; preparer?: (doc: HTMLElement) => void } = {},
 ): Promise<void> {
-  const doc = document.createElement('div');
-  doc.className = 'pdf-doc';
-  const copie = modele.cloneNode(true) as HTMLElement;
-  copie.removeAttribute('id');
-  copie.classList.remove('hidden');
-  doc.appendChild(copie);
-  integrerImages(modele, copie);
-  options.preparer?.(doc);
-
-  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${fichier}</title>`
-    + `<style>${stylesApplication()}</style><style>${css}</style><style>${PAGINATION}</style>`
-    + `</head><body>${doc.outerHTML}</body></html>`;
-
+  const html = construireDocumentPdf(modele, css, fichier, options);
   const pdf = await firstValueFrom(http.post(`${environment.apiUrl}/pdf`, html, {
     params: { fichier, orientation: options.paysage ? 'paysage' : 'portrait' },
     headers: { 'Content-Type': 'text/html' },
@@ -86,4 +74,26 @@ export async function imprimerPdf(
   a.download = fichier;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * Document HTML complet (styles compris) envoyé à l'impression. Sert aussi au serveur, qui ouvre la page
+ * Rapports pour fabriquer lui-même le PDF de l'application mobile (même rendu que le bouton du web).
+ */
+export function construireDocumentPdf(
+  modele: HTMLElement, css: string, fichier: string,
+  options: { preparer?: (doc: HTMLElement) => void } = {},
+): string {
+  const doc = document.createElement('div');
+  doc.className = 'pdf-doc';
+  const copie = modele.cloneNode(true) as HTMLElement;
+  copie.removeAttribute('id');
+  copie.classList.remove('hidden');
+  doc.appendChild(copie);
+  integrerImages(modele, copie);
+  options.preparer?.(doc);
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>${fichier}</title>`
+    + `<style>${stylesApplication()}</style><style>${css}</style><style>${PAGINATION}</style>`
+    + `</head><body>${doc.outerHTML}</body></html>`;
 }

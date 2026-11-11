@@ -40,6 +40,41 @@ export class StocksComponent implements OnInit {
   rapport: any = null;
   frequence: string | null = null;
   dateSaisie: string | null = null;
+
+  // ── Consultation des jours précédents (chevrons, comme le RDC) ──
+  // Lecture seule : le serveur ne rend aucun droit de saisie pour un jour passé et n'écrit rien.
+  jourVu: string | null = null;      // null = aujourd'hui (saisie)
+  aujourdhui = '';
+  consultation = false;
+
+  private decaler(iso: string, jours: number): string {
+    const [a, m, j] = iso.split('-').map(Number);
+    return new Date(Date.UTC(a, m - 1, j + jours)).toISOString().slice(0, 10);
+  }
+
+  allerJour(delta: number): void {
+    const base = this.jourVu || this.aujourdhui || this.dateSaisie;
+    if (!base) return;
+    this.allerA(this.decaler(base, delta));
+  }
+
+  choisirJour(champ: HTMLInputElement): void {
+    const v = champ.value;
+    if (!v || (this.aujourdhui && v > this.aujourdhui)) { champ.value = this.jourVu || this.aujourdhui; return; }
+    this.allerA(v);
+  }
+
+  allerA(date: string): void {
+    if (this.aujourdhui && date >= this.aujourdhui) date = this.aujourdhui;
+    const cible = date === this.aujourdhui ? null : date;
+    if (cible === this.jourVu) return;
+    this.jourVu = cible;
+    this.charger();
+  }
+
+  revenirAujourdhui(): void {
+    this.allerA(this.aujourdhui);
+  }
   droits: { stocks: boolean; actions: boolean; depots?: number[] | null } = { stocks: false, actions: false };
   parametres = { seuil_rouge_jours: 10, couverture_objectif_pct: 100, densite_gaz: 0.56 };
   depotsInterieurs: any[] = [];
@@ -75,11 +110,14 @@ export class StocksComponent implements OnInit {
 
   charger(): void {
     this.loading = !this.direct.silencieux;
-    this.http.get(`${environment.apiUrl}/stocks/semaine-courante`).subscribe({
+    const params: Record<string, string> = this.jourVu ? { date: this.jourVu } : {};
+    this.http.get(`${environment.apiUrl}/stocks/semaine-courante`, { params }).subscribe({
       next: (data: any) => {
         this.rapport          = data.rapport;
         this.frequence = data.frequences?.[this.perimetre] || null;
         this.dateSaisie       = data.date_saisie || null;
+        this.aujourdhui       = data.aujourdhui || this.aujourdhui || data.date_saisie || '';
+        this.consultation     = !!data.consultation;
         this.droits           = data.droits || { stocks: false, actions: false };
         this.parametres       = data.parametres || this.parametres;
         // Produit pas encore saisi (ce jour en saisie quotidienne) : champs vides, rien n'est enregistre
@@ -92,6 +130,12 @@ export class StocksComponent implements OnInit {
           ...d, lignes: d.lignes.map((l: any) => ({ ...l, stock_bacs: l.saisi ? l.stock_disponible : null, stock_embranchement: null })),
         }));
         this.recalculer();
+        // Telephone : premiere carte modifiable depliee d'office (saisie a portee de pouce)
+        if (!this.ouvertureInitiale && this.depotsInterieurs.length) {
+          this.ouvertureInitiale = true;
+          const d = this.depotsInterieurs.find((x) => this.peutSaisir(x.depot_id));
+          if (d && !this.estPublie) this.ouverts.add(d.depot_id);
+        }
         this.error = null;
         this.loading = false;
         this.cdr.detectChanges();
@@ -102,6 +146,67 @@ export class StocksComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  // ── Telephone (< 768 px) : une carte par depot (maquette web mobile, ecran 8) ──
+  filtreProduit: string | null = null;      // pastilles « Tous les produits », « Super 91 »...
+  private ouverts = new Set<number>();      // cartes depliees (« Voir plus »)
+  private ouvertureInitiale = false;
+
+  // Produits presents dans au moins un depot interieur
+  get produitsInterieurs(): string[] {
+    const vus = new Set<string>();
+    for (const d of this.depotsInterieurs) for (const l of this.lignesVisibles(d)) vus.add(l.produit_libelle);
+    return [...vus];
+  }
+
+  lignesCarte(depot: any): any[] {
+    const l = this.lignesVisibles(depot);
+    return this.filtreProduit ? l.filter((x) => x.produit_libelle === this.filtreProduit) : l;
+  }
+
+  // Chiffres cles en tete de carte : 3 premiers produits (ou le produit filtre)
+  tuiles(depot: any): any[] {
+    return this.lignesCarte(depot).slice(0, 3);
+  }
+
+  estOuvert(depot: any): boolean {
+    return this.ouverts.has(depot.depot_id) || !!this.filtreProduit;
+  }
+
+  basculerCarte(depot: any): void {
+    if (this.ouverts.has(depot.depot_id)) this.ouverts.delete(depot.depot_id);
+    else this.ouverts.add(depot.depot_id);
+  }
+
+  // Badge de la carte : « Saisi à 07:42 », « 2/6 saisis » ou « Non saisi »
+  etatDepot(depot: any): { texte: string; ok: boolean } {
+    const lignes = this.lignesVisibles(depot);
+    const saisies = lignes.filter((l) => !this.nonSaisi(l));
+    if (!lignes.length || !saisies.length) return { texte: 'Non saisi', ok: false };
+    if (saisies.length < lignes.length) return { texte: `${saisies.length}/${lignes.length} saisis`, ok: false };
+    const heures = saisies.map((l) => l.saisi_le).filter(Boolean).map((t: string) => new Date(t).getTime());
+    if (!heures.length) return { texte: 'Saisi', ok: true };
+    const h = new Date(Math.max(...heures));
+    return { texte: `Saisi à ${String(h.getHours()).padStart(2, '0')}:${String(h.getMinutes()).padStart(2, '0')}`, ok: true };
+  }
+
+  // Bouton « + » : ouvre le premier depot modifiable ou il manque une saisie et place le curseur
+  saisirSuivant(): void {
+    const d = this.depotsInterieurs.find((x) => this.peutSaisir(x.depot_id) && this.lignesVisibles(x).some((l) => this.nonSaisi(l)))
+      || this.depotsInterieurs.find((x) => this.peutSaisir(x.depot_id));
+    if (!d) return;
+    this.filtreProduit = null;
+    this.ouverts.add(d.depot_id);
+    this.cdr.detectChanges();
+    const carte = document.getElementById(`carte-depot-${d.depot_id}`);
+    carte?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const champ = carte?.querySelector<HTMLInputElement>('input:not([disabled])[data-vide="1"]') || carte?.querySelector<HTMLInputElement>('input:not([disabled])');
+    setTimeout(() => champ?.focus({ preventScroll: true }), 350);
+  }
+
+  get peutSaisirUnDepot(): boolean {
+    return !this.estPublie && this.depotsInterieurs.some((d) => this.peutSaisir(d.depot_id));
   }
 
   // Produits geres par le depot : configures dans le referentiel ou ayant un stock
@@ -207,6 +312,7 @@ export class StocksComponent implements OnInit {
 
   // ── Archivage
   async onArchive(): Promise<void> {
+    if (this.consultation) return; // jour passé : lecture seule
     if (!this.rapport || !(await this.dialog.confirmer({
       titre: `Archiver le rapport de la semaine ${this.rapport.semaine_iso} / ${this.rapport.annee} ?`,
       message: 'Le rapport sera publié et ne pourra plus être modifié. La saisie passera à la semaine suivante.',
@@ -229,6 +335,7 @@ export class StocksComponent implements OnInit {
 
   // ── Sauvegarde : chaque utilisateur n'envoie que les champs de son droit
   async onSave(): Promise<void> {
+    if (this.consultation) return; // jour passé : lecture seule
     const vide = (v: any) => v === null || v === undefined || v === '';
     const interieurs = this.depotsInterieurs.flatMap(d => this.lignesVisibles(d).map(l => ({ ...l, depot_id: d.depot_id, interieur: true })));
     const exterieurs = this.depotsExterieurs.flatMap(d => d.lignes.map((l: any) => ({ ...l, depot_id: d.depot_id, interieur: false })));

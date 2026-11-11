@@ -17,12 +17,20 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>SONABHY</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="MICA – SONABHY : suivi des stocks d'hydrocarbures">
+  <!-- viewport-fit=cover : le contenu tient compte de l'encoche et de la barre de geste (env(safe-area-inset-*)) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Indicateur SONABHY : suivi des stocks d'hydrocarbures">
   <!-- ?v=2 : force les navigateurs a remplacer l'ancienne icone Angular gardee en cache -->
   <link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=2">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+  <!-- Installation sur l'ecran d'accueil du telephone (application web) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0B2B26">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Indicateur SONABHY">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
   <app-root></app-root>

@@ -10,8 +10,71 @@
      ================================================================== -->
 <div class="space-y-6">
 
-  <!-- En-tête -->
-  <div class="page-header">
+  <!-- ══ Telephone (< 768 px) : en-tete vert, autonomie, alerte et ventes (maquette web mobile, ecran 6) ══ -->
+  <section *ngIf="!loading && !error" class="md:hidden -mx-3 -mt-3 !mb-0">
+    <div class="bg-primary-700 px-4 pb-16 pt-4 text-white">
+      <div class="flex items-center gap-2.5">
+        <img src="icon-192.png?v=2" alt="" width="34" height="34" class="h-[34px] w-[34px] rounded-full bg-white p-0.5">
+        <p class="flex-1 truncate text-[15px] font-bold">Bonjour{{ prenom ? ', ' + prenom : '' }}</p>
+        <label for="semaine-mobile" class="sr-only">Semaine</label>
+        <select id="semaine-mobile" [ngModel]="rapportId" (ngModelChange)="choisirSemaine($event)"
+          class="h-8 max-w-[9.5rem] rounded-full border-0 bg-primary-600 py-0 pl-3 pr-7 text-xs font-bold text-[#9FE0BE] focus:ring-2 focus:ring-[#9FE0BE]">
+          <option [ngValue]="null">{{ stats?.rapport ? 'Semaine ' + stats.rapport.semaine_iso : 'Dernier rapport' }}</option>
+          <option *ngFor="let r of rapports" [ngValue]="r.id">Semaine {{ r.semaine_iso }}{{ r.statut === 'PUBLIE' ? '' : ' (en cours)' }}</option>
+        </select>
+      </div>
+      <p class="mt-4 text-[13px] text-primary-100">Stock national{{ stats?.provisoire ? ' · provisoire' : '' }}</p>
+      <p class="text-[32px] font-extrabold leading-tight tracking-tight">{{ formatNombre(stats?.stockNational?.total) }} m³</p>
+      <p *ngIf="stats?.stockNational?.evolution_pct !== null && stats?.stockNational?.evolution_pct !== undefined" class="text-[13px]"
+        [ngClass]="stats.stockNational.evolution_pct >= 0 ? 'text-[#9FE0BE]' : 'text-red-200'">
+        {{ stats.stockNational.evolution_pct >= 0 ? '▲' : '▼' }} {{ abs(stats.stockNational.evolution_pct) | number:'1.1-1' }} % par rapport à la semaine précédente
+      </p>
+    </div>
+
+    <div class="-mt-12 space-y-3 px-3">
+      <!-- Autonomie par produit -->
+      <div class="rounded-[18px] bg-white px-4 py-3.5 shadow-[0_6px_20px_rgba(11,43,38,0.10)]">
+        <div class="mb-2.5 flex items-baseline justify-between">
+          <h3 class="text-[15px] font-bold text-primary-700">Autonomie</h3>
+          <span class="text-xs text-gray-500">en jours</span>
+        </div>
+        <div *ngFor="let s of stats?.stocksInterieurs" class="flex items-center gap-2.5 py-1">
+          <span class="w-[4.5rem] truncate text-[13px] font-semibold text-primary-700">{{ s.produit }}</span>
+          <div class="h-2 flex-1 overflow-hidden rounded bg-primary-50">
+            <div class="h-2 rounded" [style.width.%]="largeurAutonomie(s.autonomie)" [ngClass]="fondCouleur(s.couleur)"></div>
+          </div>
+          <span class="w-10 text-right text-sm font-extrabold" [ngClass]="texteCouleur(s.couleur)">{{ s.autonomie | number:'1.0-0' }} j</span>
+        </div>
+        <p *ngIf="!stats?.stocksInterieurs?.length" class="py-2 text-sm text-gray-400">Aucun stock pour cette semaine.</p>
+      </div>
+
+      <!-- Alerte la plus urgente -->
+      <button *ngIf="stats?.alertes?.length" type="button" (click)="alertesOuvertes = true"
+        class="flex w-full items-center gap-2.5 rounded-[14px] border border-red-200 bg-red-50 px-3.5 py-3 text-left text-[13px] text-red-900">
+        <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-red-500"></span>
+        <span class="flex-1"><strong>{{ stats.alertes[0].produit }}</strong> à {{ stats.alertes[0].depot }} : {{ stats.alertes[0].autonomie | number:'1.0-0' }} jours
+          <span *ngIf="stats.alertes.length > 1" class="text-red-700"> · {{ stats.alertes.length - 1 }} autre{{ stats.alertes.length > 2 ? 's' : '' }}</span></span>
+        <strong>Voir</strong>
+      </button>
+
+      <!-- Ventes de la semaine -->
+      <div *ngIf="ventesParJour.length" class="rounded-[18px] bg-white px-4 py-3.5 shadow-sm">
+        <div class="mb-2.5 flex items-baseline justify-between">
+          <h3 class="text-[15px] font-bold text-primary-700">Ventes de la semaine</h3>
+          <span class="text-xs text-gray-500">{{ formatNombre(totalVentes) }} au total</span>
+        </div>
+        <div class="flex h-28 items-end gap-2">
+          <div *ngFor="let v of ventesParJour; let dernier = last; trackBy: parIndex" class="flex h-full flex-1 flex-col items-center justify-end gap-1">
+            <div class="w-full rounded-t-md rounded-b-sm" [style.height.%]="v.hauteur" [ngClass]="dernier ? 'bg-primary-500' : 'bg-primary-100'" [attr.title]="formatNombre(v.quantite)"></div>
+            <span class="text-[11px] text-gray-500">{{ v.jour }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- En-tête (tablette et ordinateur) -->
+  <div class="page-header max-md:!hidden">
     <div>
       <h2 class="page-title">Tableau de bord</h2>
       <p class="text-sm text-gray-500 mt-1" *ngIf="stats?.rapport; else aucunRapport">
@@ -204,7 +267,7 @@
 </div>
 
 <!-- ── Widgets flottants (coin bas-droit) : chiffres provisoires et alertes ── -->
-<div *ngIf="stats?.alertes?.length || (!loading && stats?.provisoire)" class="fixed bottom-5 right-5 z-30 flex flex-col items-end gap-2">
+<div *ngIf="stats?.alertes?.length || (!loading && stats?.provisoire)" class="fixed bottom-5 right-5 z-30 flex flex-col items-end gap-2 au-dessus-barre">
 
   <!-- Panneau : semaine non publiée, chiffres provisoires -->
   <div *ngIf="provisoireOuvert && !loading && stats?.provisoire"
@@ -257,8 +320,9 @@
       </svg>
       Chiffres provisoires
     </button>
+    <!-- Telephone : remplace par le bandeau rouge de l'en-tete (meme panneau) -->
     <button *ngIf="stats?.alertes?.length" (click)="alertesOuvertes = !alertesOuvertes; provisoireOuvert = false"
-      class="flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-white text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-red-600">
+      class="max-md:hidden flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-white text-xs font-semibold transition-all hover:scale-105 active:scale-95 bg-red-600">
       <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
       </svg>

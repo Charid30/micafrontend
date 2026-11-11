@@ -20,6 +20,21 @@
       </p>
       <app-frequence-saisie [frequence]="frequence" [date]="dateSaisie"></app-frequence-saisie>
     </div>
+    <div class="flex flex-wrap items-center gap-2">
+    <!-- Jours précédents (comme le RDC) : consultation en lecture seule, rien n'est modifié -->
+    <div *ngIf="aujourdhui" class="flex items-center gap-2">
+      <button type="button" class="btn-secondary !px-2" (click)="allerJour(-1)" [disabled]="loading" aria-label="Jour précédent" title="Jour précédent">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <input type="date" class="input-field w-40" [value]="jourVu || aujourdhui" [max]="aujourdhui" (change)="choisirJour($any($event.target))" aria-label="Jour affiché"/>
+      <button type="button" class="btn-secondary !px-2" [disabled]="!jourVu || loading" (click)="allerJour(1)" aria-label="Jour suivant" title="Jour suivant">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
     <!-- Actions : barre fixe en bas de l ecran sous 1024 px -->
     <div class="save-bar">
       <a *ngIf="canSeeReferentiel" routerLink="/saisie/referentiel-stocks"
@@ -30,7 +45,7 @@
         </svg>
         Référentiel
       </a>
-      <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading"
+      <button *ngIf="(authService.isAdmin() || authService.hasPermission('rapports', 'WRITE')) && rapport?.statut === 'BROUILLON' && !loading && !consultation"
         (click)="onArchive()" [disabled]="archiving || saving"
         class="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +54,7 @@
         </svg>
         {{ archiving ? 'Archivage...' : 'Archiver' }}
       </button>
-      <button *ngIf="canWriteAny" (click)="onSave()" [disabled]="saving || loading || estPublie"
+      <button *ngIf="canWriteAny && !consultation" (click)="onSave()" [disabled]="saving || loading || estPublie"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -51,13 +66,27 @@
         </svg>
         {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
       </button>
-      <span *ngIf="!canWriteAny && !loading" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
+      <span *ngIf="(!canWriteAny || consultation) && !loading" class="text-xs text-amber-600 flex items-center gap-1 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
         </svg>
         Lecture seule
       </span>
     </div>
+    </div>
+  </div>
+
+  <!-- Jour passé : bandeau de consultation -->
+  <div *ngIf="jourVu" class="card flex flex-col gap-3 border-primary-200 bg-[#f0faf3] sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-3">
+      <svg class="w-5 h-5 flex-shrink-0 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <p class="text-sm text-primary-700">
+        Consultation du <strong>{{ jourVu | date:'EEEE d MMMM yyyy':'':'fr' }}</strong> : données renseignées ce jour-là, en lecture seule.
+      </p>
+    </div>
+    <button type="button" class="btn-secondary flex-shrink-0" (click)="revenirAujourdhui()">Revenir à aujourd'hui</button>
   </div>
 
   <!-- Rapport archivé -->
@@ -90,7 +119,8 @@
   <ng-container *ngIf="!loading && !error">
 
     <!-- ══════════ DÉPÔTS INTÉRIEURS ══════════ -->
-    <div class="card" *ngIf="interieur">
+    <!-- Telephone : pas de cadre, les cartes des depots reposent sur le fond (maquette, ecran 8) -->
+    <div class="card max-md:!border-0 max-md:!bg-transparent max-md:!p-0 max-md:!shadow-none" *ngIf="interieur">
       <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between mb-4">
         <h3 class="section-title flex items-center">Dépôts intérieurs
         <button type="button" class="info-tip ml-1" aria-label="À propos des dépôts intérieurs"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="info-tip-bulle" role="tooltip">Volume total = stock en bacs + stock en embranchement (camions en attente de dépotage). * Valeurs du référentiel (impompable et consommation moyenne), fixées par les responsables de dépôt. Quantités en m³ (gaz compris) ; équivalent en tonnes du gaz dans les synthèses (densité {{ parametres.densite_gaz }}).</span></button>
@@ -98,9 +128,81 @@
         <ng-container *ngTemplateOutlet="legendeAutonomie"></ng-container>
       </div>
 
-      <div *ngFor="let depot of depotsInterieurs" class="mb-8 last:mb-0">
-        <h4 class="text-sm font-bold mb-2 px-1 text-primary-600">Site : {{ depot.depot_libelle }}</h4>
-        <div class="overflow-x-auto rounded-lg border border-primary-200">
+      <!-- ══ Telephone : filtres par produit puis une carte par depot ══ -->
+      <div *ngIf="produitsInterieurs.length > 1" class="md:hidden -mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        <button type="button" (click)="filtreProduit = null" [attr.aria-pressed]="!filtreProduit"
+          class="h-9 flex-shrink-0 rounded-full px-3.5 text-[13px]"
+          [ngClass]="!filtreProduit ? 'bg-primary-700 font-bold text-white' : 'border border-primary-200 bg-white font-semibold text-primary-700'">Tous les produits</button>
+        <button *ngFor="let p of produitsInterieurs" type="button" (click)="filtreProduit = filtreProduit === p ? null : p" [attr.aria-pressed]="filtreProduit === p"
+          class="h-9 flex-shrink-0 rounded-full px-3.5 text-[13px]"
+          [ngClass]="filtreProduit === p ? 'bg-primary-700 font-bold text-white' : 'border border-primary-200 bg-white font-semibold text-primary-700'">{{ p }}</button>
+      </div>
+
+      <div *ngFor="let depot of depotsInterieurs" class="mb-8 last:mb-0 max-md:mb-3">
+        <article [id]="'carte-depot-' + depot.depot_id" class="md:hidden scroll-mt-4 rounded-2xl border border-primary-100 bg-white p-4 shadow-sm">
+          <div class="flex items-start gap-3">
+            <div class="min-w-0 flex-1">
+              <h4 class="text-base font-extrabold text-primary-700">{{ depot.depot_libelle }}</h4>
+              <p class="text-xs text-gray-500">{{ lignesVisibles(depot).length }} produit{{ lignesVisibles(depot).length > 1 ? 's' : '' }}{{ peutSaisir(depot.depot_id) && !estPublie ? ' · saisie ouverte' : '' }}</p>
+            </div>
+            <span class="flex h-[26px] flex-shrink-0 items-center rounded-full px-2.5 text-xs font-bold"
+              [ngClass]="etatDepot(depot).ok ? 'bg-primary-50 text-primary-600' : 'bg-yellow-50 text-yellow-800'">{{ etatDepot(depot).texte }}</span>
+          </div>
+
+          <!-- Chiffres cles -->
+          <div *ngIf="tuiles(depot).length" class="mt-3 grid grid-cols-3 gap-2">
+            <div *ngFor="let l of tuiles(depot)" class="flex min-w-0 flex-col gap-0.5 rounded-xl bg-[#F2F6F4] px-2.5 py-2">
+              <span class="truncate text-[11px] text-gray-500">{{ l.produit_libelle }}</span>
+              <span class="truncate text-[15px] font-extrabold text-primary-700">{{ nonSaisi(l) ? '—' : (l.volume_total | number:'1.0-0') }}<span class="text-[11px] font-semibold"> m³</span></span>
+              <span class="self-start !min-w-0 !px-1.5 !text-[11px] font-bold" [ngClass]="classeAutonomie(l.couleur)">{{ l.autonomie === null ? '—' : (l.autonomie | number:'1.0-0') + ' j' }}</span>
+            </div>
+          </div>
+          <p *ngIf="!tuiles(depot).length" class="mt-3 text-sm text-gray-400">Aucun produit configuré pour ce dépôt dans le référentiel.</p>
+
+          <!-- Detail et saisie -->
+          <div *ngIf="estOuvert(depot)" class="mt-3 divide-y divide-primary-50 border-t border-primary-100">
+            <div *ngFor="let l of lignesCarte(depot)" class="py-3">
+              <div class="mb-2 flex items-baseline justify-between gap-2">
+                <span class="text-sm font-bold text-primary-700">{{ l.produit_libelle }}</span>
+                <span class="text-xs text-gray-500">Autonomie <strong [ngClass]="classeAutonomie(l.couleur)" class="rounded px-1">{{ l.autonomie === null ? '—' : (l.autonomie | number:'1.1-1') + ' j' }}</strong></span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="flex flex-col gap-1 text-[11px] font-medium text-gray-500">Stock en bacs (m³)
+                  <input type="number" inputmode="decimal" min="0" step="0.001" [(ngModel)]="l.stock_bacs" (ngModelChange)="recalculer()"
+                    [disabled]="!peutSaisir(depot.depot_id) || estPublie" [attr.data-vide]="nonSaisi(l) ? 1 : 0"
+                    class="input-field h-11 text-right !text-base" placeholder="Non saisi"/>
+                </label>
+                <label class="flex flex-col gap-1 text-[11px] font-medium text-gray-500">Embranchement (m³)
+                  <input type="number" inputmode="decimal" min="0" step="0.001" [(ngModel)]="l.stock_embranchement" (ngModelChange)="recalculer()"
+                    [disabled]="!peutSaisir(depot.depot_id) || estPublie"
+                    class="input-field h-11 text-right !text-base" placeholder="Non saisi"/>
+                </label>
+              </div>
+              <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                <div class="flex justify-between"><dt class="text-gray-500">Volume total</dt><dd class="font-semibold text-primary-700">{{ nonSaisi(l) ? '—' : (l.volume_total | number:'1.0-0') }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Impompable*</dt><dd>{{ l.impompable | number:'1.0-0' }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Conso moy. j.*</dt><dd>{{ l.conso_moyenne | number:'1.0-0' }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Stock sécurité</dt><dd>{{ l.stock_securite | number:'1.0-0' }}</dd></div>
+                <div class="col-span-2 flex justify-between"><dt class="text-gray-500">Couverture</dt>
+                  <dd class="font-semibold" [class.text-red-600]="l.couverture_ok === false" [class.text-primary-600]="l.couverture_ok">{{ l.couverture === null ? '—' : (l.couverture | number:'1.0-0') + ' %' }}</dd></div>
+              </dl>
+              <div *ngIf="afficherActions" class="mt-2">
+                <p class="mb-1 text-[11px] font-medium text-gray-500">Actions entreprises</p>
+                <ng-container *ngTemplateOutlet="celluleAction; context: { $implicit: l }"></ng-container>
+              </div>
+            </div>
+          </div>
+
+          <button *ngIf="!filtreProduit && lignesVisibles(depot).length" type="button" (click)="basculerCarte(depot)" [attr.aria-expanded]="estOuvert(depot)"
+            class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 border-t border-primary-100 pt-2 text-sm font-bold text-primary-600">
+            {{ estOuvert(depot) ? 'Voir moins' : (peutSaisir(depot.depot_id) && !estPublie ? 'Voir plus et saisir' : 'Voir plus') }}
+            <svg class="h-4 w-4 transition-transform" [class.rotate-180]="estOuvert(depot)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </article>
+
+        <!-- Tablette et ordinateur : tableau -->
+        <h4 class="hidden md:block text-sm font-bold mb-2 px-1 text-primary-600">Site : {{ depot.depot_libelle }}</h4>
+        <div class="hidden md:block overflow-x-auto rounded-lg border border-primary-200">
           <table class="min-w-full text-sm">
             <thead>
               <tr>
@@ -156,6 +258,13 @@
       <p *ngIf="depotsInterieurs.length === 0" class="text-sm text-gray-400 text-center py-6">
         Aucun dépôt intérieur dans votre périmètre.
       </p>
+
+      <!-- Telephone : bouton « + » (ouvre le premier depot ou il manque une saisie) -->
+      <button *ngIf="peutSaisirUnDepot" type="button" (click)="saisirSuivant()" aria-label="Saisir les stocks"
+        class="md:hidden fixed right-4 z-20 flex h-14 w-14 items-center justify-center rounded-[18px] bg-primary-500 text-white shadow-[0_8px_20px_rgba(35,83,71,0.4)] active:bg-primary-600"
+        style="bottom: calc(var(--hauteur-barre-mobile) + 5.5rem)">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2.4" d="M12 5v14M5 12h14"/></svg>
+      </button>
 
       <!-- Synthèse intérieure -->
       <ng-container *ngIf="syntheseInterieure.length && depotsInterieurs.length > 0">

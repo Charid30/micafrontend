@@ -14,13 +14,14 @@
   [attr.inert]="etatNotif === 'inactif' || etatNotif === 'refuse' ? '' : null">
 
   <!-- ── Fond assombri en mode tiroir (clic ferme le menu) ── -->
-  <div *ngIf="isMobile && sidebarOpen"
+  <div *ngIf="isMobile && sidebarOpen && !isTelephone"
     class="fixed inset-0 z-40 bg-black/50"
     (click)="toggleSidebar()">
   </div>
 
   <!-- ── Menu lateral : tiroir sous 1024 px, colonne fixe repliable au-dela ── -->
-  <aside class="bg-primary-800" aria-label="Menu principal"
+  <!-- Telephone : remplace par la barre du bas et le panneau « Menu » -->
+  <aside *ngIf="!isTelephone" class="bg-primary-800" aria-label="Menu principal"
     [class]="isMobile
       ? 'fixed left-0 top-0 h-full z-50 w-64 max-w-[85vw] flex flex-col shadow-xl transition-transform duration-300 ' + (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
       : 'relative flex-shrink-0 flex flex-col shadow-xl transition-all duration-300 overflow-hidden ' + (sidebarOpen ? 'w-[260px]' : 'w-16')">
@@ -330,9 +331,13 @@
   <div class="flex-1 flex flex-col overflow-hidden min-w-0">
 
     <!-- Header -->
-    <header class="h-16 bg-white border-b flex items-center px-4 gap-3 flex-shrink-0 shadow-sm border-primary-200">
+    <!-- Telephone : masque sur l'accueil, dont l'en-tete vert porte deja le logo et le nom -->
+    <header *ngIf="!(isTelephone && surAccueil)" class="h-16 bg-white border-b flex items-center px-4 gap-3 flex-shrink-0 shadow-sm border-primary-200">
+      <!-- Telephone : logo a la place du bouton de menu -->
+      <img *ngIf="isTelephone" src="icon-192.png?v=2" alt="Logo SONABHY" width="34" height="34"
+        class="w-[34px] h-[34px] flex-shrink-0 rounded-full bg-white ring-1 ring-primary-100">
       <!-- Zone tactile de 40 px minimum -->
-      <button (click)="toggleSidebar()"
+      <button *ngIf="!isTelephone" (click)="toggleSidebar()"
               class="p-2 -ml-2 rounded-lg transition-colors flex-shrink-0 text-primary-500 hover:text-primary-800 hover:bg-primary-50"
               aria-label="Afficher ou masquer le menu" [attr.aria-expanded]="sidebarOpen">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,13 +351,18 @@
       <span class="text-xs hidden md:block flex-shrink-0 text-primary-500">
         {{ today | date:'EEEE d MMMM yyyy':'':'fr' }}
       </span>
+      <!-- Telephone : initiale de l'utilisateur, ouvre « Mon profil » -->
+      <a *ngIf="isTelephone" routerLink="/profil" aria-label="Mon profil"
+        class="w-9 h-9 flex-shrink-0 rounded-full bg-primary-500 text-white text-sm font-bold flex items-center justify-center">
+        {{ authService.currentUser?.agent?.nom?.charAt(0) | uppercase }}
+      </a>
     </header>
 
     <!-- Page content -->
     <!-- Alertes du compte : pastilles flottantes en bas a gauche du contenu (le coin bas-droit est celui du tableau de bord),
          un clic ouvre le detail. Au-dessus de la barre d'enregistrement sur petit ecran. -->
     <div *ngIf="alertesFlottantes" class="fixed z-30 flex flex-col items-start gap-2"
-      [ngClass]="isMobile ? 'left-4 bottom-20' : (sidebarOpen ? 'left-[280px] bottom-5' : 'left-[84px] bottom-5')">
+      [ngClass]="isTelephone ? 'left-3 au-dessus-barre' : isMobile ? 'left-4 bottom-20' : (sidebarOpen ? 'left-[280px] bottom-5' : 'left-[84px] bottom-5')">
 
       <!-- Derniere minute avant la deconnexion pour inactivite -->
       <div *ngIf="deconnexionDans !== null" class="w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-primary-200 bg-white shadow-xl animate-fade-in-down" role="alertdialog" aria-label="Déconnexion imminente">
@@ -415,7 +425,8 @@
       <div class="flex items-center justify-end gap-3 border-t border-yellow-100 px-4 py-2.5 text-sm"><button type="button" (click)="rappelMasque = true; panneauAlerte = null" class="text-gray-500 hover:text-gray-700">Plus tard</button><a routerLink="/profil" fragment="mot-de-passe" (click)="panneauAlerte = null" class="font-semibold text-yellow-800 underline hover:no-underline">Changer mon mot de passe</a></div>
     </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <!-- Telephone : ces pastilles sont regroupees dans l'onglet « Alertes » -->
+      <div *ngIf="!isTelephone" class="flex flex-wrap items-center gap-2">
       <button *ngIf="alerteSauvegarde" type="button" (click)="basculerAlerte('sauvegarde')" [attr.aria-expanded]="panneauAlerte === 'sauvegarde'"
         class="flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold shadow-lg transition-all hover:scale-105 active:scale-95 bg-red-600 text-white">
         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
@@ -439,10 +450,190 @@
       </div>
     </div>
 
-    <main class="flex-1 overflow-auto p-3 md:p-6">
+    <!-- #zoneContenu : tableaux affiches en cartes sur telephone (tableaux-mobiles.ts) -->
+    <main #zoneContenu class="flex-1 overflow-auto p-3 md:p-6" [class.pb-28]="isTelephone">
       <router-outlet></router-outlet>
     </main>
   </div>
+
+  <!-- ════════ Telephone : barre de navigation flottante ════════ -->
+  <nav *ngIf="isTelephone" aria-label="Navigation principale"
+    class="fixed inset-x-3 z-40 flex h-[66px] items-stretch rounded-[22px] bg-primary-700 px-1.5 shadow-[0_10px_30px_rgba(11,43,38,0.35)]"
+    style="bottom: calc(12px + env(safe-area-inset-bottom))">
+
+    <a *ngIf="authService.hasPermission('dashboard', 'READ')" routerLink="/dashboard" routerLinkActive #ongletAccueil="routerLinkActive"
+      [routerLinkActiveOptions]="{exact:true}" (click)="fermerFeuille()" class="onglet-mobile" [class.onglet-mobile-actif]="ongletAccueil.isActive && !feuille">
+      <span class="onglet-mobile-icone">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg>
+      </span>Accueil
+    </a>
+
+    <button *ngIf="ongletSaisieVisible" type="button" (click)="ouvrirFeuille('saisie')" [attr.aria-expanded]="feuille === 'saisie'"
+      class="onglet-mobile" [class.onglet-mobile-actif]="feuille === 'saisie' || (surPageSaisie && !feuille)">
+      <span class="onglet-mobile-icone">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+      </span>Saisie
+    </button>
+
+    <a *ngIf="hasRapportsAccess" routerLink="/rapports" routerLinkActive #ongletRapports="routerLinkActive" (click)="fermerFeuille()"
+      class="onglet-mobile" [class.onglet-mobile-actif]="ongletRapports.isActive && !feuille">
+      <span class="onglet-mobile-icone">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9zM14 3v6h6"/></svg>
+      </span>Rapports
+    </a>
+
+    <button type="button" (click)="ouvrirFeuille('alertes')" [attr.aria-expanded]="feuille === 'alertes'"
+      class="onglet-mobile" [class.onglet-mobile-actif]="feuille === 'alertes'"
+      [attr.aria-label]="nombreAlertes ? 'Alertes, ' + nombreAlertes + ' en cours' : 'Alertes'">
+      <span class="onglet-mobile-icone relative">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 003.4 0"/></svg>
+        <span *ngIf="nombreAlertes" class="absolute -top-1 right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{{ nombreAlertes }}</span>
+      </span>Alertes
+    </button>
+
+    <button type="button" (click)="ouvrirFeuille('menu')" [attr.aria-expanded]="feuille === 'menu'"
+      class="onglet-mobile" [class.onglet-mobile-actif]="feuille === 'menu'">
+      <span class="onglet-mobile-icone">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="2" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="2" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="2" stroke-width="2"/></svg>
+      </span>Menu
+    </button>
+  </nav>
+
+  <!-- ════════ Telephone : panneaux qui montent du bas (Saisie, Menu, Alertes) ════════ -->
+  <ng-container *ngIf="isTelephone && feuille">
+    <div class="fixed inset-0 z-30 bg-primary-700/55 animate-apparait" (click)="fermerFeuille()" aria-hidden="true"></div>
+    <section role="dialog" aria-modal="true"
+      [attr.aria-label]="feuille === 'alertes' ? 'Alertes' : feuille === 'saisie' ? 'Modules de saisie' : 'Tous les modules'"
+      class="fixed inset-x-0 z-30 flex max-h-[calc(100dvh-5rem)] flex-col rounded-t-[26px] bg-[#F4F8F6] shadow-[0_-10px_30px_rgba(0,0,0,0.25)] animate-monte"
+      style="bottom: 0; padding-bottom: calc(var(--hauteur-barre-mobile) + 0.75rem)">
+      <span class="mx-auto mt-2.5 h-[5px] w-10 flex-shrink-0 rounded-full bg-primary-200" aria-hidden="true"></span>
+
+      <div class="flex flex-shrink-0 items-center justify-between px-4 pb-2 pt-3">
+        <h2 class="text-xl font-extrabold text-primary-700">{{ feuille === 'alertes' ? 'Alertes' : feuille === 'saisie' ? 'Saisie' : 'Modules' }}</h2>
+        <div class="flex items-center gap-1">
+          <button *ngIf="feuille === 'alertes' && nombreAlertes" type="button" (click)="toutMarquerLu()" class="rounded-lg px-2 py-2 text-sm font-semibold text-primary-600">Tout marquer lu</button>
+          <button type="button" (click)="fermerFeuille()" class="rounded-lg px-2 py-2 text-sm font-semibold text-primary-700">Fermer</button>
+        </div>
+      </div>
+
+      <!-- Modules (Saisie ou Menu) -->
+      <div *ngIf="feuille !== 'alertes'" class="flex-1 overflow-y-auto overscroll-contain px-4 pb-2">
+        <label *ngIf="feuille === 'menu'" class="mb-4 flex h-11 items-center gap-2 rounded-xl border border-primary-200 bg-white px-3 text-primary-500">
+          <svg class="h-[18px] w-[18px] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M21 21l-4.3-4.3"/></svg>
+          <span class="sr-only">Rechercher un module</span>
+          <input type="search" [(ngModel)]="recherche" placeholder="Rechercher un module" autocomplete="off"
+            class="h-full flex-1 border-0 bg-transparent text-base text-primary-700 outline-none placeholder:text-primary-400">
+        </label>
+
+        <div *ngFor="let g of groupesFeuille; trackBy: parTitre" class="mb-4">
+          <div class="mb-2 flex items-center gap-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wide text-primary-600">{{ g.titre }}</h3>
+            <span *ngIf="g.admin" class="rounded-md bg-yellow-50 px-1.5 py-0.5 text-[10px] font-bold text-yellow-800">Admins</span>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <a *ngFor="let x of g.modules; trackBy: parLien" [routerLink]="x.url" routerLinkActive="ring-2 ring-primary-500"
+              class="flex flex-col items-center gap-1.5 rounded-2xl bg-white px-1 py-2.5 text-center shadow-sm active:scale-95 transition-transform">
+              <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
+                <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="x.icone"/></svg>
+              </span>
+              <span class="text-[11px] font-semibold leading-tight text-primary-700">{{ x.libelle }}</span>
+            </a>
+          </div>
+        </div>
+        <p *ngIf="!groupesFeuille.length" class="py-8 text-center text-sm text-primary-500">Aucun module ne correspond.</p>
+
+        <!-- Compte -->
+        <div *ngIf="feuille === 'menu'" class="mt-2 flex flex-col gap-2 rounded-2xl bg-white p-2 shadow-sm">
+          <a routerLink="/profil" class="flex items-center gap-3 rounded-xl p-2 active:bg-primary-50">
+            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary-500 text-sm font-bold text-white">{{ authService.currentUser?.agent?.nom?.charAt(0) | uppercase }}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-semibold text-primary-700">{{ authService.currentUser?.agent?.prenoms }} {{ authService.currentUser?.agent?.nom }}</span>
+              <span class="block truncate text-xs text-primary-500">{{ authService.currentUser?.username }} · Mon profil</span>
+            </span>
+          </a>
+          <button *ngIf="installation.possible" type="button" (click)="fermerFeuille(); installation.ouvert.set(true)"
+            class="flex items-center gap-3 rounded-xl p-2 text-left text-sm font-semibold text-primary-800 active:bg-primary-50">
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-primary-700"><svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span>
+            Installer sur l'écran d'accueil
+          </button>
+          <button type="button" (click)="authService.logout()" class="flex items-center gap-3 rounded-xl p-2 text-left text-sm font-semibold text-red-700 active:bg-red-50">
+            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-red-50"><svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></span>
+            Déconnexion
+          </button>
+        </div>
+      </div>
+
+      <!-- Alertes (maquette, ecran 5) : filtres, puis une carte par alerte, critiques d'abord -->
+      <div *ngIf="feuille === 'alertes'" class="flex-1 overflow-y-auto overscroll-contain px-4 pb-2">
+        <div class="sticky top-0 z-10 -mx-4 mb-2 flex items-center gap-2 overflow-x-auto bg-[#F4F8F6] px-4 py-2 [scrollbar-width:none]">
+          <button *ngFor="let f of filtresAlertes" type="button" (click)="filtreAlertes = f.cle" [attr.aria-pressed]="filtreAlertes === f.cle"
+            class="h-9 flex-shrink-0 rounded-full px-3.5 text-[13px]"
+            [ngClass]="filtreAlertes === f.cle ? 'bg-primary-700 font-bold text-white' : 'border border-primary-200 bg-white font-semibold text-primary-700'">{{ f.libelle }}</button>
+        </div>
+
+        <div class="space-y-2.5">
+          <ng-container *ngFor="let a of alertesFiltrees; trackBy: parCleAlerte">
+            <a *ngIf="a.url; else alerteSansLien" [routerLink]="a.url" [fragment]="a.fragment ?? undefined" class="carte-alerte-mobile" [class.opacity-60]="estLue(a)">
+              <ng-container *ngTemplateOutlet="contenuAlerte; context: { $implicit: a }"></ng-container>
+            </a>
+            <ng-template #alerteSansLien>
+              <div class="carte-alerte-mobile" [class.opacity-60]="estLue(a)"><ng-container *ngTemplateOutlet="contenuAlerte; context: { $implicit: a }"></ng-container></div>
+            </ng-template>
+          </ng-container>
+        </div>
+
+        <p *ngIf="chargementAlertes && !toutesAlertes.length" class="py-10 text-center text-sm text-primary-500">Chargement des alertes…</p>
+        <div *ngIf="!chargementAlertes && !alertesFiltrees.length" class="flex flex-col items-center gap-2 py-10 text-center">
+          <span class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-primary-700"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span>
+          <p class="text-sm font-semibold text-primary-700">Aucune alerte{{ filtreAlertes === 'toutes' ? '' : ' dans cette rubrique' }}</p>
+        </div>
+      </div>
+
+      <ng-template #contenuAlerte let-a>
+        <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px]"
+          [ngClass]="a.niveau === 'critique' ? 'bg-red-50 text-red-700' : a.niveau === 'attention' ? 'bg-yellow-50 text-yellow-800' : 'bg-primary-50 text-primary-600'">
+          <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+        </span>
+        <span class="flex min-w-0 flex-1 flex-col gap-1">
+          <span class="flex items-baseline gap-2">
+            <span class="flex-1 text-[15px] font-bold text-primary-700">{{ a.titre }}</span>
+            <span *ngIf="a.quand" class="flex-shrink-0 text-xs text-gray-500">{{ a.quand | date:'dd/MM HH:mm' }}</span>
+          </span>
+          <span class="text-[13px] leading-snug text-gray-700">{{ a.texte }}</span>
+          <span class="text-xs font-bold" [ngClass]="a.niveau === 'critique' ? 'text-red-700' : a.niveau === 'attention' ? 'text-yellow-800' : 'text-primary-600'">
+            {{ a.niveau === 'critique' ? 'Critique' : a.niveau === 'attention' ? 'Attention' : 'Information' }}
+          </span>
+        </span>
+      </ng-template>
+    </section>
+  </ng-container>
+
+  <!-- ════════ Telephone : installer la plateforme sur l'ecran d'accueil ════════ -->
+  <ng-container *ngIf="isTelephone && installation.ouvert() && !feuille">
+    <div class="fixed inset-0 z-40 bg-primary-700/55 animate-apparait" (click)="installation.plusTard()" aria-hidden="true"></div>
+    <section role="dialog" aria-modal="true" aria-labelledby="titre-installation"
+      class="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-4 rounded-t-[26px] bg-white px-5 pt-2.5 shadow-[0_-10px_30px_rgba(0,0,0,0.25)] animate-monte"
+      style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))">
+      <span class="mx-auto h-[5px] w-10 rounded-full bg-primary-200" aria-hidden="true"></span>
+      <div class="flex items-center gap-3.5">
+        <img src="icon-192.png?v=2" alt="" width="60" height="60" class="h-[60px] w-[60px] rounded-2xl bg-white p-1 shadow-md ring-1 ring-primary-100">
+        <div>
+          <h2 id="titre-installation" class="text-xl font-extrabold text-primary-700">Installer Indicateur SONABHY</h2>
+          <p class="text-sm text-primary-500">Sur l'écran d'accueil de ce téléphone</p>
+        </div>
+      </div>
+      <ul class="space-y-2.5 text-[15px] text-primary-700">
+        <li class="flex items-center gap-3"><span class="puce-installation">✓</span>Icône SONABHY, ouverture en plein écran</li>
+        <li class="flex items-center gap-3"><span class="puce-installation">✓</span>Mêmes comptes et mêmes droits que sur ordinateur</li>
+        <li class="flex items-center gap-3"><span class="puce-installation">✓</span>Rien à télécharger : toujours à jour</li>
+      </ul>
+      <p *ngIf="installation.iphone" class="rounded-xl bg-primary-50 p-3 text-sm text-primary-800">
+        Sur iPhone : touchez <strong>Partager</strong> (carré avec une flèche) en bas de Safari, puis <strong>« Sur l'écran d'accueil »</strong>.
+      </p>
+      <button *ngIf="!installation.iphone" type="button" (click)="installation.installer()" class="h-[52px] rounded-2xl bg-primary-500 text-base font-bold text-white active:bg-primary-600">Installer</button>
+      <button type="button" (click)="installation.plusTard()" class="h-11 text-[15px] font-semibold text-primary-600">{{ installation.iphone ? 'Compris' : 'Plus tard' }}</button>
+    </section>
+  </ng-container>
 </div>
 
 <!-- Activation obligatoire des notifications push : bloque l'application tant qu'elles ne sont pas
@@ -460,7 +651,7 @@
     </div>
 
     <p class="mb-3 text-sm text-gray-700">
-      Les notifications sont obligatoires pour utiliser MICA. Vous serez prévenu quand le rapport hebdomadaire
+      Les notifications sont obligatoires pour utiliser la plateforme. Vous serez prévenu quand le rapport hebdomadaire
       est prêt et, le soir, quand une saisie du jour dont vous avez la charge n'est pas faite.
     </p>
 

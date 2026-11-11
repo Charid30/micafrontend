@@ -16,7 +16,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
-import { imprimerPdf } from '../../shared/pdf/pdf-serveur';
+import { construireDocumentPdf, imprimerPdf } from '../../shared/pdf/pdf-serveur';
+import { ActivatedRoute } from '@angular/router';
 
 const API = `${environment.apiUrl}/rapports`;
 
@@ -94,12 +95,38 @@ export class RapportsComponent implements OnInit {
     public authService: AuthService,
   ) {}
 
+  // Telephone (< 768 px) : en-tete compact, selecteur de semaine, actions secondaires dans « ⋯ »
+  menuActions = false;
+  get telephone(): boolean {
+    return window.innerWidth < 768;
+  }
+
+  // Selecteur de semaine (telephone)
+  choisirSemaine(id: string): void {
+    const r = this.rapports.find((x) => String(x.id) === String(id));
+    if (r) this.selectionner(r);
+  }
+
+  // ?impression=ID : page ouverte par le serveur pour fabriquer le PDF de l'application mobile
+  // (rapport-pdf.service). Le document est expose dans window.__micaRapportPdf, rien n'est telecharge.
+  private readonly route = inject(ActivatedRoute);
+  private impression: number | null = null;
+
   ngOnInit(): void {
+    const imp = parseInt(this.route.snapshot.queryParamMap.get('impression') || '', 10);
+    if (imp > 0 && this.impression === null) {
+      this.impression = imp;
+      this.selectionner({ id: imp });
+    }
     this.http.get<any[]>(`${API}/liste`).subscribe({
       next: (list) => {
         this.rapports = list;
         this.loadingListe = false;
         this.cdr.detectChanges();
+        // Telephone : pas de liste a cote de l'apercu, on ouvre directement le dernier rapport publie
+        if (this.telephone && !this.selected && !this.impression && list.length) {
+          this.selectionner(list.find((r) => r.statut === 'PUBLIE') || list[0]);
+        }
       },
       error: () => {
         this.loadingListe = false;
@@ -130,12 +157,31 @@ export class RapportsComponent implements OnInit {
         this.apercu = data;
         this.loadingApercu = false;
         this.cdr.detectChanges();
+        if (this.impression === rapport.id) setTimeout(() => this.exposerDocument());
       },
-      error: () => {
+      error: (err) => {
         this.loadingApercu = false;
         this.cdr.detectChanges();
+        if (this.impression === rapport.id) (window as any).__micaRapportPdf = { erreur: err?.error?.message || 'Rapport introuvable.' };
       },
     });
+  }
+
+  // Tableaux larges (beaucoup de colonnes) : police reduite pour que toutes les colonnes tiennent
+  private readonly preparerPdf = (doc: HTMLElement) => doc.querySelectorAll('table').forEach(t => {
+    if ((t.tHead?.rows[0]?.cells.length || 0) > 7) t.classList.add('pdf-large');
+  });
+
+  private get nomFichierPdf(): string {
+    return `rapport_semaine_${this.apercu?.rapport?.semaine_iso}_${this.apercu?.rapport?.annee}.pdf`;
+  }
+
+  // Mode impression : document expose pour le Chrome du serveur (meme rendu que « Télécharger le PDF »)
+  private exposerDocument(): void {
+    const el = document.getElementById('rapport-print-zone');
+    (window as any).__micaRapportPdf = el
+      ? { html: construireDocumentPdf(el, PDF_CSS, this.nomFichierPdf, { preparer: this.preparerPdf }), fichier: this.nomFichierPdf }
+      : { erreur: 'Document du rapport introuvable.' };
   }
 
   // ── Sections du rapport (numerotation selon les sections presentes)
@@ -302,12 +348,7 @@ export class RapportsComponent implements OnInit {
     this.pdfEnCours = true;
     this.cdr.detectChanges();
     try {
-      await imprimerPdf(this.http, el, PDF_CSS, `rapport_semaine_${sem}_${an}.pdf`, {
-        // Tableaux larges (beaucoup de colonnes) : police réduite pour que toutes les colonnes tiennent
-        preparer: (doc) => doc.querySelectorAll('table').forEach(t => {
-          if ((t.tHead?.rows[0]?.cells.length || 0) > 7) t.classList.add('pdf-large');
-        }),
-      });
+      await imprimerPdf(this.http, el, PDF_CSS, `rapport_semaine_${sem}_${an}.pdf`, { preparer: this.preparerPdf });
     } catch {
       this.toast.error('Impossible de générer le PDF.');
     } finally {

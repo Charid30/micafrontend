@@ -13,7 +13,8 @@
 <div class="flex flex-col lg:flex-row gap-3 md:gap-4 lg:min-h-[calc(100dvh-7rem)]">
 
   <!-- ── Liste des rapports ── -->
-  <div class="w-full lg:w-64 flex-shrink-0 card lg:overflow-y-auto lg:max-h-[calc(100dvh-7rem)]">
+  <!-- Telephone : remplacee par le selecteur de semaine de l'en-tete -->
+  <div class="hidden md:block w-full lg:w-64 flex-shrink-0 card lg:overflow-y-auto lg:max-h-[calc(100dvh-7rem)]">
     <h3 class="section-title mb-3">Rapports disponibles</h3>
 
     <div *ngIf="loadingListe" class="flex justify-center py-8">
@@ -74,8 +75,62 @@
     <!-- Aperçu chargé -->
     <ng-container *ngIf="apercu && !loadingApercu">
 
-      <!-- Barre d'actions -->
-      <div class="flex items-start sm:items-center justify-between mb-4 flex-wrap gap-2 no-print">
+      <!-- Barre d'actions du telephone : PDF en grand, semaine, autres actions dans « ⋯ » -->
+      <div class="md:hidden no-print mb-4 space-y-3">
+        <div>
+          <h2 class="text-lg font-extrabold text-primary-700">Rapport semaine {{ apercu.rapport.semaine_iso }}</h2>
+          <p class="text-xs text-gray-500">
+            {{ apercu.rapport.date_debut | date:'dd/MM' }} au {{ apercu.rapport.date_fin | date:'dd/MM/yyyy' }} ·
+            <span [class]="apercu.rapport.statut === 'PUBLIE' ? 'text-green-600' : 'text-amber-600'" class="font-semibold">
+              {{ apercu.rapport.statut === 'PUBLIE' ? 'Publié' : 'Brouillon' }}
+            </span>
+          </p>
+        </div>
+        <div class="flex items-stretch gap-2">
+          <button *ngIf="canExport" type="button" (click)="telecharger()" [disabled]="pdfEnCours"
+            class="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-primary-500 px-2 text-sm font-bold text-white shadow-sm active:bg-primary-600 disabled:opacity-60">
+            <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m-5-5l5 5 5-5M5 21h14"/></svg>
+            {{ pdfEnCours ? 'Préparation…' : 'Télécharger le PDF' }}
+          </button>
+          <span *ngIf="!canExport" class="flex h-11 flex-1 items-center rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs italic text-gray-500">Consultation uniquement</span>
+          <label for="semaine-mobile" class="sr-only">Semaine du rapport</label>
+          <select id="semaine-mobile" (change)="choisirSemaine($any($event.target).value)"
+            class="h-11 w-[5.75rem] flex-shrink-0 rounded-xl border border-primary-200 bg-white pl-3 pr-7 text-sm font-semibold text-primary-700">
+            <option *ngFor="let r of rapports" [value]="r.id" [selected]="selected?.id === r.id">
+              S{{ r.semaine_iso }}{{ r.annee !== apercu.rapport.annee ? ' / ' + r.annee : '' }}{{ r.statut === 'PUBLIE' ? '' : ' (brouillon)' }}
+            </option>
+          </select>
+          <div *ngIf="canExport || authService.isAdmin()" class="relative">
+            <button type="button" (click)="menuActions = !menuActions" [attr.aria-expanded]="menuActions" aria-label="Autres actions"
+              class="flex h-11 w-11 items-center justify-center rounded-xl border border-primary-200 bg-white text-primary-700">
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </button>
+            <ng-container *ngIf="menuActions">
+              <div class="fixed inset-0 z-20" (click)="menuActions = false" aria-hidden="true"></div>
+              <div class="absolute right-0 top-12 z-30 w-56 overflow-hidden rounded-2xl border border-primary-100 bg-white py-1 shadow-xl animate-fade-in-down" role="menu">
+                <button *ngIf="canExport" type="button" role="menuitem" (click)="menuActions = false; exporterExcel()" [disabled]="exportEnCours"
+                  class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-primary-700 active:bg-primary-50">
+                  <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>
+                  {{ exportEnCours ? 'Export…' : 'Exporter en Excel' }}
+                </button>
+                <button *ngIf="canExport" type="button" role="menuitem" (click)="menuActions = false; imprimer()"
+                  class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-primary-700 active:bg-primary-50">
+                  <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                  Imprimer
+                </button>
+                <button *ngIf="authService.isAdmin()" type="button" role="menuitem" (click)="menuActions = false; supprimer()" [disabled]="suppressionEnCours"
+                  class="flex w-full items-center gap-3 border-t border-primary-50 px-4 py-3 text-left text-sm font-medium text-red-700 active:bg-red-50">
+                  <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  {{ suppressionEnCours ? 'Suppression…' : 'Supprimer le rapport' }}
+                </button>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barre d'actions (tablette et ordinateur) -->
+      <div class="hidden md:flex items-start sm:items-center justify-between mb-4 flex-wrap gap-2 no-print">
         <div>
           <h2 class="page-title">
             Rapport — Semaine {{ apercu.rapport.semaine_iso }} / {{ apercu.rapport.annee }}

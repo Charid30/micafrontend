@@ -8,7 +8,8 @@
  *  Projet : MICA – SONABHY
  *  Merci
  * ================================================================== */
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { InstallationService } from './core/services/installation.service';
 
 @Component({
   selector: 'app-root',
@@ -18,4 +19,6 @@ import { Component, signal } from '@angular/core';
 })
 export class App {
   protected readonly title = signal('mica-webapp');
+  // Instancie des le demarrage : l'invite d'installation du navigateur arrive souvent avant la connexion
+  private readonly installation = inject(InstallationService);
 }

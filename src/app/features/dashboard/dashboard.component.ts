@@ -112,6 +112,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return v === null || v === undefined ? '—' : (v / 1e9).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
   abs(v: number): number { return Math.abs(v); }
+
+  // ── Telephone : en-tete et graphiques simplifies ──
+  get prenom(): string {
+    const u = this.authService.currentUser;
+    return (u?.agent?.prenoms || u?.agent?.nom || '').split(' ')[0];
+  }
+  // Barre d'autonomie : 45 jours = barre pleine
+  largeurAutonomie(j: number | null): number { return j ? Math.max(3, Math.min(100, (j / 45) * 100)) : 0; }
+  fondCouleur(c: string | null): string { return c === 'rouge' ? 'bg-red-500' : c === 'jaune' ? 'bg-yellow-500' : 'bg-primary-500'; }
+  texteCouleur(c: string | null): string { return c === 'rouge' ? 'text-red-600' : c === 'jaune' ? 'text-yellow-700' : 'text-primary-600'; }
+
+  // Ventes par jour (saisie quotidienne) : hauteur relative au meilleur jour
+  get ventesParJour(): { jour: string; quantite: number; hauteur: number }[] {
+    const v = (this.stats?.ventesJour || []).filter((x: any) => x.date);
+    const max = Math.max(1, ...v.map((x: any) => x.quantite));
+    const jours = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    return v.map((x: any) => ({ jour: jours[new Date(String(x.date).slice(0, 10) + 'T12:00:00').getDay()], quantite: x.quantite, hauteur: Math.max(4, (x.quantite / max) * 100) }));
+  }
+  readonly parIndex = (i: number) => i;
+  get totalVentes(): number {
+    return (this.stats?.ventesJour || []).reduce((t: number, x: any) => t + x.quantite, 0);
+  }
   // Couleur de l'autonomie moyenne : meme echelle que les stocks (rouge < 10 j, jaune < 15 j)
   classeAutonomie(v: number | null | undefined): string {
     if (v === null || v === undefined) return '';

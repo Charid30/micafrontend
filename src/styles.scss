@@ -339,3 +339,267 @@ fieldset {
     @apply text-base font-semibold text-primary-700 mb-4;
   }
 }
+
+/* ============================================================
+   Telephone (< 768 px) : version web mobile
+   - barre de navigation flottante en bas (layout) : le contenu et la barre
+     d'enregistrement se placent au-dessus (--hauteur-barre-mobile)
+   - tableaux simples affiches en cartes (classe posee par tableaux-mobiles.ts)
+   ============================================================ */
+:root {
+  /* 66 px de barre + 12 px de marge + zone de geste des iPhone */
+  --hauteur-barre-mobile: calc(78px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 767.98px) {
+  /* Barre d'enregistrement : carte flottante juste au-dessus de la navigation */
+  .save-bar {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(var(--hauteur-barre-mobile) + 0.5rem);
+    padding: 0.625rem;
+    border: 1px solid theme('colors.primary.200');
+    border-radius: 1rem;
+    box-shadow: 0 8px 24px rgba(11, 43, 38, 0.18);
+  }
+  .has-save-bar {
+    padding-bottom: 5rem;
+  }
+  /* Boutons de la barre : se partagent la largeur sans deborder */
+  .save-bar {
+    gap: 0.375rem;
+  }
+  .save-bar > * {
+    min-width: 0;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  /* --- Tableaux en cartes --- */
+  table.table-cartes,
+  table.table-cartes > tbody,
+  table.table-cartes > tfoot {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  /* En-tete masque : chaque valeur porte deja l'intitule de sa colonne (data-label) */
+  table.table-cartes > thead {
+    display: none;
+  }
+  table.table-cartes > tbody > tr,
+  table.table-cartes > tfoot > tr {
+    display: block;
+    margin: 0 0 0.75rem;
+    padding: 0.25rem 0.875rem 0.5rem;
+    background: #fff;
+    border: 1px solid theme('colors.primary.100');
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(11, 43, 38, 0.06);
+  }
+  table.table-cartes > tbody > tr:last-child,
+  table.table-cartes > tfoot > tr:last-child {
+    margin-bottom: 0;
+  }
+  /* Ligne de total : carte teintee */
+  table.table-cartes > tfoot > tr,
+  table.table-cartes > tbody > tr.bg-primary-50 {
+    background: theme('colors.primary.50');
+  }
+  table.table-cartes > tbody > tr > td,
+  table.table-cartes > tbody > tr > th,
+  table.table-cartes > tfoot > tr > td,
+  table.table-cartes > tfoot > tr > th {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.375rem 0;
+    border: 0;
+    border-top: 1px solid theme('colors.primary.50');
+    background: transparent !important;
+    box-shadow: none;
+    text-align: right;
+    white-space: normal;
+  }
+  /* Intitule de la colonne a gauche, valeur a droite */
+  table.table-cartes td[data-label]::before,
+  table.table-cartes th[data-label]::before {
+    content: attr(data-label);
+    flex: 0 1 45%;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: theme('colors.gray.500');
+  }
+  /* 1re cellule : titre de la carte */
+  table.table-cartes > tbody > tr > :first-child,
+  table.table-cartes > tfoot > tr > :first-child {
+    justify-content: flex-start;
+    border-top: 0;
+    padding-top: 0.625rem;
+    text-align: left;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: theme('colors.primary.800');
+  }
+  /* Cellule vide (colonne sans valeur pour cette ligne) : masquee */
+  table.table-cartes td[data-label]:empty {
+    display: none;
+  }
+  /* Ligne « Aucune donnee » ou message sur toute la largeur */
+  table.table-cartes tr.carte-ligne-seule > td {
+    justify-content: center;
+    text-align: center;
+    font-weight: 400;
+    color: theme('colors.gray.500');
+  }
+  /* Champs de saisie : moitie droite de la carte, 16 px pour eviter le zoom des iPhone */
+  table.table-cartes td[data-label] > input,
+  table.table-cartes td[data-label] > select,
+  table.table-cartes td[data-label] > textarea {
+    flex: 0 1 55%;
+    width: 55%;
+    min-width: 0;
+    font-size: 16px;
+  }
+  table.table-cartes td[data-label] > textarea {
+    flex-basis: 100%;
+  }
+  /* Boutons d'action : alignes a droite, zone tactile confortable */
+  table.table-cartes td[data-label] > button,
+  table.table-cartes td[data-label] > a {
+    min-height: 2.25rem;
+  }
+  /* Le conteneur defilant n'a plus de raison de defiler */
+  .overflow-x-auto:has(> table.table-cartes) {
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* Tableaux restes en defilement (grands tableaux) : indication discrete */
+  .overflow-x-auto:has(> table:not(.table-cartes)) {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Elements flottants (alertes, pastilles) : au-dessus de la barre de navigation */
+  .au-dessus-barre {
+    bottom: calc(var(--hauteur-barre-mobile) + 0.75rem) !important;
+  }
+  /* Champs enveloppes dans un bloc : meme largeur que les champs directs */
+  table.table-cartes td[data-label] > div,
+  table.table-cartes td[data-label] > label {
+    flex: 0 1 55%;
+    min-width: 0;
+  }
+}
+
+/* Panneaux qui montent du bas (menu, saisie, alertes, installation) */
+@keyframes monte-du-bas {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes apparait {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-monte {
+  animation: monte-du-bas 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.animate-apparait {
+  animation: apparait 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-monte, .animate-apparait { animation: none; }
+}
+
+/* Barre de navigation du telephone et panneaux (layout) */
+@layer components {
+  .onglet-mobile {
+    @apply flex flex-1 flex-col items-center justify-center gap-[3px] text-[11px] font-medium text-primary-100 transition-colors;
+  }
+  .onglet-mobile-icone {
+    @apply flex h-7 w-11 items-center justify-center rounded-full transition-colors;
+  }
+  .onglet-mobile-actif {
+    @apply font-bold text-[#9FE0BE];
+  }
+  .onglet-mobile-actif .onglet-mobile-icone {
+    @apply bg-primary-500;
+  }
+  .carte-alerte {
+    @apply flex flex-col gap-1.5 rounded-2xl border bg-white p-4 shadow-sm;
+  }
+  .carte-alerte-titre {
+    @apply text-xs font-bold uppercase tracking-wide;
+  }
+  .carte-alerte-action {
+    @apply mt-1 self-start text-sm font-semibold underline;
+  }
+  .puce-installation {
+    @apply flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 text-sm font-bold text-primary-500;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Bulles d'aide : retirees de la mise en page tant qu'elles sont cachees (sinon la page
+     defile horizontalement), puis affichees sur toute la largeur de l'ecran */
+  .info-tip:not(:hover):not(:focus) .info-tip-bulle {
+    display: none;
+  }
+  .info-tip-bulle,
+  .info-tip-droite .info-tip-bulle {
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    top: auto;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  /* Tableaux restes en defilement horizontal (grands tableaux du rapport, de l'Annexe...) */
+  /* Indication au-dessus du tableau, seulement s'il depasse l'ecran (data-glisser : tableaux-mobiles.ts) */
+  .overflow-x-auto[data-glisser]::before {
+    content: '\2194\00a0 Faites glisser le tableau vers la gauche';
+    position: sticky;
+    left: 0;
+    display: block;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: theme('colors.gray.500');
+    background: #fff;
+  }
+  /* 1re colonne (produit, depot...) toujours visible pendant le defilement */
+  .overflow-x-auto[data-glisser] > table > * > tr > :first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: #fff;
+    box-shadow: 4px 0 8px -4px rgba(11, 43, 38, 0.2);
+  }
+  .overflow-x-auto[data-glisser] > table > thead > tr > :first-child {
+    z-index: 2;
+    background: theme('colors.primary.800');
+  }
+  .overflow-x-auto[data-glisser] > table > * > tr.bg-primary-50 > :first-child,
+  .overflow-x-auto[data-glisser] > table > tfoot > tr > :first-child {
+    background: theme('colors.primary.50');
+  }
+}
+
+/* Carte d'alerte de l'onglet « Alertes » (telephone) */
+@layer components {
+  .carte-alerte-mobile {
+    @apply flex gap-3 rounded-[14px] bg-white p-3.5 shadow-[0_1px_4px_rgba(11,43,38,0.06)] active:bg-primary-50;
+  }
+}
