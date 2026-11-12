@@ -11,6 +11,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { suivreTableauxMobiles } from '../core/services/tableaux-mobiles';
 import { InstallationService } from '../core/services/installation.service';
+import { VERSION } from '../version';
 
 // Menu des modules sur telephone (panneau qui monte du bas)
 export interface ModuleMenu { libelle: string; url: string; icone: string; }
@@ -64,6 +65,8 @@ import { environment } from '../../environments/environment';
   standalone: false,
 })
 export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
+  // Version de la plateforme (package.json, recopiée par scripts/ecrire-version.js)
+  readonly version = VERSION;
   sidebarOpen = true;
   isMobile = false;
   // Telephone (< 768 px) : barre de navigation en bas et panneaux au lieu du menu lateral

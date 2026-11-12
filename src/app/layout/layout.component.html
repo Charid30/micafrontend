@@ -313,6 +313,7 @@
               {{ authService.currentUser?.agent?.nom }}
             </p>
             <p class="text-xs truncate text-primary-200">{{ authService.currentUser?.username }} · Mon profil</p>
+            <p class="text-[10px] tracking-wide text-primary-400" title="Version de la plateforme">Indicateur SONABHY v{{ version }}</p>
           </div>
         </a>
         <button *ngIf="sidebarOpen || isMobile" (click)="authService.logout()"
@@ -561,6 +562,7 @@
             Déconnexion
           </button>
         </div>
+        <p *ngIf="feuille === 'menu'" class="mt-3 text-center text-[11px] text-primary-500">Indicateur SONABHY v{{ version }}</p>
       </div>
 
       <!-- Alertes (maquette, ecran 5) : filtres, puis une carte par alerte, critiques d'abord -->
