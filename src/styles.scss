@@ -224,6 +224,16 @@ fieldset {
   .kpi-vide {
     @apply mt-1 text-sm font-medium italic text-gray-400;
   }
+  /* Variation par rapport a la semaine precedente (tableau de bord) */
+  .evol {
+    @apply inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-px text-[11px] font-semibold leading-4 tabular-nums;
+  }
+  .evol-favorable { @apply bg-primary-50 text-primary-700 ring-1 ring-inset ring-primary-200; }
+  .evol-defavorable { @apply bg-red-50 text-red-700 ring-1 ring-inset ring-red-200; }
+  .evol-stable { @apply bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-200; }
+  .kpi-evol {
+    @apply mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-400;
+  }
 
   /* Tableau */
   .table-header {

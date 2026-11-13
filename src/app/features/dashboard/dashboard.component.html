@@ -82,6 +82,10 @@
         semaine {{ stats.rapport.semaine_iso }} / {{ stats.rapport.annee }}
         (du {{ stats.rapport.date_debut | date:'dd/MM' }} au {{ stats.rapport.date_fin | date:'dd/MM/yyyy' }})
       </p>
+      <p *ngIf="comparaison" class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-0.5 text-xs text-primary-600 ring-1 ring-primary-100">
+        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/></svg>
+        Évolutions comparées à la {{ titreN1 | lowercase }}
+      </p>
       <ng-template #aucunRapport><p class="text-sm text-gray-500 mt-1">Aucun rapport publié pour le moment</p></ng-template>
     </div>
     <!-- Sélecteur de semaine : dernier rapport publié par défaut, semaines passées ou semaine en cours -->
@@ -124,6 +128,7 @@
           <p class="kpi-libelle">Autonomie moy. intérieur</p>
           <p class="kpi-valeur" [ngClass]="classeAutonomie(stats?.autonomieMoyenneInt)">{{ stats?.autonomieMoyenneInt | number:'1.1-1' }}<span class="kpi-unite">jours</span></p>
           <p class="kpi-precision">Objectif ≥ 15 jours</p>
+          <ng-container *ngTemplateOutlet="evol; context: { $implicit: variation(stats?.autonomieMoyenneInt, comparaison?.autonomieMoyenneInt, 'jours') }"></ng-container>
         </div>
       </div>
       <div class="kpi">
@@ -132,6 +137,7 @@
           <p class="kpi-libelle">Autonomie moy. extérieur</p>
           <p class="kpi-valeur" [ngClass]="classeAutonomie(stats?.autonomieMoyenneExt)">{{ stats?.autonomieMoyenneExt | number:'1.1-1' }}<span class="kpi-unite">jours</span></p>
           <p class="kpi-precision">Dépôts extérieurs</p>
+          <ng-container *ngTemplateOutlet="evol; context: { $implicit: variation(stats?.autonomieMoyenneExt, comparaison?.autonomieMoyenneExt, 'jours') }"></ng-container>
         </div>
       </div>
       <div class="kpi">
@@ -140,6 +146,7 @@
           <p class="kpi-libelle">Camions chargés</p>
           <p class="kpi-valeur">{{ stats?.camionsCharges | number }}</p>
           <p class="kpi-precision">Taux de réalisation : {{ stats?.tauxRealisation | percent:'1.0-1' }}</p>
+          <ng-container *ngTemplateOutlet="evol; context: { $implicit: variation(stats?.camionsCharges, comparaison?.camionsCharges, 'pct') }"></ng-container>
         </div>
       </div>
       <div class="kpi">
@@ -150,6 +157,7 @@
             {{ milliards(etat?.dettesEtat?.montant) }}<span class="kpi-unite">Mds FCFA</span>
           </p>
           <p class="kpi-precision">Moins-values, subventions gaz et SONABEL</p>
+          <ng-container *ngTemplateOutlet="evol; context: { $implicit: variation(etat?.dettesEtat?.montant, etat?.dettesEtat?.montant_n1, 'pct', false) }"></ng-container>
         </div>
       </div>
       <div class="kpi">
@@ -160,10 +168,18 @@
             {{ milliards(etat?.creancesEtat?.montant) }}<span class="kpi-unite">Mds FCFA</span>
           </p>
           <p class="kpi-precision">Plus-values, dettes fiscales</p>
+          <ng-container *ngTemplateOutlet="evol; context: { $implicit: variation(etat?.creancesEtat?.montant, etat?.creancesEtat?.montant_n1, 'pct', false) }"></ng-container>
         </div>
       </div>
     </div>
     <ng-template #nonRenseigne><p class="kpi-vide">Non renseigné</p></ng-template>
+    <!-- Puce d'évolution par rapport à la semaine précédente -->
+    <ng-template #evol let-v>
+      <p *ngIf="v" class="kpi-evol">
+        <span class="evol" [ngClass]="v.classe">{{ v.fleche }} {{ v.texte }}</span>
+        <span [attr.title]="titreN1">vs {{ semaineN1 }}</span>
+      </p>
+    </ng-template>
 
     <!-- Situation avec l'État (saisie Trésorerie du dernier rapport publié) -->
     <div class="card" *ngIf="etat">
@@ -200,6 +216,7 @@
             <tr>
               <th class="table-header rounded-tl-lg">Produit</th>
               <th class="table-header">Stock disponible</th>
+              <th *ngIf="comparaison" class="table-header whitespace-nowrap">Évolution <span class="font-normal normal-case opacity-80">vs {{ semaineN1 }}</span></th>
               <th class="table-header">Autonomie</th>
               <th class="table-header">Couverture sécurité</th>
               <th class="table-header rounded-tr-lg">Statut</th>
@@ -212,8 +229,17 @@
                 {{ s.stockDisponible | number:'1.0-0' }}
                 <span *ngIf="s.stockTonnes !== null && s.stockTonnes !== undefined" class="text-xs text-gray-500">(≈ {{ s.stockTonnes | number:'1.0-1' }} t)</span>
               </td>
-              <td class="table-cell">
+              <td *ngIf="comparaison" class="table-cell">
+                <ng-container *ngIf="variation(s.stockDisponible, s.stockPrecedent, 'pct') as v; else sansEvol">
+                  <span class="evol" [ngClass]="v.classe">{{ v.fleche }} {{ v.texte }}</span>
+                  <span class="ml-1.5 text-xs text-gray-400" [attr.title]="titreN1">{{ s.stockPrecedent | number:'1.0-0' }} m³</span>
+                </ng-container>
+                <ng-template #sansEvol><span class="text-gray-300">—</span></ng-template>
+              </td>
+              <td class="table-cell whitespace-nowrap">
                 <span [class]="s.couleur ? 'auto-' + s.couleur : 'auto-aucune'">{{ s.autonomie | number:'1.1-1' }} j</span>
+                <span *ngIf="comparaison && variation(s.autonomie, s.autonomiePrecedente, 'jours') as v" class="evol ml-1.5" [ngClass]="v.classe"
+                  [attr.title]="'Semaine précédente : ' + (s.autonomiePrecedente | number:'1.1-1') + ' j'">{{ v.fleche }} {{ v.texte }}</span>
               </td>
               <td class="table-cell">{{ s.tauxCouverture | percent:'1.0-1' }}</td>
               <td class="table-cell">

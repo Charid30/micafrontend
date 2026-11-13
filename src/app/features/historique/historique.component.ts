@@ -13,6 +13,7 @@ import { HttpClient } from '@angular/common/http';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface Serie { label: string; data: (number | null)[]; color: string; }
 interface HistoData { labels: string[]; datasets: Serie[]; }
@@ -84,7 +85,60 @@ export class HistoriqueComponent implements OnInit {
     elements: { line: { tension: 0.3 }, point: { radius: 4, hoverRadius: 6 } },
   };
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  // ── Export Excel des saisies d'une période (un an au plus)
+  readonly raccourcis = [
+    { jours: 7, libelle: '7 jours' }, { jours: 30, libelle: '30 jours' },
+    { jours: 90, libelle: '3 mois' }, { jours: 365, libelle: '1 an' },
+  ];
+  readonly aujourdhui = this.isoJour(new Date());
+  exportOuvert = false;
+  exportEnCours = false;
+  erreurExport: string | null = null;
+  raccourciActif: number | null = 30;
+  exportFin = this.aujourdhui;
+  exportDebut = this.isoJour(new Date(Date.now() - 29 * 86400000));
+
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private toast: ToastService) {}
+
+  private isoJour(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  choisirRaccourci(jours: number): void {
+    this.raccourciActif = jours;
+    this.exportFin = this.aujourdhui;
+    this.exportDebut = this.isoJour(new Date(Date.now() - (jours - 1) * 86400000));
+    this.erreurExport = null;
+  }
+
+  exporter(): void {
+    this.erreurExport = null;
+    if (this.exportFin < this.exportDebut) { this.erreurExport = 'La date de fin précède la date de début.'; return; }
+    this.exportEnCours = true;
+    const q = new URLSearchParams({ debut: this.exportDebut, fin: this.exportFin });
+    this.http.get(`${environment.apiUrl}/historique/export?${q.toString()}`, { responseType: 'blob', observe: 'response' }).subscribe({
+      next: (res) => {
+        const nom = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1]
+          || `Indicateur_SONABHY_historique_${this.exportDebut}_${this.exportFin}.xlsx`;
+        const url = URL.createObjectURL(res.body as Blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nom; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        this.exportEnCours = false;
+        this.exportOuvert = false;
+        this.toast.success('Fichier Excel téléchargé.');
+        this.cdr.detectChanges();
+      },
+      error: async (err) => {
+        // Réponse d'erreur reçue en Blob : on lit le message du serveur
+        let message = "Erreur lors de l'export Excel.";
+        try { message = JSON.parse(await (err.error as Blob).text()).message || message; } catch { /* message par défaut */ }
+        this.erreurExport = message;
+        this.exportEnCours = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
 
   ngOnInit(): void {
     this.http.get<any[]>(`${environment.apiUrl}/depots`).subscribe({ next: d => { this.depots = d.filter((x: any) => !x.del); this.cdr.detectChanges(); } });

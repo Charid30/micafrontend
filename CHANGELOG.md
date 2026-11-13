@@ -12,6 +12,22 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.1.0] – 13/11/2026
+
+### Tableau de bord
+- Comparaison avec la semaine précédente : puces d'évolution (flèche et écart, vert si favorable,
+  rouge sinon) sur les autonomies moyennes, les camions chargés, les dettes et créances de l'État ;
+  colonne « Évolution » et écart d'autonomie par produit dans le tableau des stocks.
+
+### Suivi des saisies (nouveau menu)
+- Qui a saisi quoi et quand : grille des 7 derniers jours (14 jours, 1 mois) par dépôt et par menu,
+  heure et auteur de chaque saisie, retards du jour, taux de complétude, saisies de la semaine et
+  dernières saisies. Visible avec le droit Tableau de bord.
+
+### Historique
+- Bouton « Exporter en Excel » : historique des saisies d'une période (7 jours, 30 jours, 3 mois,
+  1 an ou dates libres).
+
 ## [2.0.1] – 13/11/2026
 
 ### Administration

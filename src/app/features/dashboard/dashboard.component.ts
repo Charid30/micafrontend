@@ -16,6 +16,8 @@ import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
 import { AuthService } from '../../core/services/auth.service';
 
+interface Variation { fleche: string; texte: string; classe: string; }
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -143,6 +145,47 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // Taux de couverture des encours : couvert (>= 100 %), partiel (>= 50 %), insuffisant
   classeCouverture(taux: number): string {
     return taux >= 1 ? 'badge-success' : taux >= 0.5 ? 'badge-warning' : 'badge-danger';
+  }
+
+  // ── Comparaison avec la semaine précédente (N / N-1)
+  get comparaison(): any { return this.stats?.comparaison ?? null; }
+  get semaineN1(): string { const r = this.comparaison?.rapport; return r ? `S${r.semaine_iso}` : ''; }
+  get titreN1(): string {
+    const r = this.comparaison?.rapport;
+    if (!r) return '';
+    const j = (d: string) => String(d).slice(0, 10).split('-').reverse().slice(0, 2).join('/');
+    return `Semaine ${r.semaine_iso} / ${r.annee} (du ${j(r.date_debut)} au ${j(r.date_fin)})`;
+  }
+
+  /**
+   * Variation N / N-1 pour les puces : pourcentage, écart en jours ou en points.
+   * plusEstMieux : une hausse est favorable (stocks, autonomie, camions) ; sinon défavorable.
+   */
+  variation(n: number | null | undefined, n1: number | null | undefined,
+    mode: 'pct' | 'jours' | 'points' = 'pct', plusEstMieux = true): Variation | null {
+    if (n === null || n === undefined || n1 === null || n1 === undefined) return null;
+    const ecart = n - n1;
+    let valeur: number;
+    let texte: string;
+    const f1 = (v: number) => Math.abs(v).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (mode === 'pct') {
+      if (!n1) return null;
+      valeur = (ecart / Math.abs(n1)) * 100;
+      texte = `${f1(valeur)} %`;
+    } else if (mode === 'points') {
+      valeur = ecart * 100;
+      texte = `${f1(valeur)} pt`;
+    } else {
+      valeur = ecart;
+      texte = `${f1(valeur)} j`;
+    }
+    const stable = Math.abs(valeur) < 0.05;
+    const hausse = valeur > 0;
+    return {
+      fleche: stable ? '→' : hausse ? '▲' : '▼',
+      texte: stable ? 'stable' : `${hausse ? '+' : '−'}${texte}`,
+      classe: stable ? 'evol-stable' : (hausse === plusEstMieux ? 'evol-favorable' : 'evol-defavorable'),
+    };
   }
 
   ngOnDestroy(): void {

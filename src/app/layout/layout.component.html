@@ -47,6 +47,16 @@
         <span *ngIf="sidebarOpen || isMobile" class="text-sm font-medium">Tableau de bord</span>
       </a>
 
+      <!-- Suivi des saisies : qui a saisi quoi et quand (meme droit que le tableau de bord) -->
+      <a *ngIf="authService.hasPermission('dashboard', 'READ')"
+        routerLink="/suivi-saisies" routerLinkActive="sidebar-link-active" class="sidebar-link">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+        <span *ngIf="sidebarOpen || isMobile" class="text-sm font-medium">Suivi des saisies</span>
+      </a>
+
       <!-- Section Saisie -->
       <ng-container *ngIf="hasSaisieAccess">
         <div *ngIf="sidebarOpen || isMobile" class="px-3 pt-5 pb-1">

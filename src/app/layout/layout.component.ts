@@ -39,6 +39,7 @@ const ICONES = {
   calcul: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
   eclair: 'M13 10V3L4 14h7v7l9-11h-7z',
   historique: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+  suiviSaisies: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
   rapport: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z',
   comptes: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
   interim: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
@@ -316,6 +317,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
       ] },
       { titre: 'RDC', saisie: true, modules: this.paysRdc.map((p) => ({ libelle: p.libelle.replace('Dépôt de ', ''), url: p.url, icone: ICONES.globe })) },
       { titre: 'Suivi', modules: [
+        m(a.hasPermission('dashboard', 'READ'), 'Suivi des saisies', '/suivi-saisies', ICONES.suiviSaisies),
         m(this.hasHistoriqueAccess, 'Historique', '/historique', ICONES.historique),
         m(this.hasRapportsAccess, 'Rapports PDF', '/rapports', ICONES.rapport),
       ] },

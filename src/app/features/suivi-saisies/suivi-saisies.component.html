@@ -1,0 +1,199 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     Merci
+     ================================================================== -->
+<div class="space-y-6">
+
+  <!-- En-tête -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Suivi des saisies</h2>
+      <p class="text-sm text-gray-500 mt-1">
+        Qui a saisi quoi et quand, dépôt par dépôt.
+        <span *ngIf="data">Heure limite : <strong class="text-primary-700">{{ data.heure_limite }}</strong> (heure du rappel).</span>
+      </p>
+    </div>
+    <div class="page-actions">
+      <div class="inline-flex rounded-full bg-white p-1 shadow-sm ring-1 ring-primary-100" role="group" aria-label="Période affichée">
+        <button *ngFor="let p of periodes" type="button" (click)="choisirPeriode(p.jours)" [attr.aria-pressed]="jours === p.jours"
+          class="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
+          [ngClass]="jours === p.jours ? 'bg-primary-700 text-white shadow' : 'text-primary-700 hover:bg-primary-50'">{{ p.libelle }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="flex flex-col items-center justify-center py-20 gap-3">
+    <svg class="animate-spin w-8 h-8 text-primary-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+    </svg>
+    <p class="text-sm text-gray-400">Chargement du suivi...</p>
+  </div>
+
+  <div *ngIf="!loading && erreur" class="card border-red-200 bg-red-50 text-sm text-red-700">{{ erreur }}</div>
+
+  <ng-container *ngIf="!loading && data">
+
+    <!-- ══ Indicateurs du jour ══ -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <!-- Avancement du jour : anneau -->
+      <div class="kpi items-center">
+        <div class="relative h-14 w-14 flex-shrink-0" aria-hidden="true">
+          <svg class="h-14 w-14 -rotate-90" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#DAF1DE" stroke-width="4"/>
+            <circle *ngIf="avancement > 0" cx="18" cy="18" r="15.5" fill="none" stroke-linecap="round" stroke-width="4"
+              [attr.stroke]="avancement >= 90 ? '#235347' : avancement >= 50 ? '#F59E0B' : '#DC2626'"
+              [attr.stroke-dasharray]="(avancement * 0.974) + ' 100'"/>
+          </svg>
+          <span class="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-primary-800">{{ avancement }}%</span>
+        </div>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Saisies du jour</p>
+          <p class="kpi-valeur">{{ data.resume.saisis }}<span class="kpi-unite">/ {{ data.resume.attendus }}</span></p>
+          <p class="kpi-precision">{{ etatJournee }}</p>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icone" [ngClass]="data.resume.retards ? 'kpi-icone-rouge' : 'kpi-icone-vert'" aria-hidden="true">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">En retard aujourd'hui</p>
+          <p class="kpi-valeur" [ngClass]="data.resume.retards ? 'text-red-700' : ''">{{ data.resume.retards }}</p>
+          <p class="kpi-precision">{{ data.resume.tard }} saisie{{ data.resume.tard > 1 ? 's' : '' }} après {{ data.heure_limite }}</p>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icone kpi-icone-vert" aria-hidden="true">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="kpi-libelle">Complétude sur {{ jours === 31 ? '1 mois' : jours + ' jours' }}</p>
+          <p class="kpi-valeur" [ngClass]="texteTaux(data.resume.completude)">{{ data.resume.completude ?? '—' }}<span class="kpi-unite">%</span></p>
+          <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-primary-50">
+            <div class="h-full rounded-full transition-all" [ngClass]="classeTaux(data.resume.completude)" [style.width.%]="data.resume.completude || 0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="kpi">
+        <span class="kpi-icone" [ngClass]="data.resume.manquants_periode ? 'kpi-icone-rouge' : 'kpi-icone-vert'" aria-hidden="true">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </span>
+        <div class="min-w-0">
+          <p class="kpi-libelle">Saisies manquées</p>
+          <p class="kpi-valeur" [ngClass]="data.resume.manquants_periode ? 'text-red-700' : ''">{{ data.resume.manquants_periode }}</p>
+          <p class="kpi-precision">Jours passés de la période</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Légende -->
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-white/70 px-4 py-2.5 text-xs text-gray-600 ring-1 ring-primary-100">
+      <span *ngFor="let l of legende" class="inline-flex items-center gap-1.5">
+        <span class="inline-flex h-5 w-5 items-center justify-center rounded-md text-[11px] font-bold" [ngClass]="l.classe.replace('animate-pulse', '')">{{ l.symbole }}</span>
+        {{ l.libelle }}
+      </span>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 2xl:grid-cols-3">
+      <!-- ══ Grilles quotidiennes ══ -->
+      <div class="space-y-6 2xl:col-span-2">
+        <div *ngFor="let g of data.grilles; trackBy: parCode" class="card">
+          <ng-container *ngTemplateOutlet="grille; context: { titre: g.titre, taux: g.taux, lignes: g.lignes, colonne: 'Dépôt' }"></ng-container>
+        </div>
+        <div *ngIf="data.menus.length" class="card">
+          <ng-container *ngTemplateOutlet="grille; context: { titre: 'Autres saisies quotidiennes', taux: null, lignes: data.menus, colonne: 'Menu' }"></ng-container>
+        </div>
+        <div *ngIf="!data.grilles.length && !data.menus.length" class="card text-center text-sm text-gray-400">
+          Aucune saisie quotidienne n'est paramétrée (Paramètres › Fréquences de saisie).
+        </div>
+      </div>
+
+      <!-- ══ Colonne de droite : saisies hebdomadaires et activité ══ -->
+      <div class="space-y-6">
+        <div *ngIf="data.hebdo.length" class="card">
+          <div class="mb-3 flex items-baseline justify-between gap-2">
+            <h3 class="section-title !mb-0">Saisies de la semaine</h3>
+            <span class="text-xs text-gray-500">{{ data.semaine ? 'Semaine ' + data.semaine.semaine_iso + ' · du ' + (data.semaine.date_debut | date:'dd/MM') + ' au ' + (data.semaine.date_fin | date:'dd/MM') : 'Semaine en cours' }}</span>
+          </div>
+          <ul class="divide-y divide-primary-50">
+            <li *ngFor="let h of data.hebdo; trackBy: parCode" class="flex items-center gap-3 py-2.5">
+              <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                [ngClass]="h.saisi ? 'bg-primary-50 text-primary-600' : 'bg-amber-50 text-amber-600'" aria-hidden="true">{{ h.saisi ? '✓' : '…' }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-primary-800">{{ h.libelle }} <span class="ml-1 text-[11px] font-normal text-gray-400">{{ h.frequence }}</span></p>
+                <p class="truncate text-xs" [ngClass]="h.saisi ? 'text-gray-500' : 'text-amber-700'">
+                  {{ h.saisi ? 'Mise à jour le ' + (h.le | date:"dd/MM 'à' HH:mm":'UTC') + (h.par ? ' par ' + h.par : '') : 'Pas encore saisie cette semaine' }}
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 class="section-title">Dernières saisies</h3>
+          <ol *ngIf="data.activite.length; else aucuneActivite" class="relative space-y-4 border-l-2 border-primary-100 pl-5">
+            <li *ngFor="let a of data.activite.slice(0, 15); trackBy: parIndex" class="relative">
+              <span class="absolute -left-[2.05rem] top-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary-700 text-[10px] font-bold text-white ring-4 ring-white" aria-hidden="true">{{ initiales(a.par) }}</span>
+              <p class="text-sm leading-snug text-primary-800"><strong class="font-semibold">{{ a.par }}</strong> · {{ a.description }}</p>
+              <p class="mt-0.5 text-xs text-gray-400">{{ quand(a.le) }} · {{ a.module }}</p>
+            </li>
+          </ol>
+          <ng-template #aucuneActivite><p class="text-sm text-gray-400">Aucune saisie sur la période.</p></ng-template>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Grille : une ligne par dépôt (ou menu), une colonne par jour -->
+<ng-template #grille let-titre="titre" let-taux="taux" let-lignes="lignes" let-colonne="colonne">
+  <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+    <h3 class="section-title !mb-0">{{ titre }}</h3>
+    <span *ngIf="taux !== null" class="text-xs text-gray-500">Complétude : <strong [ngClass]="texteTaux(taux)">{{ taux }} %</strong></span>
+  </div>
+  <div class="overflow-x-auto rounded-lg border border-primary-100">
+    <table class="min-w-full text-sm" data-defilement>
+      <thead>
+        <tr class="bg-primary-50/70">
+          <th scope="col" class="sticky left-0 z-10 bg-primary-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-primary-600">{{ colonne }}</th>
+          <th *ngFor="let j of data.jours; trackBy: parCode" scope="col"
+            class="px-1 py-2 text-center text-[11px] font-semibold whitespace-nowrap"
+            [ngClass]="j.aujourdhui ? 'text-primary-800' : 'text-primary-500'">
+            <span [ngClass]="j.aujourdhui ? 'rounded-full bg-primary-700 px-2 py-0.5 text-white' : ''">{{ j.aujourdhui ? "Aujourd'hui" : j.libelle }}</span>
+          </th>
+          <th scope="col" class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-primary-600">Taux</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-primary-50 bg-white">
+        <tr *ngFor="let l of lignes; trackBy: parCode" class="hover:bg-primary-50/40">
+          <th scope="row" class="sticky left-0 z-10 max-w-[12rem] truncate bg-white px-3 py-2 text-left font-medium text-primary-800">{{ l.libelle }}</th>
+          <td *ngFor="let c of l.cases; let i = index; trackBy: parIndex" class="px-1 py-1.5 text-center"
+            [ngClass]="data.jours[i].aujourdhui ? 'bg-primary-50/50' : ''">
+            <span class="mx-auto flex h-9 w-12 flex-col items-center justify-center rounded-lg leading-none transition-transform hover:scale-110"
+              [ngClass]="classe(c)" [attr.title]="info(c, data.jours[i], l.libelle)" [attr.aria-label]="info(c, data.jours[i], l.libelle)">
+              <span class="text-[13px] font-bold">{{ symbole(c) }}</span>
+              <span *ngIf="c.heure" class="mt-0.5 text-[10px] font-semibold opacity-90 tabular-nums">{{ c.heure }}</span>
+            </span>
+          </td>
+          <td class="px-3 py-2 text-right">
+            <div *ngIf="l.taux !== null; else sansTaux" class="ml-auto flex w-24 items-center justify-end gap-2">
+              <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-primary-50">
+                <div class="h-full rounded-full" [ngClass]="classeTaux(l.taux)" [style.width.%]="l.taux"></div>
+              </div>
+              <span class="w-9 text-xs font-bold tabular-nums" [ngClass]="texteTaux(l.taux)">{{ l.taux }}%</span>
+            </div>
+            <ng-template #sansTaux><span class="text-xs text-gray-300">—</span></ng-template>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</ng-template>

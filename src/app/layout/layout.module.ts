@@ -40,6 +40,7 @@ const routes: Routes = [
       { path: 'saisie/caf-moyen', loadChildren: () => import('../features/saisie/caf-moyen/caf-moyen.module').then(m => m.CafMoyenModule) },
       { path: 'saisie/centrales', loadChildren: () => import('../features/saisie/centrales/centrales.module').then(m => m.CentralesModule) },
       { path: 'rdc/:pays', loadChildren: () => import('../features/rdc/rdc.module').then(m => m.RdcModule) },
+      { path: 'suivi-saisies', loadChildren: () => import('../features/suivi-saisies/suivi-saisies.module').then(m => m.SuiviSaisiesModule) },
       { path: 'historique', loadChildren: () => import('../features/historique/historique.module').then(m => m.HistoriqueModule) },
       { path: 'rapports', loadChildren: () => import('../features/rapports/rapports.module').then(m => m.RapportsModule) },
       { path: 'administration/utilisateurs', loadChildren: () => import('../features/administration/utilisateurs/utilisateurs.module').then(m => m.UtilisateursModule) },
