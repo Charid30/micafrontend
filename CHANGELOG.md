@@ -6,11 +6,17 @@ Numérotation `MAJEUR.MINEUR.CORRECTIF` :
 - **correctif** : corrections de bugs.
 
 Chaque version est marquée dans git par une étiquette (`v2.0.0`…). La plateforme web et le backend
-portent le même numéro et se déploient ensemble. La version s'affiche en bas du menu
+partagent le même numéro majeur.mineur ; le correctif avance séparément quand un seul des deux change. La version s'affiche en bas du menu
 (« Indicateur SONABHY v2.0.0 ») et dans le panneau Menu sur téléphone.
 
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
+
+## [2.0.1] – 13/11/2026
+
+### Administration
+- Sauvegardes : l'état des sauvegardes s'affiche en message flottant en haut à droite, fermable par une
+  croix ; il réapparaît seulement si son contenu change (nouvelle sauvegarde, alerte).
 
 ## [2.0.0] – 12/11/2026
 
