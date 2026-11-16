@@ -12,6 +12,12 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.2.1] – 16/11/2026
+
+### Corrections
+- Fenêtre des messages ciblés : en-tête « Notification de mise à jour » ; nom de l'expéditeur et mention
+  de l'accusé de lecture retirés de la fenêtre (l'accusé reste visible des administrateurs).
+
 ## [2.2.0] – 16/11/2026
 
 ### Messages ciblés
