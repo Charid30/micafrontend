@@ -12,6 +12,24 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.2.0] – 16/11/2026
+
+### Messages ciblés
+- Nouvel écran **Administration → Messages** : rédaction, choix d'un ou plusieurs destinataires
+  (recherche, filtre par direction, « Tout sélectionner »), suivi des envois avec l'accusé de lecture de
+  chaque destinataire (« Lu le … à … » ou « Pas encore lu »), mis à jour en direct ; retrait d'un message.
+- Icône « Envoyer un message » sur chaque compte dans Agents et comptes (destinataire présélectionné).
+- Fenêtre du message à la connexion, ou aussitôt si l'utilisateur est connecté : elle reste affichée
+  jusqu'au clic sur **« Marquer comme lu »** ; plusieurs messages s'affichent l'un après l'autre.
+  Sur téléphone, la fenêtre monte du bas de l'écran.
+
+## [2.1.1] – 16/11/2026
+
+### Droits
+- « Suivi des saisies » apparaît dans la fenêtre des permissions ; le menu n'est visible qu'avec ce droit
+  (il dépendait auparavant du droit Tableau de bord). Un compte qui n'a que ce droit arrive directement
+  sur le suivi des saisies.
+
 ## [2.1.0] – 13/11/2026
 
 ### Tableau de bord

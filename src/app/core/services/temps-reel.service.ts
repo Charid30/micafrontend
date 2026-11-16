@@ -9,7 +9,7 @@
  *  Merci
  * ================================================================== */
 import { DestroyRef, Injectable, inject } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 const DELAI_REGROUPEMENT_MS = 1500;   // plusieurs enregistrements rapproches : un seul rechargement
@@ -34,6 +34,8 @@ export class TempsReelService {
   readonly onglet = Math.random().toString(36).slice(2, 14);
   /** Auteur de l'enregistrement a signaler dans le bandeau, null s'il n'y a rien a signaler */
   readonly avis$ = new BehaviorSubject<string | null>(null);
+  /** Sujet de chaque signal reçu (ex. « message-recu » : message ciblé envoyé ou retiré) */
+  readonly signal$ = new Subject<string>();
 
   private flux: EventSource | null = null;
   private actif = false;
@@ -127,6 +129,7 @@ export class TempsReelService {
   private surMessage(donnees: string): void {
     let e: { sujet: string; par: string | null; onglet: string | null };
     try { e = JSON.parse(donnees); } catch { return; }
+    this.signal$.next(e.sujet);
     if (e.onglet === this.onglet || !this.ecran) return;
     if (!this.ecran.sujets.includes('*') && !this.ecran.sujets.includes(e.sujet)) return;
     this.programmer(e.par);

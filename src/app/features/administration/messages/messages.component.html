@@ -1,0 +1,177 @@
+<!-- ==================================================================
+     Auteur : BATIONO Ulrich Rachid Kévin
+              Expert en Sécurité Informatique
+              Développeur FullStack
+              Tel: +226 51 57 82 89 // 66 72 02 32
+              Whatsapp: +226 51 57 82 89
+              Mail: bkevin@sonabhy.bf // bationor10@gmail.com
+     Projet : MICA – SONABHY
+     Merci
+     ================================================================== -->
+<div class="space-y-6">
+
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Messages</h2>
+      <p class="mt-1 text-sm text-gray-500">Écrivez à un ou plusieurs comptes : le message s'affiche à leur prochaine connexion, ou aussitôt s'ils sont connectés, jusqu'à ce qu'ils le marquent comme lu.</p>
+    </div>
+  </div>
+
+  <!-- ── Nouveau message -->
+  <div class="card !p-0 overflow-hidden">
+    <div class="grid lg:grid-cols-5">
+
+      <!-- Rédaction -->
+      <div class="space-y-4 p-4 md:p-6 lg:col-span-3">
+        <h3 class="section-title">Nouveau message</h3>
+        <div>
+          <div class="flex items-baseline justify-between">
+            <label class="label" for="message-titre">Titre</label>
+            <span class="text-xs tabular-nums" [class.text-red-600]="titre.length > titreMax" [class.text-gray-400]="titre.length <= titreMax">{{ titre.length }} / {{ titreMax }}</span>
+          </div>
+          <input id="message-titre" class="input-field" [(ngModel)]="titre" maxlength="150" autocomplete="off"
+            placeholder="Ex. : Saisie des stocks de Péni">
+        </div>
+        <div>
+          <div class="flex items-baseline justify-between">
+            <label class="label" for="message-contenu">Message</label>
+            <span class="text-xs tabular-nums" [class.text-red-600]="contenu.length > contenuMax" [class.text-gray-400]="contenu.length <= contenuMax">{{ contenu.length }} / {{ contenuMax }}</span>
+          </div>
+          <textarea id="message-contenu" class="input-field min-h-[11rem] resize-y leading-relaxed" [(ngModel)]="contenu" maxlength="2000"
+            placeholder="Ex. : Merci de saisir les stocks du dépôt de Péni avant 9h chaque matin."></textarea>
+        </div>
+
+        <!-- Destinataires choisis -->
+        <div>
+          <div class="mb-1.5 flex items-center justify-between">
+            <span class="label !mb-0">Destinataires <span class="font-normal text-gray-500">({{ choisis.size }})</span></span>
+            <button *ngIf="choisis.size" type="button" class="text-xs font-medium text-gray-500 hover:text-red-600" (click)="viderChoix()">Tout retirer</button>
+          </div>
+          <div class="flex min-h-[2.75rem] flex-wrap gap-1.5 rounded-lg border border-dashed border-primary-200 bg-primary-50/40 p-2">
+            <span *ngIf="!choisis.size" class="self-center px-1 text-sm text-gray-400">Choisissez un ou plusieurs comptes dans la liste.</span>
+            <span *ngFor="let c of selection"
+              class="inline-flex items-center gap-1 rounded-full bg-white py-0.5 pl-2.5 pr-1 text-xs font-medium text-primary-700 shadow-sm ring-1 ring-primary-200">
+              {{ c.nom }}
+              <button type="button" class="flex h-5 w-5 items-center justify-center rounded-full text-primary-400 hover:bg-red-50 hover:text-red-600"
+                (click)="retirerChoix(c.id)" [attr.aria-label]="'Retirer ' + c.nom">
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-width="2.5" d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 border-t border-primary-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs text-gray-500">Un accusé de lecture (date et heure) est enregistré quand le destinataire clique sur « Marquer comme lu ».</p>
+          <button type="button" class="btn-primary flex-shrink-0" [disabled]="!peutEnvoyer" (click)="envoyer()">
+            <svg class="h-4 w-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            {{ envoi ? 'Envoi…' : choisis.size > 1 ? 'Envoyer à ' + choisis.size + ' comptes' : 'Envoyer' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Choix des comptes -->
+      <div class="flex flex-col border-t border-primary-100 bg-primary-50/40 lg:col-span-2 lg:border-l lg:border-t-0">
+        <div class="space-y-2 p-4 md:px-5 md:pt-6">
+          <div class="relative">
+            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+            </svg>
+            <input class="input-field bg-white !pl-9" [(ngModel)]="recherche" placeholder="Rechercher un nom, un identifiant…" aria-label="Rechercher un compte" autocomplete="off">
+          </div>
+          <div class="flex gap-2">
+            <select class="input-field bg-white" [(ngModel)]="direction" aria-label="Filtrer par direction">
+              <option value="">Toutes les directions</option>
+              <option *ngFor="let d of directions" [value]="d">{{ d }}</option>
+            </select>
+            <button type="button" class="btn-secondary flex-shrink-0 whitespace-nowrap" [disabled]="!filtres.length" (click)="basculerFiltres()">
+              {{ tousFiltresChoisis ? 'Désélectionner' : 'Tout sélectionner' }}
+            </button>
+          </div>
+          <p class="text-xs text-gray-500">{{ filtres.length }} compte{{ filtres.length > 1 ? 's' : '' }} affiché{{ filtres.length > 1 ? 's' : '' }}</p>
+        </div>
+
+        <ul class="max-h-[22rem] flex-1 overflow-y-auto border-t border-primary-100 bg-white lg:max-h-[26rem]" role="listbox" aria-multiselectable="true" aria-label="Comptes">
+          <li *ngFor="let c of filtres">
+            <label class="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-primary-50 md:px-5"
+              [class.bg-primary-50]="choisis.has(c.id)">
+              <input type="checkbox" class="h-4 w-4 flex-shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-400"
+                [checked]="choisis.has(c.id)" (change)="basculer(c)">
+              <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                [ngClass]="choisis.has(c.id) ? 'bg-primary-600 text-white' : 'bg-primary-100 text-primary-700'">{{ initiales(c.nom) }}</span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium text-gray-800">{{ c.nom }}</span>
+                <span class="block truncate text-xs text-gray-500">{{ c.identifiant }}<ng-container *ngIf="c.direction"> · {{ c.direction }}</ng-container></span>
+              </span>
+              <span *ngIf="c.admin" class="badge-neutral flex-shrink-0">Admin</span>
+            </label>
+          </li>
+          <li *ngIf="!filtres.length" class="px-5 py-8 text-center text-sm text-gray-400">Aucun compte ne correspond.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Messages envoyés et accusés de lecture -->
+  <div class="card">
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <h3 class="section-title">Messages envoyés</h3>
+      <span class="text-xs text-gray-400">Mis à jour en direct</span>
+    </div>
+
+    <div *ngIf="chargement" class="py-6 text-center text-sm text-gray-500">Chargement…</div>
+    <div *ngIf="erreur" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ erreur }}</div>
+
+    <div *ngIf="!chargement && !erreur && !envoyes.length" class="flex flex-col items-center gap-2 py-10 text-center">
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-500">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+      </span>
+      <p class="text-sm text-gray-500">Aucun message envoyé pour le moment.</p>
+    </div>
+
+    <ul *ngIf="!chargement && envoyes.length" class="space-y-3">
+      <li *ngFor="let m of envoyes" class="overflow-hidden rounded-xl border border-primary-100 transition-shadow hover:shadow-sm">
+        <button type="button" class="flex w-full items-start gap-4 px-4 py-3.5 text-left md:px-5" (click)="basculerDetail(m)" [attr.aria-expanded]="ouverts.has(m.id)">
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-semibold text-primary-800">{{ m.titre }}</span>
+            <span class="mt-0.5 block text-xs text-gray-500">{{ date(m.envoye_le) }} · par {{ m.auteur }} · {{ m.total }} destinataire{{ m.total > 1 ? 's' : '' }}</span>
+            <span class="mt-2.5 flex items-center gap-3">
+              <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-primary-100">
+                <span class="block h-full rounded-full transition-[width] duration-500"
+                  [ngClass]="m.lus === m.total ? 'bg-primary-500' : 'bg-amber-400'" [style.width.%]="pourcentage(m)"></span>
+              </span>
+              <span class="flex-shrink-0 text-xs font-semibold tabular-nums" [ngClass]="m.lus === m.total ? 'text-primary-600' : 'text-amber-700'">
+                {{ m.lus === m.total ? 'Lu par tous' : m.lus + ' / ' + m.total + ' lu' + (m.lus > 1 ? 's' : '') }}
+              </span>
+            </span>
+          </span>
+          <svg class="mt-1 h-4 w-4 flex-shrink-0 text-gray-400 transition-transform" [class.rotate-180]="ouverts.has(m.id)" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+
+        <div *ngIf="ouverts.has(m.id)" class="border-t border-primary-100 bg-primary-50/30 px-4 py-4 md:px-5">
+          <p class="mb-4 whitespace-pre-line break-words rounded-lg bg-white p-3 text-sm leading-relaxed text-gray-700 ring-1 ring-primary-100">{{ m.contenu }}</p>
+          <ul class="divide-y divide-primary-100 overflow-hidden rounded-lg bg-white ring-1 ring-primary-100">
+            <li *ngFor="let d of m.destinataires" class="flex items-center gap-3 px-3 py-2">
+              <span class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                [ngClass]="d.lu_le ? 'bg-primary-100 text-primary-700' : 'bg-amber-100 text-amber-800'">{{ initiales(d.nom) }}</span>
+              <span class="min-w-0 flex-1 truncate text-sm text-gray-800">{{ d.nom }} <span class="text-xs text-gray-400">{{ d.identifiant }}</span></span>
+              <span *ngIf="d.lu_le" class="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                Lu le {{ date(d.lu_le) }}
+              </span>
+              <span *ngIf="!d.lu_le" class="flex-shrink-0 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">Pas encore lu</span>
+            </li>
+          </ul>
+          <div *ngIf="m.lus < m.total" class="mt-3 flex justify-end">
+            <button type="button" class="btn-danger-outline" (click)="retirer(m)">Retirer le message</button>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>

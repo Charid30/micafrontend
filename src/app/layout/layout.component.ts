@@ -42,6 +42,7 @@ const ICONES = {
   suiviSaisies: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
   rapport: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z',
   comptes: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+  message: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
   interim: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
   structures: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
   journal: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
@@ -59,6 +60,7 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../core/services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { MessagesService, MessageRecu } from '../core/services/messages.service';
 
 @Component({
   selector: 'app-layout',
@@ -93,6 +95,32 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
   private abonnementAvis?: Subscription;
   private readonly toast = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
+  // Messages ciblés : affichés un par un, jusqu'au clic sur « Marquer comme lu »
+  private readonly messages = inject(MessagesService);
+  messagesALire: MessageRecu[] = [];
+  marquageEnCours = false;
+  private abonnementMessages?: Subscription;
+  get messageAffiche(): MessageRecu | null { return this.messagesALire[0] ?? null; }
+
+  async marquerCommeLu(m: MessageRecu): Promise<void> {
+    if (this.marquageEnCours) return;
+    this.marquageEnCours = true;
+    try {
+      await this.messages.marquerLu(m.id);
+    } catch {
+      this.toast.error('Impossible d\'enregistrer la lecture du message. Réessayez.');
+    } finally {
+      this.marquageEnCours = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  dateMessage(iso: string): string {
+    const d = new Date(iso);
+    const jour = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+    return `le ${jour} à ${heure}`;
+  }
   // Notifications push obligatoires : la fenetre bloque l'application tant que l'etat est
   // « inactif » ou « refuse ». Navigateur sans prise en charge (ancien, ou site hors HTTPS) :
   // pas de blocage, sinon personne ne pourrait travailler.
@@ -175,6 +203,8 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
     this.abonnementInactivite?.unsubscribe();
     this.inactivite.arreter();
     this.abonnementAvis?.unsubscribe();
+    this.abonnementMessages?.unsubscribe();
+    this.messages.arreter();
     this.tempsReel.arreter();
   }
 
@@ -183,6 +213,13 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
     this.inactivite.demarrer();
     this.abonnementInactivite = this.inactivite.restant$.subscribe((s) => { this.deconnexionDans = s; this.cdr.detectChanges(); });
     this.abonnementAvis = this.tempsReel.avis$.subscribe((par) => { this.auteurModification = par; this.cdr.detectChanges(); });
+    this.abonnementMessages = this.messages.aLire$.subscribe((l) => {
+      const nouveau = l[0]?.id !== this.messagesALire[0]?.id;
+      this.messagesALire = l;
+      this.cdr.detectChanges();
+      if (nouveau && l.length) setTimeout(() => document.getElementById('bouton-message-lu')?.focus());
+    });
+    this.messages.demarrer();
     // Droits relus : le menu suit tout changement fait depuis la derniere connexion
     this.authService.relire().subscribe({ next: () => this.cdr.detectChanges(), error: () => { /* 401 : l'intercepteur ferme la session */ } });
     // Notifications push : deja autorisees sur ce navigateur -> rattachees a l'utilisateur connecte ;
@@ -204,6 +241,7 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe(() => {
         if (this.isMobile) this.sidebarOpen = false;
+        this.messages.verifier();
         if (this.router.url.startsWith('/rdc/')) this.rdcOuvert = true;
         this.fermerFeuille();
       });
@@ -317,12 +355,13 @@ export class LayoutComponent implements OnInit, AfterViewInit, OnDestroy {
       ] },
       { titre: 'RDC', saisie: true, modules: this.paysRdc.map((p) => ({ libelle: p.libelle.replace('Dépôt de ', ''), url: p.url, icone: ICONES.globe })) },
       { titre: 'Suivi', modules: [
-        m(a.hasPermission('dashboard', 'READ'), 'Suivi des saisies', '/suivi-saisies', ICONES.suiviSaisies),
+        m(a.hasPermission('suivi-saisies', 'READ'), 'Suivi des saisies', '/suivi-saisies', ICONES.suiviSaisies),
         m(this.hasHistoriqueAccess, 'Historique', '/historique', ICONES.historique),
         m(this.hasRapportsAccess, 'Rapports PDF', '/rapports', ICONES.rapport),
       ] },
       { titre: 'Administration', admin: true, modules: admin ? [
         m(true, 'Agents et comptes', '/administration/utilisateurs', ICONES.comptes),
+        m(true, 'Messages', '/administration/messages', ICONES.message),
         m(true, 'Intérims', '/administration/interims', ICONES.interim),
         m(true, 'Structures', '/administration/structures', ICONES.structures),
         m(true, "Journal d'audit", '/administration/securite/journal', ICONES.journal),

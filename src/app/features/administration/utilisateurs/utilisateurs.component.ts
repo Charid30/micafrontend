@@ -44,6 +44,7 @@ const MODULE_LABELS: Record<string, string> = {
   'rdc-cote-ivoire': "RDC : Dépôt de Côte d'Ivoire",
   'rdc-togo': 'RDC : Dépôt de Togo',
   'dashboard': 'Tableau de bord',
+  'suivi-saisies': 'Suivi des saisies (qui a saisi quoi et quand)',
   'rapports': 'Rapports PDF',
   'administration': 'Administration',
   'parametres': 'Paramètres',

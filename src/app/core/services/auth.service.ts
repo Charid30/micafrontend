@@ -72,6 +72,7 @@ export class AuthService {
   /** Premiere page accessible : un compte RDC n'a pas le tableau de bord */
   pageAccueil(): string {
     if (this.hasPermission('dashboard', 'READ')) return '/dashboard';
+    if (this.hasPermission('suivi-saisies', 'READ')) return '/suivi-saisies';
     if (this.hasPermission('rdc-ghana', 'READ')) return '/rdc/ghana';
     if (this.hasPermission('rdc-benin', 'READ')) return '/rdc/benin';
     if (this.hasPermission('rdc-cote-ivoire', 'READ')) return '/rdc/cote-ivoire';
