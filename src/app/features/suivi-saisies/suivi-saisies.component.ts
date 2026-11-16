@@ -13,6 +13,8 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ecouterTempsReel } from '../../core/services/temps-reel.service';
+import { DialogService } from '../../core/services/dialog.service';
+import { ToastService } from '../../core/services/toast.service';
 
 type Etat = 'ok' | 'tard' | 'retard' | 'manquant' | 'attendu' | 'libre';
 interface Case { etat: Etat; heure?: string; par?: string; }
@@ -35,6 +37,9 @@ const ETATS: Record<Etat, { libelle: string; classe: string; symbole: string }> 
 export class SuiviSaisiesComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly dialog = inject(DialogService);
+  private readonly toast = inject(ToastService);
+  relanceEnCours = false;
   // Rafraîchissement automatique dès qu'une saisie est enregistrée
   private readonly direct = ecouterTempsReel(['*'], () => this.charger(), { consultation: true });
   private sub: Subscription | null = null;
@@ -63,6 +68,43 @@ export class SuiviSaisiesComponent implements OnInit, OnDestroy {
       error: (err) => {
         this.loading = false;
         this.erreur = err.error?.message || 'Erreur lors du chargement (' + (err.status || 'réseau') + ').';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  // ── Relance des retardataires
+  /** Saisies du jour attendues et pas encore faites */
+  get aRelancer(): number {
+    const r = this.data?.resume;
+    return r ? Math.max(0, (r.attendus ?? 0) - (r.saisis ?? 0)) : 0;
+  }
+
+  async relancer(): Promise<void> {
+    if (this.relanceEnCours || !this.aRelancer) return;
+    const n = this.aRelancer;
+    const ok = await this.dialog.confirmer({
+      titre: 'Relancer les retardataires ?',
+      message: `${n} saisie${n > 1 ? 's' : ''} du jour ${n > 1 ? 'ne sont' : 'n\'est'} pas encore faite${n > 1 ? 's' : ''}. `
+        + 'Chaque agent concerné recevra une notification de mise à jour listant ses saisies à effectuer.',
+      confirmer: 'Relancer',
+    });
+    if (!ok) return;
+    this.relanceEnCours = true;
+    this.cdr.detectChanges();
+    this.http.post<{ personnes: number; noms: string[]; sans_responsable: string[] }>(`${environment.apiUrl}/dashboard/saisies/relancer`, {}).subscribe({
+      next: (r) => {
+        const qui = r.personnes === 1 ? r.noms[0] : `${r.personnes} agents`;
+        this.toast.success(`Relance envoyée à ${qui}.`);
+        if (r.sans_responsable.length) {
+          this.toast.error(`Sans agent responsable : ${r.sans_responsable.slice(0, 3).join(', ')}${r.sans_responsable.length > 3 ? '…' : ''}. Attribuez les droits de saisie.`);
+        }
+        this.relanceEnCours = false;
+        this.cdr.detectChanges();
+      },
+      error: (e) => {
+        this.toast.error(e?.error?.message || 'Relance impossible.');
+        this.relanceEnCours = false;
         this.cdr.detectChanges();
       },
     });

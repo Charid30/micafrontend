@@ -12,6 +12,13 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.3.0] – 16/11/2026
+
+### Suivi des saisies
+- Bouton **« Relancer »** (avec le nombre de saisies du jour non faites) : les agents concernés reçoivent
+  une notification de mise à jour listant leurs saisies à effectuer ; confirmation avant l'envoi, compte
+  rendu des agents relancés et des saisies sans agent responsable.
+
 ## [2.2.1] – 16/11/2026
 
 ### Corrections
