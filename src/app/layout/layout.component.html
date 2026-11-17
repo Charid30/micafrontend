@@ -280,6 +280,13 @@
           <span *ngIf="sidebarOpen || isMobile" class="text-sm">Structures</span>
         </a>
 
+        <a routerLink="/administration/securite/etat" routerLinkActive="sidebar-link-active" class="sidebar-link">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h4l3-8 4 16 3-8h4"/>
+          </svg>
+          <span *ngIf="sidebarOpen || isMobile" class="text-sm">État du système</span>
+        </a>
+
         <a routerLink="/administration/securite/journal" routerLinkActive="sidebar-link-active" class="sidebar-link">
           <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

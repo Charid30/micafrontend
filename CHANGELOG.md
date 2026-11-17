@@ -12,6 +12,17 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.4.0] – 17/11/2026
+
+### Mon profil
+- Section **« Sessions actives »** : appareils connectés au compte (navigateur ou application mobile,
+  adresse, dernière activité), bouton « Fermer » par appareil et « Déconnecter les autres appareils ».
+
+### Administration
+- Nouvelle page **« État du système »** : points à traiter, dernière sauvegarde, revue des dépendances
+  (avec lancement à la demande), espace disque, base de données, application et serveur, comptes et
+  sécurité, et liste des sessions actives de tous les comptes avec fermeture à distance.
+
 ## [2.3.0] – 16/11/2026
 
 ### Suivi des saisies

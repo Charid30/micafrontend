@@ -50,8 +50,13 @@ export class ProfilComponent implements OnInit {
   etatNotif: EtatNotifications | null = null;
   notifEnCours = false;
 
+  // Sessions actives : appareils connectes a ce compte
+  sessions: any[] | null = null;
+  sessionEnCours: number | 'autres' | null = null;
+
   ngOnInit(): void {
     this.charger();
+    this.chargerSessions();
     this.notifications.etat().then(e => { this.etatNotif = e; this.cdr.detectChanges(); });
   }
 
@@ -74,6 +79,56 @@ export class ProfilComponent implements OnInit {
 
   testerNotifications(): Promise<void> {
     return this.actionNotif(async () => { this.toast.success((await this.notifications.tester()).message); });
+  }
+
+  chargerSessions(): void {
+    this.http.get<any[]>(`${this.api}/sessions`).subscribe({
+      next: (s) => { this.sessions = s; this.cdr.detectChanges(); },
+      error: () => { this.sessions = []; this.cdr.detectChanges(); },
+    });
+  }
+
+  get autresSessions(): number {
+    return (this.sessions || []).filter(s => !s.courante).length;
+  }
+
+  async fermerSession(s: any): Promise<void> {
+    if (!(await this.dialog.confirmer({
+      titre: 'Fermer cette session ?',
+      message: `${s.appareil} (${s.ip || 'adresse inconnue'}) sera déconnecté immédiatement. Si vous ne reconnaissez pas cet appareil, changez aussi votre mot de passe.`,
+      confirmer: 'Fermer la session',
+      danger: true,
+    }))) return;
+    this.sessionEnCours = s.id;
+    this.cdr.detectChanges();
+    this.http.delete<any>(`${this.api}/sessions/${s.id}`).subscribe({
+      next: (r) => { this.toast.success(r.message); this.sessionEnCours = null; this.chargerSessions(); },
+      error: (err) => { this.toast.error(err.error?.message || 'Fermeture impossible.'); this.sessionEnCours = null; this.chargerSessions(); },
+    });
+  }
+
+  async fermerAutresSessions(): Promise<void> {
+    const n = this.autresSessions;
+    if (!(await this.dialog.confirmer({
+      titre: 'Déconnecter les autres appareils ?',
+      message: `${n > 1 ? `Les ${n} autres sessions seront fermées` : "L'autre session sera fermée"} immédiatement. Seul cet appareil restera connecté.`,
+      confirmer: 'Déconnecter',
+      danger: true,
+    }))) return;
+    this.sessionEnCours = 'autres';
+    this.cdr.detectChanges();
+    this.http.post<any>(`${this.api}/sessions/fermer-autres`, {}).subscribe({
+      next: (r) => { this.toast.success(r.message); this.sessionEnCours = null; this.chargerSessions(); },
+      error: (err) => { this.toast.error(err.error?.message || 'Fermeture impossible.'); this.sessionEnCours = null; this.chargerSessions(); },
+    });
+  }
+
+  /** « à l'instant », « il y a 12 min », « il y a 2 h » */
+  depuis(date: string): string {
+    const min = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 60000));
+    if (min < 2) return "à l'instant";
+    if (min < 60) return `il y a ${min} min`;
+    return `il y a ${Math.floor(min / 60)} h${min % 60 ? ` ${String(min % 60).padStart(2, '0')}` : ''}`;
   }
 
   charger(): void {
