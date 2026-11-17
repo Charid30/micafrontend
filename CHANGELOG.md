@@ -12,6 +12,14 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.4.1] – 17/11/2026
+
+### Affichage
+- La police **Inter** est désormais fournie par la plateforme elle-même (`public/fonts/inter`,
+  licence SIL OFL) au lieu de Google Fonts : en production, la politique de sécurité (CSP) bloquait
+  son téléchargement et l'application s'affichait avec la police du système. Plus aucun appel à
+  Google Fonts ; la CSP reste inchangée (les adresses Google ont été retirées du `.htaccess`).
+
 ## [2.4.0] – 17/11/2026
 
 ### Mon profil
