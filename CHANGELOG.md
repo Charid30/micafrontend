@@ -12,7 +12,16 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
-## [2.4.1] – 17/11/2026
+## [2.4.2] – 23/11/2026
+
+### Correction – Stocks des dépôts extérieurs
+- Chaque dépôt extérieur s'enregistre séparément (bouton « Enregistrer » propre à chaque pays, au lieu
+  d'un bouton unique pour les quatre dépôts). Le Suivi des saisies montre ainsi l'heure réelle de saisie de
+  chaque dépôt : auparavant, un seul clic enregistrait Bénin, Côte d'Ivoire, Ghana et Togo à la même minute.
+- Mention « Non enregistré » sur un dépôt modifié et pas encore enregistré ; les saisies en cours sur les
+  autres dépôts sont conservées quand on enregistre un dépôt.
+
+ – 17/11/2026
 
 ### Affichage
 - La police **Inter** est désormais fournie par la plateforme elle-même (`public/fonts/inter`,

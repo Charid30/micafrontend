@@ -32,6 +32,10 @@ export class StocksComponent implements OnInit {
   private readonly dialog = inject(DialogService);
   loading = true;
   saving = false;
+  /** Depot exterieur en cours d'enregistrement (chaque depot exterieur s'enregistre separement) */
+  depotEnregistre: number | null = null;
+  /** Valeurs recues du serveur au dernier chargement (depot|produit) : distingue ce qui est en cours de saisie */
+  private valeursChargees = new Map<string, { stock_bacs: any; action: any }>();
   archiving = false;
   error: string | null = null;
 
@@ -108,7 +112,27 @@ export class StocksComponent implements OnInit {
 
   ngOnInit(): void { this.charger(); }
 
-  charger(): void {
+  // Saisies pas encore enregistrees (valeur differente de celle du serveur), pour les conserver au rechargement
+  private brouillons(exclure: number | null): Map<string, { stock_bacs: any; action: any }> {
+    const b = new Map<string, { stock_bacs: any; action: any }>();
+    if (this.jourVu || this.consultation) return b;
+    for (const d of [...this.depotsInterieurs, ...this.depotsExterieurs]) {
+      if (d.depot_id === exclure) continue;
+      for (const l of d.lignes) {
+        const cle = `${d.depot_id}|${l.produit_id}`;
+        const v = this.valeursChargees.get(cle);
+        const egal = (a: any, c: any) => (a ?? '') === (c ?? '') || (a !== null && a !== '' && c !== null && c !== '' && Number(a) === Number(c));
+        if (v && (!egal(l.stock_bacs, v.stock_bacs) || (l.action ?? '') !== (v.action ?? ''))) {
+          b.set(cle, { stock_bacs: l.stock_bacs, action: l.action });
+        }
+      }
+    }
+    return b;
+  }
+
+  /** exclure : depot qui vient d'etre enregistre (ses valeurs sont celles du serveur) */
+  charger(exclure: number | null = null): void {
+    const enCours = this.brouillons(exclure);
     this.loading = !this.direct.silencieux;
     const params: Record<string, string> = this.jourVu ? { date: this.jourVu } : {};
     this.http.get(`${environment.apiUrl}/stocks/semaine-courante`, { params }).subscribe({
@@ -129,6 +153,16 @@ export class StocksComponent implements OnInit {
         this.depotsExterieurs = (data.depots_exterieurs || []).map((d: any) => ({
           ...d, lignes: d.lignes.map((l: any) => ({ ...l, stock_bacs: l.saisi ? l.stock_disponible : null, stock_embranchement: null })),
         }));
+        // Valeurs du serveur memorisees, puis saisies en cours sur les autres depots remises en place
+        this.valeursChargees.clear();
+        for (const d of [...this.depotsInterieurs, ...this.depotsExterieurs]) {
+          for (const l of d.lignes) {
+            const cle = `${d.depot_id}|${l.produit_id}`;
+            this.valeursChargees.set(cle, { stock_bacs: l.stock_bacs, action: l.action });
+            const b = enCours.get(cle);
+            if (b) { l.stock_bacs = b.stock_bacs; l.action = b.action; }
+          }
+        }
         this.recalculer();
         // Telephone : premiere carte modifiable depliee d'office (saisie a portee de pouce)
         if (!this.ouvertureInitiale && this.depotsInterieurs.length) {
@@ -333,12 +367,30 @@ export class StocksComponent implements OnInit {
     });
   }
 
+  /** Bouton « Enregistrer » d'un depot exterieur : visible pour qui peut saisir ce depot ou les actions */
+  peutEnregistrerDepot(depot: any): boolean {
+    return !this.consultation && !this.estPublie && (this.peutSaisir(depot.depot_id) || this.droits.actions);
+  }
+
+  /** Depot exterieur avec une saisie pas encore enregistree */
+  depotModifie(depot: any): boolean {
+    return depot.lignes.some((l: any) => {
+      const v = this.valeursChargees.get(`${depot.depot_id}|${l.produit_id}`);
+      if (!v) return false;
+      const a = l.stock_bacs ?? '', c = v.stock_bacs ?? '';
+      const memeStock = a === c || (a !== '' && c !== '' && Number(a) === Number(c));
+      return !memeStock || (l.action ?? '') !== (v.action ?? '');
+    });
+  }
+
   // ── Sauvegarde : chaque utilisateur n'envoie que les champs de son droit
-  async onSave(): Promise<void> {
+  // Depots exterieurs : un depot a la fois (heure de saisie propre a chaque depot dans le suivi des saisies)
+  async onSave(depot: any = null): Promise<void> {
     if (this.consultation) return; // jour passé : lecture seule
     const vide = (v: any) => v === null || v === undefined || v === '';
     const interieurs = this.depotsInterieurs.flatMap(d => this.lignesVisibles(d).map(l => ({ ...l, depot_id: d.depot_id, interieur: true })));
-    const exterieurs = this.depotsExterieurs.flatMap(d => d.lignes.map((l: any) => ({ ...l, depot_id: d.depot_id, interieur: false })));
+    const exterieurs = this.depotsExterieurs.filter(d => !depot || d.depot_id === depot.depot_id)
+      .flatMap(d => d.lignes.map((l: any) => ({ ...l, depot_id: d.depot_id, interieur: false })));
     // Uniquement le perimetre de la page : une saisie interieure n'ecrase pas une saisie exterieure faite en parallele
     // Une ligne laissee vide n'est pas envoyee : elle n'ecrase pas le dernier stock saisi (ex. autre depot)
     const lignes = (this.interieur ? interieurs : exterieurs).map(l => ({
@@ -356,16 +408,20 @@ export class StocksComponent implements OnInit {
     }
     if (!lignes.length) { this.toast.error('Aucun stock saisi : renseignez au moins un produit.'); return; }
 
-    if (!(await this.dialog.confirmerEnregistrement(`la saisie des stocks ${this.interieur ? 'intérieurs' : 'extérieurs'} du jour`))) return;
+    const nom = depot ? (depot.pays || depot.depot_libelle) : null;
+    if (!(await this.dialog.confirmerEnregistrement(nom ? `la saisie des stocks du jour pour ${nom}` : `la saisie des stocks ${this.interieur ? 'intérieurs' : 'extérieurs'} du jour`))) return;
     this.saving = true;
+    this.depotEnregistre = depot?.depot_id ?? null;
     this.http.post(`${environment.apiUrl}/stocks/saisie`, { rapport_id: this.rapport.id, lignes }).subscribe({
       next: (res: any) => {
         this.saving = false;
-        this.toast.success(res?.message || 'Saisie enregistrée avec succès.');
-        this.charger();
+        this.depotEnregistre = null;
+        this.toast.success(nom ? `Stocks de ${nom} enregistrés.` : (res?.message || 'Saisie enregistrée avec succès.'));
+        this.charger(depot?.depot_id ?? null);
       },
       error: (err) => {
         this.saving = false;
+        this.depotEnregistre = null;
         this.toast.error(err.error?.message || 'Erreur lors de l\'enregistrement.');
         this.cdr.detectChanges();
       },

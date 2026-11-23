@@ -54,7 +54,7 @@
         </svg>
         {{ archiving ? 'Archivage...' : 'Archiver' }}
       </button>
-      <button *ngIf="canWriteAny && !consultation" (click)="onSave()" [disabled]="saving || loading || estPublie"
+      <button *ngIf="interieur && canWriteAny && !consultation" (click)="onSave()" [disabled]="saving || loading || estPublie"
         class="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <svg *ngIf="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -310,7 +310,24 @@
 
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div *ngFor="let depot of depotsExterieurs">
-          <h4 class="text-sm font-bold mb-2 px-1 text-primary-600">{{ depot.pays || depot.depot_libelle }}</h4>
+          <!-- Chaque dépôt extérieur s'enregistre séparément : son heure de saisie lui est propre -->
+          <div class="mb-2 flex items-center justify-between gap-3 px-1">
+            <h4 class="text-sm font-bold text-primary-600">{{ depot.pays || depot.depot_libelle }}
+              <span *ngIf="depotModifie(depot)" class="badge-warning ml-1 align-middle">Non enregistré</span>
+            </h4>
+            <button *ngIf="peutEnregistrerDepot(depot)" type="button" (click)="onSave(depot)" [disabled]="saving || loading"
+              [ngClass]="depotModifie(depot) ? 'btn-primary' : 'btn-outline'" class="flex flex-shrink-0 items-center gap-2 !py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              [attr.aria-label]="'Enregistrer les stocks de ' + (depot.pays || depot.depot_libelle)">
+              <svg *ngIf="depotEnregistre !== depot.depot_id" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+              </svg>
+              <svg *ngIf="depotEnregistre === depot.depot_id" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              {{ depotEnregistre === depot.depot_id ? 'Enregistrement...' : 'Enregistrer' }}
+            </button>
+          </div>
           <div class="overflow-x-auto rounded-lg border border-primary-200">
             <table class="min-w-full text-sm">
               <thead>
