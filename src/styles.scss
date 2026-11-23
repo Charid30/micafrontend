@@ -24,6 +24,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ecran de 15 pouces (1280 a 1535 px de large) : taille de base reduite a 14 px au lieu de 16.
+   Toutes les tailles etant en rem (textes, marges, champs, menu lateral, tableaux), l'ensemble de la
+   plateforme devient plus dense, comme un zoom a 87,5 % : les tableaux de saisie ne debordent plus et
+   les cartes gardent leurs proportions. Au-dela de 1535 px et sur telephone, rien ne change. */
+@media (min-width: 1280px) and (max-width: 1535.98px) {
+  html { font-size: 14px; }
+  /* Tableaux : cellules un peu moins espacees et champ « Actions » moins large, pour tenir sans defiler */
+  th.table-header, .table-cell { padding-left: 0.625rem; padding-right: 0.625rem; }
+  .table-input-wide { min-width: 11rem; }
+}
+
 @keyframes fade-in-down {
   from { opacity: 0; transform: translateY(-12px); }
   to   { opacity: 1; transform: translateY(0); }

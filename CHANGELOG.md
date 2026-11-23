@@ -12,6 +12,18 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.4.3] – 23/11/2026
+
+### Affichage sur écran de 15 pouces (1280 à 1535 px de large)
+- Taille de base de la plateforme réduite à 14 px (au lieu de 16) : textes, marges, champs, menu latéral et
+  tableaux deviennent plus denses, comme un zoom à 87,5 %. Les tableaux de saisie des stocks ne débordent
+  plus (dépôts intérieurs : plus de défilement horizontal) et les 5 indicateurs du tableau de bord restent
+  alignés sans devenir carrés. Cellules de tableau un peu moins espacées. Rien ne change au-delà de 1535 px
+  ni sur téléphone.
+- Menu latéral en rem (il suit la taille de base).
+- Suivi des saisies : « Saisies de la semaine » et « Dernières saisies » côte à côte sous les grilles
+  (à partir de 1024 px) ; dans la colonne de droite au-delà de 1535 px, comme avant.
+
 ## [2.4.2] – 23/11/2026
 
 ### Correction – Stocks des dépôts extérieurs

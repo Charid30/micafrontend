@@ -24,7 +24,7 @@
   <aside *ngIf="!isTelephone" class="bg-primary-800" aria-label="Menu principal"
     [class]="isMobile
       ? 'fixed left-0 top-0 h-full z-50 w-64 max-w-[85vw] flex flex-col shadow-xl transition-transform duration-300 ' + (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
-      : 'relative flex-shrink-0 flex flex-col shadow-xl transition-all duration-300 overflow-hidden ' + (sidebarOpen ? 'w-[260px]' : 'w-16')">
+      : 'relative flex-shrink-0 flex flex-col shadow-xl transition-all duration-300 overflow-hidden ' + (sidebarOpen ? 'w-[16.25rem]' : 'w-16')">
     <!-- Logo -->
     <div class="flex items-center gap-3 px-4 py-5 border-b flex-shrink-0 border-primary-600">
       <img src="icon-192.png?v=2" alt="Logo SONABHY" width="36" height="36"
@@ -387,7 +387,7 @@
     <!-- Alertes du compte : pastilles flottantes en bas a gauche du contenu (le coin bas-droit est celui du tableau de bord),
          un clic ouvre le detail. Au-dessus de la barre d'enregistrement sur petit ecran. -->
     <div *ngIf="alertesFlottantes" class="fixed z-30 flex flex-col items-start gap-2"
-      [ngClass]="isTelephone ? 'left-3 au-dessus-barre' : isMobile ? 'left-4 bottom-20' : (sidebarOpen ? 'left-[280px] bottom-5' : 'left-[84px] bottom-5')">
+      [ngClass]="isTelephone ? 'left-3 au-dessus-barre' : isMobile ? 'left-4 bottom-20' : (sidebarOpen ? 'left-[17.5rem] bottom-5' : 'left-[84px] bottom-5')">
 
       <!-- Derniere minute avant la deconnexion pour inactivite -->
       <div *ngIf="deconnexionDans !== null" class="w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-primary-200 bg-white shadow-xl animate-fade-in-down" role="alertdialog" aria-label="Déconnexion imminente">

@@ -124,8 +124,9 @@
         </div>
       </div>
 
-      <!-- ══ Colonne de droite : saisies hebdomadaires et activité ══ -->
-      <div class="space-y-6">
+      <!-- ══ Saisies hebdomadaires et activité : côte à côte sous les grilles (écran de 15 pouces),
+           l'une sous l'autre dans la colonne de droite au-delà de 1536 px ══ -->
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start 2xl:grid-cols-1">
         <div *ngIf="data.hebdo.length" class="card">
           <div class="mb-3 flex items-baseline justify-between gap-2">
             <h3 class="section-title !mb-0">Saisies de la semaine</h3>
