@@ -12,6 +12,18 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.4.4] – 24/11/2026
+
+### Historique & Tendances : graphiques restylés
+- Vue « Stocks jour par jour » : un graphique par produit, chacun à sa propre échelle (le Super 91 à
+  50 000 m³ n'écrase plus les produits à quelques centaines de m³), dernière valeur saisie en titre,
+  légende commune ; chaque dépôt garde la même couleur dans tous les graphiques.
+- Vues hebdomadaires : même découpage automatique quand les séries ont des ordres de grandeur trop
+  différents (écart de plus de 8 fois) ; sinon un seul graphique dont l'axe part de zéro.
+- Palette de 8 couleurs vérifiée (daltonisme, séparation, luminosité), attribuée dans un ordre fixe ;
+  traits de 2 px, points cernés de blanc, grille discrète, graduations rondes, lissage sans faux pic,
+  réticule et infobulle au survol. Jours sans saisie toujours reliés en pointillés.
+
 ## [2.4.3] – 23/11/2026
 
 ### Affichage sur écran de 15 pouces (1280 à 1535 px de large)
