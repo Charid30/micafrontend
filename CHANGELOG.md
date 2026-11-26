@@ -12,6 +12,13 @@ partagent le même numéro majeur.mineur ; le correctif avance séparément quan
 Changer de version : `npm version correctif|mineur|majeur` (ou `npm version 2.1.0`). Le numéro est
 recopié automatiquement dans `src/app/version.ts`. Puis `git push --follow-tags`.
 
+## [2.5.0] – 26/11/2026
+
+### Veille marché : semaine N-1 reprise automatiquement
+- La colonne « Semaine N-1 » est remplie avec les prix de la semaine N du rapport précédent et grisée
+  pour les utilisateurs ; les administrateurs peuvent la corriger.
+- Sans prix la semaine précédente, la case N-1 reste à saisir.
+
 ## [2.4.4] – 24/11/2026
 
 ### Historique & Tendances : graphiques restylés
